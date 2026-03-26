@@ -23,7 +23,7 @@
   // Uncomment the next line if you want to keep your containers running after VS Code shuts down.
   // "shutdownAction": "none",
   // Re-apply node user password on each start (password stored in .env as NODE_PASSWORD)
-  "postStartCommand": "echo \"node:${NODE_PASSWORD}\" | sudo chpasswd",
+  "postStartCommand": ".devcontainer/postStartCommand.sh",
   // Configure tool-specific properties.
   // "customizations": {},
   // Uncomment to connect as an existing user other than the container default. More info: https://aka.ms/dev-containers-non-root.
