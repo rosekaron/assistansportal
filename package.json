@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\""
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "devcontainer:up": "npx @devcontainers/cli up --workspace-folder .",
+    "devcontainer:down": "npx @devcontainers/cli down --workspace-folder ."
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
