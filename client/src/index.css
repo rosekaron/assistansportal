@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ── Light theme — calm, warm, accessible ── */
+
+    /* Backgrounds */
+    --background:        0 0% 97%;        /* warm off-white, never harsh white */
+    --foreground:        220 15% 20%;     /* dark slate, easier than pure black */
+
+    /* Cards */
+    --card:              0 0% 100%;       /* clean white cards */
+    --card-foreground:   220 15% 20%;
+
+    /* Popovers */
+    --popover:           0 0% 100%;
+    --popover-foreground: 220 15% 20%;
+
+    /* Primary — calm teal-blue, trustworthy, Swedish healthcare feel */
+    --primary:           201 70% 42%;     /* #1a8fb0 — calm mid blue */
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary — soft warm grey */
+    --secondary:         210 20% 93%;     /* very light blue-grey */
+    --secondary-foreground: 220 15% 35%;
+
+    /* Muted — subtle backgrounds */
+    --muted:             210 20% 95%;
+    --muted-foreground:  220 10% 50%;     /* readable mid-grey */
+
+    /* Accent */
+    --accent:            210 20% 93%;
+    --accent-foreground: 220 15% 25%;
+
+    /* Status */
+    --destructive:       0 65% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders — gentle, not harsh */
+    --border:            210 20% 88%;
+    --input:             210 20% 88%;
+    --ring:              201 70% 42%;
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 16px;           /* larger base for accessibility */
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Comfortable scrollbars */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: hsl(var(--muted)); }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
+
+  /* Larger, more readable headings */
+  h1 { @apply text-2xl font-semibold tracking-tight; }
+  h2 { @apply text-xl font-semibold; }
+  h3 { @apply text-lg font-medium; }
+
+  /* Focus rings — important for accessibility */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
