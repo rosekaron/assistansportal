@@ -77,9 +77,6 @@ export default function SettingsPage() {
     syncEnabled: true, reminders: true, reminderHours: "24",
   });
 
-  const [sched, setSched] = useState({
-    allowSelfBook: true, selfBookApproval: "require-approval", bookingWindowDays: "14",
-  });
 
   function setField(field: keyof FormState, val: string) {
     setForm((f) => ({ ...f, [field]: val }));
@@ -114,11 +111,7 @@ export default function SettingsPage() {
         reminders:     settings.gcal_reminders    !== "false",
         reminderHours: settings.gcal_reminder_hours ?? "24",
       }));
-      setSched({
-        allowSelfBook:     settings.allow_self_book !== "false",
-        selfBookApproval:  settings.self_book_approval  ?? "require-approval",
-        bookingWindowDays: settings.booking_window_days ?? "14",
-      });
+
     }
   }, [settings]);
 
@@ -144,14 +137,6 @@ export default function SettingsPage() {
     },
   });
 
-  const saveSched = useMutation({
-    mutationFn: () => settingsApi.update({
-      allow_self_book:     String(sched.allowSelfBook),
-      self_book_approval:  sched.selfBookApproval,
-      booking_window_days: sched.bookingWindowDays,
-    }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings"] }),
-  });
 
   function simulateConnect() {
     setConnecting(true);
@@ -255,57 +240,6 @@ export default function SettingsPage() {
               <div className="flex justify-end gap-2">
                 {gcalSaved && <span className="text-xs text-emerald-400 self-center">✓ Saved</span>}
                 <Button size="sm" variant="outline" onClick={() => saveGcal.mutate()}>Save calendar settings</Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Scheduling */}
-      <SectionLabel>Scheduling</SectionLabel>
-      <Card className="mb-6">
-        <CardContent className="pt-5 space-y-4">
-          <ToggleRow
-            label="Allow assistants to self-book open slots"
-            sub="When enabled, assistants can see and claim available slots directly"
-            value={sched.allowSelfBook}
-            onChange={(v) => { setSched((s) => ({ ...s, allowSelfBook: v })); saveSched.mutate(); }}
-          />
-          {sched.allowSelfBook && (
-            <div className="ml-10 pl-4 border-l-2 border-border space-y-4">
-              <div className="space-y-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">When an assistant self-books</p>
-                {[
-                  { val: "require-approval", label: "Require your approval",   sub: "You review each booking before it's confirmed" },
-                  { val: "auto-confirm",     label: "Auto-confirm",            sub: "Bookings are immediately confirmed without review" },
-                ].map((opt) => (
-                  <label key={opt.val} className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                      type="radio" value={opt.val}
-                      checked={sched.selfBookApproval === opt.val}
-                      onChange={() => { setSched((s) => ({ ...s, selfBookApproval: opt.val })); saveSched.mutate(); }}
-                      className="mt-1 accent-primary"
-                    />
-                    <div>
-                      <p className="text-sm font-medium">{opt.label}</p>
-                      <p className="text-xs text-muted-foreground">{opt.sub}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-              <div className="space-y-1.5">
-                <Label>Booking window</Label>
-                <Select
-                  value={sched.bookingWindowDays}
-                  onValueChange={(v) => { setSched((s) => ({ ...s, bookingWindowDays: v })); saveSched.mutate(); }}
-                >
-                  <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {["7","14","21","28"].map((d) => (
-                      <SelectItem key={d} value={d}>Up to {d} days in advance</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           )}
