@@ -1239,7 +1239,7 @@
 
 | # | Question | Affects | Status |
 |---|----------|---------|--------|
-| OQ-01 | How are Väntetid and Beredskapstid weighted against the weekly hours limits under lagen om arbetstid i husligt arbete? Do they count at full rate, half rate, or some other ratio toward the 40h ordinary + 12h overtime cap? | US-17, fk-rules.md | **Open — to be confirmed with FK or legal counsel** |
+| OQ-01 | How are Väntetid and Beredskapstid weighted against the weekly hours limits under lagen om arbetstid i husligt arbete? Do they count at full rate, half rate, or some other ratio toward the 40h ordinary + 12h overtime cap? | US-17, fk-rules.md | **Closed — counting 1:1 for MVP. Conservative: more likely to warn than to miss a violation. Revisit if guardians report false blocks.** |
 
 ---
 
