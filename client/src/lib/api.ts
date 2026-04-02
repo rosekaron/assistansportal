@@ -11,7 +11,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (r) => r,
   (err) => {
-    if (err.response?.status === 401) {
+    const isAuthEndpoint = err.config?.url?.includes("/auth/");
+    if (err.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem("token");
       window.location.href = "/login";
     }
@@ -47,6 +48,7 @@ export const profileApi = {
 // Assistants
 export const assistantsApi = {
   list:   () => api.get("/assistants"),
+  get:    (id: string) => api.get(`/assistants/${id}`),
   create: (data: Record<string, unknown>) => api.post("/assistants", data),
   update: (id: string, data: Record<string, unknown>) => api.put(`/assistants/${id}`, data),
   delete: (id: string) => api.delete(`/assistants/${id}`),

@@ -26,11 +26,17 @@ const FORMS_DIR = (() => {
   return candidates[0];
 })();
 
-async function decryptAndFill(formPath: string, fields: Record<string, string>): Promise<Buffer> {
+// fields: text values. checks: field names to check (true) or uncheck (false).
+async function decryptAndFill(
+  formPath: string,
+  fields: Record<string, string>,
+  checks: Record<string, boolean> = {},
+  radios: Record<string, string> = {},
+): Promise<Buffer> {
   const tmpOut = path.join(os.tmpdir(), `fk_decrypted_${Date.now()}.pdf`);
 
   try {
-    // Decrypt using qpdf (via node-qpdf2) — handles owner-password-only FK forms
+    // Decrypt using qpdf — handles owner-password-only FK forms
     const result = spawnSync("qpdf", ["--decrypt", formPath, tmpOut]);
     if (result.status !== 0) {
       throw new Error(`qpdf: ${result.stderr?.toString() ?? result.stdout?.toString()}`);
@@ -42,6 +48,12 @@ async function decryptAndFill(formPath: string, fields: Record<string, string>):
 
     for (const [name, value] of Object.entries(fields)) {
       try { form.getTextField(name).setText(value); } catch { /* skip unknown field */ }
+    }
+    for (const [name, checked] of Object.entries(checks)) {
+      try { checked ? form.getCheckBox(name).check() : form.getCheckBox(name).uncheck(); } catch {}
+    }
+    for (const [name, value] of Object.entries(radios)) {
+      try { form.getRadioGroup(name).select(value); } catch {}
     }
 
     form.flatten();
@@ -81,8 +93,13 @@ router.post("/fk3059", requireAuth, async (req, res) => {
       ))
       .orderBy(entries.date, entries.startTime);
 
-    // ── Build field map ───────────────────────────────────────
-    const fields: Record<string, string> = {};
+    // ── Build field maps ──────────────────────────────────────
+    const fields:  Record<string, string>  = {};
+    const checks:  Record<string, boolean> = {};
+    const radios:  Record<string, string>  = {};
+
+    // Section 5: Employer type — always '3' (privatperson / egna arbetsgivaren)
+    radios["form1[0].#subform[0].RadioButtonList[2]"] = "3";
 
     // Page 1 — year/month
     fields["form1[0].#subform[0].flt_txtAr1[0]"] = year[0] ?? "";
@@ -123,27 +140,21 @@ router.post("/fk3059", requireAuth, async (req, res) => {
 
     // ── Shift rows ────────────────────────────────────────────
     // 80 slots across 4 columns × 20 rows
+    const mkSlots = (sub: string, col: string, colIdx: number) =>
+      Array.from({ length: 20 }, (_, i) => ({
+        dag:      `form1[0].#subform[${sub}].${col}[${colIdx}].rad[${i}].flt_txtDag1[0]`,
+        kl1:      `form1[0].#subform[${sub}].${col}[${colIdx}].rad[${i}].flt_txtKlocka1[0]`,
+        kl2:      `form1[0].#subform[${sub}].${col}[${colIdx}].rad[${i}].flt_txtKlocka2[0]`,
+        aktiv:    `form1[0].#subform[${sub}].${col}[${colIdx}].rad[${i}].ksr_aktivTid[0]`,
+        vante:    `form1[0].#subform[${sub}].${col}[${colIdx}].rad[${i}].ksr_vanteTid[0]`,
+        beredskap:`form1[0].#subform[${sub}].${col}[${colIdx}].rad[${i}].ksr_beredskapsTid[0]`,
+      }));
+
     const slots = [
-      ...Array.from({ length: 20 }, (_, i) => ({
-        dag: `form1[0].#subform[10].raderVanster[0].rad[${i}].flt_txtDag1[0]`,
-        kl1: `form1[0].#subform[10].raderVanster[0].rad[${i}].flt_txtKlocka1[0]`,
-        kl2: `form1[0].#subform[10].raderVanster[0].rad[${i}].flt_txtKlocka2[0]`,
-      })),
-      ...Array.from({ length: 20 }, (_, i) => ({
-        dag: `form1[0].#subform[10].raderHoger[0].rad[${i}].flt_txtDag1[0]`,
-        kl1: `form1[0].#subform[10].raderHoger[0].rad[${i}].flt_txtKlocka1[0]`,
-        kl2: `form1[0].#subform[10].raderHoger[0].rad[${i}].flt_txtKlocka2[0]`,
-      })),
-      ...Array.from({ length: 20 }, (_, i) => ({
-        dag: `form1[0].#subform[16].raderVanster[1].rad[${i}].flt_txtDag1[0]`,
-        kl1: `form1[0].#subform[16].raderVanster[1].rad[${i}].flt_txtKlocka1[0]`,
-        kl2: `form1[0].#subform[16].raderVanster[1].rad[${i}].flt_txtKlocka2[0]`,
-      })),
-      ...Array.from({ length: 20 }, (_, i) => ({
-        dag: `form1[0].#subform[16].raderHoger[1].rad[${i}].flt_txtDag1[0]`,
-        kl1: `form1[0].#subform[16].raderHoger[1].rad[${i}].flt_txtKlocka1[0]`,
-        kl2: `form1[0].#subform[16].raderHoger[1].rad[${i}].flt_txtKlocka2[0]`,
-      })),
+      ...mkSlots("10", "raderVanster", 0),
+      ...mkSlots("10", "raderHoger",   0),
+      ...mkSlots("16", "raderVanster", 1),
+      ...mkSlots("16", "raderHoger",   1),
     ];
 
     // Totals per type (active=1, waiting=2, standby=3)
@@ -160,6 +171,10 @@ router.post("/fk3059", requireAuth, async (req, res) => {
 
       const type = (e.entryType ?? "active") as keyof typeof totMins;
       totMins[type] += Math.round((e.hours ?? 0) * 60);
+
+      checks[slot.aktiv]     = type === "active";
+      checks[slot.vante]     = type === "waiting";
+      checks[slot.beredskap] = type === "standby";
     }
 
     function hm(mins: number) {
@@ -181,7 +196,7 @@ router.post("/fk3059", requireAuth, async (req, res) => {
     fields["form1[0].#subform[16].flt_txtTelefon2[0]"] = asst.phone ?? "";
 
     // ── Fill and send ─────────────────────────────────────────
-    const filledBytes = await decryptAndFill(formPath, fields);
+    const filledBytes = await decryptAndFill(formPath, fields, checks, radios);
     const filename    = `FK3059-${year}-${mm}-${asst.name.replace(/\s+/g, "-")}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");

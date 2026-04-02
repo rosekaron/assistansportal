@@ -14,6 +14,12 @@ router.get("/", requireAuth, async (_req, res) => {
   res.json(rows);
 });
 
+router.get("/:id", requireAuth, async (req, res) => {
+  const [row] = await db.select().from(assistants).where(eq(assistants.id, req.params.id)).limit(1);
+  if (!row) return res.status(404).json({ error: "Assistant not found" });
+  res.json(row);
+});
+
 router.post("/", requireAuth, async (req, res) => {
   const { name, email, pno, phone, minWeeklyHours, isFlexible } = req.body;
   const count = (await db.select().from(assistants)).length;

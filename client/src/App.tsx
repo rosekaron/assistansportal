@@ -16,6 +16,7 @@ import ReportsPage        from "@/pages/Reports";
 import AssistantsPage     from "@/pages/Assistants";
 import SettingsPage       from "@/pages/Settings";
 import AssistantDashboard from "@/pages/AssistantDashboard";
+import AssistantDetail    from "@/pages/AssistantDetail";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const token    = useAuthStore((s) => s.token);
@@ -80,7 +81,8 @@ export default function App() {
         <Route path="/calendar"  element={<CalendarPage />} />
         <Route path="/hours"     element={<HoursPage />} />
         <Route path="/reports"   element={<ReportsPage />} />
-        <Route path="/assistants"element={<AssistantsPage />} />
+        <Route path="/assistants"    element={<AssistantsPage />} />
+        <Route path="/assistants/:id" element={<AssistantDetail />} />
         <Route path="/settings"  element={<SettingsPage />} />
       </Route>
 

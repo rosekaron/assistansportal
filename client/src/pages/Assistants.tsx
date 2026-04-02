@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { assistantsApi, invitesApi, profileApi } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,11 +15,12 @@ type Invite    = Record<string, string | number | boolean | null>;
 
 export default function AssistantsPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [inviteOpen,  setInviteOpen]  = useState(false);
   const [removeId,    setRemoveId]    = useState<string | null>(null);
   const [editTarget,  setEditTarget]  = useState<Assistant | null>(null);
   const [editForm,    setEditForm]    = useState({ name: "", pno: "", phone: "", minWeeklyHours: "", isFlexible: false });
-  const [inviteForm,  setInviteForm]  = useState({ name: "", email: "", minWeeklyHours: "", isFlexible: false, message: "" });
+  const [inviteForm,  setInviteForm]  = useState({ name: "", email: "", pno: "", phone: "", minWeeklyHours: "", isFlexible: false, message: "" });
   const [inviteSent,  setInviteSent]  = useState(false);
 
   const { data: profile }      = useQuery({ queryKey: ["profile"],    queryFn: () => profileApi.get().then((r) => r.data) });
@@ -51,8 +53,12 @@ export default function AssistantsPage() {
   }
 
   const sendInvite = useMutation({
-    mutationFn: (data: Record<string, unknown>) => invitesApi.create(data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["invites"] }); setInviteSent(true); setTimeout(() => { setInviteSent(false); setInviteOpen(false); setInviteForm({ name: "", email: "", minWeeklyHours: "", isFlexible: false, message: "" }); }, 1800); },
+    mutationFn: async (data: Record<string, unknown>) => {
+      // Create assistant record immediately so PNO/phone are captured and production accept flow works
+      await assistantsApi.create({ name: data.name, email: data.email, pno: data.pno, phone: data.phone, minWeeklyHours: data.minWeeklyHours, isFlexible: data.isFlexible });
+      return invitesApi.create(data);
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["assistants"] }); qc.invalidateQueries({ queryKey: ["invites"] }); setInviteSent(true); setTimeout(() => { setInviteSent(false); setInviteOpen(false); setInviteForm({ name: "", email: "", pno: "", phone: "", minWeeklyHours: "", isFlexible: false, message: "" }); }, 1800); },
   });
 
   const updateInvite = useMutation({
@@ -144,7 +150,12 @@ export default function AssistantsPage() {
                 <div className="flex items-center gap-3 mb-3">
                   <AssistantAvatar name={a.name as string} initials={a.initials as string} color={a.color as string} size={42} />
                   <div>
-                    <p className="text-sm font-semibold text-foreground">{a.name as string}</p>
+                    <button
+                      onClick={() => navigate(`/assistants/${a.id as string}`)}
+                      className="text-sm font-semibold text-foreground hover:text-primary hover:underline text-left"
+                    >
+                      {a.name as string}
+                    </button>
                     <p className="text-xs text-muted-foreground">{a.email as string || "Personal assistant"}</p>
                   </div>
                 </div>
@@ -261,6 +272,10 @@ export default function AssistantsPage() {
                 </div>
               </div>
               <div className="space-y-1.5"><Label>Email *</Label><Input type="email" placeholder="assistant@example.com" value={inviteForm.email} onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5"><Label>Personnummer</Label><Input placeholder="ÅÅMMDD-XXXX" value={inviteForm.pno} onChange={(e) => setInviteForm((f) => ({ ...f, pno: e.target.value }))} /></div>
+                <div className="space-y-1.5"><Label>Phone</Label><Input placeholder="07XX XXX XXX" value={inviteForm.phone} onChange={(e) => setInviteForm((f) => ({ ...f, phone: e.target.value }))} /></div>
+              </div>
               <label className="flex items-center gap-2 cursor-pointer text-sm">
                 <input type="checkbox" checked={inviteForm.isFlexible} onChange={(e) => setInviteForm((f) => ({ ...f, isFlexible: e.target.checked }))} className="rounded" />
                 <span>Flexible — can take hours from the shared pool</span>
@@ -278,7 +293,7 @@ export default function AssistantsPage() {
               )}
 
               <Button className="w-full" disabled={!inviteForm.name || !inviteForm.email || !inviteForm.minWeeklyHours}
-                onClick={() => sendInvite.mutate({ name: inviteForm.name, email: inviteForm.email, minWeeklyHours: parseInt(inviteForm.minWeeklyHours), isFlexible: inviteForm.isFlexible, message: inviteForm.message })}>
+                onClick={() => sendInvite.mutate({ name: inviteForm.name, email: inviteForm.email, pno: inviteForm.pno, phone: inviteForm.phone, minWeeklyHours: parseInt(inviteForm.minWeeklyHours), isFlexible: inviteForm.isFlexible, message: inviteForm.message })}>
                 Send verification email →
               </Button>
             </div>
