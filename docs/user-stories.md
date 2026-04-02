@@ -17,6 +17,10 @@
 | 2026-03-28 | Assistant deletion triggers outstanding report flow, not hard delete without warning | Deleting an assistant with unfinalized hours would silently lose FK-reportable data. Deletion gates on the guardian handling any outstanding report first. Deleted assistants remain visible in historical reports for FK compliance. |
 | 2026-03-28 | Calendar disconnect preserves existing logged hours and synced shifts | Wiping data on disconnect would put FK compliance at risk. Disconnect only stops future syncing. Alternative schedule input methods (e.g. CSV import) are planned for v0.2+. |
 | 2026-03-28 | FK deadline treated as a payment deadline, not just a compliance formality | Missing the deadline means the guardian and assistants do not get paid for that month. This justifies prominent, escalating warnings in the UI (amber at 7 days, red when overdue). |
+| 2026-04-02 | Assistant report confirmation deferred to B2B phase | No regulatory requirement for assistant sign-off in the egna arbetsgivare model. Dual confirmation (guardian approves + assistant confirms) is a competitive differentiator when selling to assistansbolag, not for MVP. |
+| 2026-04-02 | Assistant shift self-scheduling deferred to v0.2 | Guardian creates the plan via Google Calendar. Assistant clocks actual hours. Self-scheduling adds scope and complexity with no compliance benefit for v0.1. |
+| 2026-04-02 | Clock in/out rounded to nearest 15 minutes | Consistent with how FK and payroll systems typically process hours. Avoids noise from imprecise tapping (e.g. 07:58 → 08:00). |
+| 2026-04-02 | Push notification fires 1 hour before shift start | Default timing. Configurable per assistant is a future feature. |
 | 2026-04-02 | FK 3059 Section 3 (Kollektivavtal) intentionally left blank | Egna arbetsgivare almost never have a collective agreement. Adding a Settings field for an edge case that doesn't apply to the MVP user adds complexity with no practical benefit. Guardians who do have one can fill it manually on the printed form. |
 | 2026-04-02 | FK 3057 has no FK decision number field | Form inspection confirmed: FK identifies the case by patient personnummer only. Removed "FK decision number is present" from US-19a acceptance criteria. |
 | 2026-04-02 | FK 3057 shows aggregate time totals, not per-assistant rows | Form inspection confirmed: FK 3057 has three total fields (aktivtid, väntetid, beredskapstid) — no individual assistant breakdown. US-19b rewritten accordingly. |
@@ -1259,24 +1263,124 @@
 
 ## 8. Assistant View
 
-> **Scope note:** The full assistant experience (clock in/out, schedule view, notifications) is deferred to v0.2. The stories below cover only what an assistant sees in v0.1 after accepting their invitation and logging in.
+> **Scope (v0.1):** Guardian creates the plan. Assistant clocks actual hours in/out. Guardian reviews actual vs planned and approves. Self-scheduling and shift history are v0.2.
 
-### US-18 — Assistant landing view (v0.1)
+> **Schema note:** Clock in/out requires three new columns on the `entries` table: `clocked_in_at` (timestamp), `clocked_out_at` (timestamp), `actual_hours` (real). The existing `start_time`, `end_time`, and `hours` fields remain as the guardian's planned values.
+
+---
+
+### US-18 — Assistant home screen
 **As an** assistant who has set up my account,
-**I want to** see something meaningful when I log in,
-**so that** I know my account is active and what I can expect in future versions.
+**I want to** see my shifts for today and the coming week when I log in,
+**so that** I know when I'm working and can clock in and out.
 
 **Acceptance Criteria:**
-- Given I have accepted my invitation and set up my account
-- When I log in
-- Then I see my name and the name of the guardian I am employed by
-- And I see a message explaining that the assistant app is coming soon
-- And I am not shown any guardian-only pages (reports, settings, patient profile)
+- Given I am logged in as an assistant
+- When I open the app
+- Then I see today's date and any shifts scheduled for me today
+- And I see upcoming shifts for the next 7 days grouped by day
+- And each shift shows: date, planned start and end time, planned hours
+- And each shift shows its clock status: Not started / In progress / Completed / Not clocked
 
-- Given I try to navigate to a guardian-only route directly
-- When I access it
-- Then I am redirected and see an appropriate message
+- Given I am not assigned any shifts in the next 7 days
+- When I open the app
+- Then I see a message that there are no upcoming shifts
 
-> 🔁 **Automated** — role-based routing and redirect can be verified programmatically
+- Given I try to navigate to a guardian-only route (reports, settings, patient profile)
+- When I access it directly
+- Then I am redirected to my home screen and see an access-denied message
 
-> ℹ️ **v0.2:** Full assistant view including schedule, shift history, and clock in/out will be built once the guardian view is complete.
+> 🔁/✋ **Mixed** — routing and redirect are automated; shift list content must be verified manually against guardian-created entries
+
+---
+
+### US-20 — Clock in to a shift
+**As an** assistant with a scheduled shift,
+**I want to** clock in when I start working,
+**so that** my actual start time is recorded instead of the guardian's planned time.
+
+**Acceptance Criteria:**
+- Given I have a shift showing "Not started"
+- When I tap Clock in
+- Then the current timestamp is recorded as my actual start time
+- And the shift status changes to "In progress"
+- And the Clock in button is replaced by a Clock out button
+
+- Given I clock in before or after the planned start time
+- When I confirm
+- Then the actual time is recorded as-is — early and late are both accepted
+
+- Given I am already clocked in to another shift
+- When I try to clock in to a second shift
+- Then I am blocked with a message telling me to clock out of the active shift first
+
+> 🔁 **Automated** — timestamp recorded, status change, double clock-in block
+
+---
+
+### US-21 — Clock out from a shift
+**As an** assistant who is clocked in,
+**I want to** clock out when I finish working,
+**so that** my actual hours are calculated and sent to the guardian for approval.
+
+**Acceptance Criteria:**
+- Given I am clocked in to a shift
+- When I tap Clock out
+- Then the current timestamp is recorded as my actual end time
+- And actual hours are calculated from clock in to clock out (rounded to nearest 15 minutes)
+- And the shift status changes to "Completed — awaiting approval"
+- And the guardian can see both the planned hours and the actual hours side by side
+
+- Given I clock out before or after the planned end time
+- When I confirm
+- Then the actual time is recorded as-is
+
+> 🔁/✋ **Mixed** — timestamps and status are automated; actual vs planned hour display must be verified manually on the guardian's report view
+
+---
+
+### US-22 — Push notification before a shift
+**As an** assistant with upcoming shifts,
+**I want to** receive a push notification before a shift starts,
+**so that** I don't miss a shift.
+
+**Acceptance Criteria:**
+- Given I have allowed push notifications
+- When a shift is 1 hour away
+- Then I receive a push notification showing the shift start time and the patient's first name
+
+- Given I have not yet granted notification permission
+- When I first log in as an assistant
+- Then I am prompted to allow notifications
+- And I can dismiss the prompt and still use the app
+
+- Given I have dismissed or denied notifications
+- When I view my shift list
+- Then I see a quiet in-app reminder that notifications are off with a link to enable them
+
+> ✋ **Manual** — push delivery must be tested on a real device
+
+---
+
+### US-23 — Guardian fixes missed clock in/out
+**As a** guardian reviewing an assistant's hours for the month,
+**I want to** manually enter actual times when an assistant forgot to clock in or out,
+**so that** the correct hours are submitted to FK and the assistant is paid correctly.
+
+**Acceptance Criteria:**
+- Given an assistant did not clock in or out for a shift
+- When I view that entry in the report
+- Then the shift is flagged as "Not clocked"
+- And I can manually enter the actual start time, end time, or both
+
+- Given I save manual times for a not-clocked shift
+- Then actual hours are calculated from those times
+- And the entry is marked "Guardian-adjusted" (distinct from assistant-confirmed)
+- And I can proceed to approve it
+
+- Given a shift has been clocked by the assistant but I believe the times are wrong
+- When I edit the entry
+- Then I can override the assistant's clocked times
+- And the entry is marked "Guardian-adjusted"
+
+> 🔁/✋ **Mixed** — save and status update are automated; the "Guardian-adjusted" label must be verified manually in the report view
