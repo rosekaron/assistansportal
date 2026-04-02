@@ -79,21 +79,25 @@ export const assistants = pgTable("assistants", {
 
 // ── Schedule entries ──────────────────────────────────────────
 export const entries = pgTable("entries", {
-  id:          text("id").primaryKey(),
-  assistantId: text("assistant_id").notNull().references(() => assistants.id, { onDelete: "cascade" }),
-  date:        text("date").notNull(),
-  startTime:   text("start_time").notNull(),
-  endTime:     text("end_time").notNull(),
-  hours:       real("hours").notNull(),
-  entryType:   entryTypeEnum("entry_type").default("active"),
-  reqStatus:   reqStatusEnum("req_status").default("pending"),
-  repStatus:   repStatusEnum("rep_status").default("draft"),
-  source:      sourceEnum("source").default("proposal"),
-  calStatus:   calStatusEnum("cal_status"),
-  activityId:  text("activity_id"),
-  gcalEventId: text("gcal_event_id"),
-  createdAt:   timestamp("created_at").defaultNow(),
-  updatedAt:   timestamp("updated_at").defaultNow(),
+  id:           text("id").primaryKey(),
+  assistantId:  text("assistant_id").notNull().references(() => assistants.id, { onDelete: "cascade" }),
+  date:         text("date").notNull(),
+  startTime:    text("start_time").notNull(),
+  endTime:      text("end_time").notNull(),
+  hours:        real("hours").notNull(),
+  entryType:    entryTypeEnum("entry_type").default("active"),
+  reqStatus:    reqStatusEnum("req_status").default("pending"),
+  repStatus:    repStatusEnum("rep_status").default("draft"),
+  source:       sourceEnum("source").default("proposal"),
+  calStatus:    calStatusEnum("cal_status"),
+  activityId:   text("activity_id"),
+  gcalEventId:  text("gcal_event_id"),
+  // Clock in/out — actual times recorded by the assistant
+  clockedInAt:  timestamp("clocked_in_at"),
+  clockedOutAt: timestamp("clocked_out_at"),
+  actualHours:  real("actual_hours"),
+  createdAt:    timestamp("created_at").defaultNow(),
+  updatedAt:    timestamp("updated_at").defaultNow(),
 });
 
 // ── Open slots ────────────────────────────────────────────────
