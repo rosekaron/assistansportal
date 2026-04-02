@@ -7,13 +7,12 @@ import { Badge } from "@/components/ui/inputs";
 import { PageHeader, AssistantAvatar } from "@/components/shared";
 import { getWeekDates } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { FileDown, ChevronRight, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { FileDown, ChevronRight, AlertCircle, CheckCircle2, Clock, CalendarDays } from "lucide-react";
 
 type Entry     = Record<string, string | number | null | undefined>;
 type Assistant = Record<string, string | number | null | undefined>;
 
-const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const MONTHS    = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
 
@@ -34,24 +33,16 @@ export default function Dashboard() {
   const weekDates = getWeekDates(0);
   const weekly    = (profile?.weeklyHours as number) ?? 129;
 
-  // ── Week coverage ──────────────────────────────────────────
-  const allEntries   = entries as Entry[];
-  const weekEntries  = allEntries.filter(e => weekDates.includes(e.date as string));
+  // ── Today's shifts ─────────────────────────────────────────
+  const allEntries  = entries as Entry[];
+  const weekEntries = allEntries.filter(e => weekDates.includes(e.date as string));
   const scheduledHours = weekEntries
     .filter(e => e.reqStatus !== "rejected")
     .reduce((s, e) => s + ((e.hours as number) ?? 0), 0);
 
-  const byDay = weekDates.map((date, i) => {
-    const dayEntries = allEntries.filter(e =>
-      e.date === date && e.reqStatus !== "rejected"
-    );
-    const totalHours   = dayEntries.reduce((s, e) => s + ((e.hours as number) ?? 0), 0);
-    const assistantIds = [...new Set(dayEntries.map(e => e.assistantId as string).filter(Boolean))];
-    const dayAssistants = assistantIds
-      .map(aid => (assistants as Assistant[]).find(a => a.id === aid))
-      .filter(Boolean) as Assistant[];
-    return { date, dayName: DAY_NAMES[i], totalHours, dayAssistants };
-  });
+  const todayShifts = allEntries
+    .filter(e => e.date === todayStr && e.reqStatus !== "rejected")
+    .sort((a, b) => ((a.startTime as string) ?? "").localeCompare((b.startTime as string) ?? ""));
 
   // ── FK deadline ────────────────────────────────────────────
   // FK 3057/3059 is due the 5th of the 2nd month after the work month
@@ -113,16 +104,11 @@ export default function Dashboard() {
         description={`${now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}${patientName ? ` · Care for ${patientName}` : ""}`}
       />
 
-      {/* ── This week's coverage ──────────────────────────────── */}
+      {/* ── Today ─────────────────────────────────────────────── */}
       <Card className="mb-5">
         <CardContent className="pt-5">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm font-semibold">This week's coverage</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {scheduledHours}h scheduled · {weekly}h granted by FK
-              </p>
-            </div>
+            <p className="text-sm font-semibold">Today</p>
             <button
               onClick={() => navigate("/calendar")}
               className="text-xs text-primary hover:underline flex items-center gap-1"
@@ -131,77 +117,49 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {/* Day grid */}
-          <div className="grid grid-cols-7 gap-2 mb-4">
-            {byDay.map(({ date, dayName, dayAssistants, totalHours }) => {
-              const isToday = date === todayStr;
-              const isEmpty = dayAssistants.length === 0;
-              return (
-                <div
-                  key={date}
-                  className={cn(
-                    "rounded-xl p-2.5 text-center border transition-all",
-                    isToday
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-secondary/30",
-                    isEmpty && !isToday ? "opacity-50" : ""
-                  )}
-                >
-                  <p className={cn(
-                    "text-[10px] font-semibold uppercase tracking-wide mb-1",
-                    isToday ? "text-primary" : "text-muted-foreground"
-                  )}>
-                    {dayName}
-                  </p>
-                  <p className={cn(
-                    "text-xs font-mono mb-2.5",
-                    isToday ? "text-primary font-bold" : "text-muted-foreground"
-                  )}>
-                    {new Date(date + "T12:00:00").getDate()}
-                  </p>
-
-                  {isEmpty ? (
-                    <div className="h-7 flex items-center justify-center">
-                      <span className="text-base text-muted-foreground/30">—</span>
+          {todayShifts.length === 0 ? (
+            <div className="flex items-center gap-2.5 text-muted-foreground py-1">
+              <CalendarDays className="w-4 h-4 shrink-0" />
+              <p className="text-sm">No shifts scheduled today</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {todayShifts.map((e, i) => {
+                const asst = (assistants as Assistant[]).find(a => a.id === e.assistantId);
+                return (
+                  <div key={i} className="flex items-center gap-3">
+                    {asst && (
+                      <AssistantAvatar
+                        name={asst.name as string}
+                        initials={asst.initials as string}
+                        color={asst.color as string}
+                        size={32}
+                      />
+                    )}
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{asst ? (asst.name as string).split(" ")[0] : "Unassigned"}</p>
+                      <p className="text-xs text-muted-foreground font-mono">
+                        {e.startTime as string} – {e.endTime as string}
+                        <span className="ml-2">{e.hours as number}h</span>
+                      </p>
                     </div>
-                  ) : (
-                    <div className="flex justify-center gap-0.5 mb-1.5 flex-wrap">
-                      {dayAssistants.slice(0, 2).map(a => (
-                        <AssistantAvatar
-                          key={a.id as string}
-                          name={a.name    as string}
-                          initials={a.initials as string}
-                          color={a.color   as string}
-                          size={24}
-                        />
-                      ))}
-                      {dayAssistants.length > 2 && (
-                        <div className="w-6 h-6 rounded-full bg-secondary border border-border flex items-center justify-center text-[9px] font-bold text-muted-foreground">
-                          +{dayAssistants.length - 2}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
-                  {!isEmpty && (
-                    <p className="text-xs font-mono font-semibold text-foreground">{totalHours}h</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Hours fill bar */}
-          <div className="space-y-1.5">
-            <div className="h-2 bg-secondary rounded-full overflow-hidden">
+          {/* Weekly summary bar */}
+          <div className="mt-4 space-y-1.5 border-t border-border pt-3">
+            <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
               <div
                 className="h-full bg-blue-500 rounded-full transition-all"
                 style={{ width: `${Math.min(100, (scheduledHours / weekly) * 100)}%` }}
               />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{Math.round((scheduledHours / weekly) * 100)}% of weekly budget scheduled</span>
-              <span>{Math.max(0, weekly - scheduledHours)}h remaining</span>
+              <span>{scheduledHours}h scheduled this week</span>
+              <span>{weekly}h granted by FK</span>
             </div>
           </div>
         </CardContent>
