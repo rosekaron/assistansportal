@@ -17,6 +17,8 @@
 | 2026-03-28 | Assistant deletion triggers outstanding report flow, not hard delete without warning | Deleting an assistant with unfinalized hours would silently lose FK-reportable data. Deletion gates on the guardian handling any outstanding report first. Deleted assistants remain visible in historical reports for FK compliance. |
 | 2026-03-28 | Calendar disconnect preserves existing logged hours and synced shifts | Wiping data on disconnect would put FK compliance at risk. Disconnect only stops future syncing. Alternative schedule input methods (e.g. CSV import) are planned for v0.2+. |
 | 2026-03-28 | FK deadline treated as a payment deadline, not just a compliance formality | Missing the deadline means the guardian and assistants do not get paid for that month. This justifies prominent, escalating warnings in the UI (amber at 7 days, red when overdue). |
+| 2026-04-02 | Assistant view is mobile-first | Assistants clock in/out on their phones during the working day. The clock in/out button is the primary action on the home screen — not buried in a list. All assistant screens must be designed for a phone viewport first. |
+| 2026-04-02 | Push notification taps through directly to clock-in, not home screen | The assistant is mid-shift when the reminder fires. One tap from notification to clock-in button — no navigation required. |
 | 2026-04-02 | Assistant report confirmation deferred to B2B phase | No regulatory requirement for assistant sign-off in the egna arbetsgivare model. Dual confirmation (guardian approves + assistant confirms) is a competitive differentiator when selling to assistansbolag, not for MVP. |
 | 2026-04-02 | Assistant shift self-scheduling deferred to v0.2 | Guardian creates the plan via Google Calendar. Assistant clocks actual hours. Self-scheduling adds scope and complexity with no compliance benefit for v0.1. |
 | 2026-04-02 | Clock in/out rounded to nearest 15 minutes | Consistent with how FK and payroll systems typically process hours. Avoids noise from imprecise tapping (e.g. 07:58 → 08:00). |
@@ -1282,6 +1284,14 @@
 - And each shift shows: date, planned start and end time, planned hours
 - And each shift shows its clock status: Not started / In progress / Completed / Not clocked
 
+- Given I have a shift today that has not been clocked in
+- When I open the app
+- Then the Clock in button for that shift is the primary visual action on the screen
+
+- Given I am currently clocked in to a shift
+- When I open the app
+- Then the Clock out button is the primary visual action on the screen
+
 - Given I am not assigned any shifts in the next 7 days
 - When I open the app
 - Then I see a message that there are no upcoming shifts
@@ -1348,6 +1358,7 @@
 - Given I have allowed push notifications
 - When a shift is 1 hour away
 - Then I receive a push notification showing the shift start time and the patient's first name
+- And tapping the notification opens the app directly to the Clock in button for that shift — not the home screen
 
 - Given I have not yet granted notification permission
 - When I first log in as an assistant
