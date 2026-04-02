@@ -1,5 +1,5 @@
 # User Stories — Kalinga Assistansportal
-> Version: v0.1 | Last updated: 2026-04-02
+> Version: v0.1 | Last updated: 2026-04-02 (FK 3057 form review)
 
 ---
 
@@ -17,6 +17,10 @@
 | 2026-03-28 | Assistant deletion triggers outstanding report flow, not hard delete without warning | Deleting an assistant with unfinalized hours would silently lose FK-reportable data. Deletion gates on the guardian handling any outstanding report first. Deleted assistants remain visible in historical reports for FK compliance. |
 | 2026-03-28 | Calendar disconnect preserves existing logged hours and synced shifts | Wiping data on disconnect would put FK compliance at risk. Disconnect only stops future syncing. Alternative schedule input methods (e.g. CSV import) are planned for v0.2+. |
 | 2026-03-28 | FK deadline treated as a payment deadline, not just a compliance formality | Missing the deadline means the guardian and assistants do not get paid for that month. This justifies prominent, escalating warnings in the UI (amber at 7 days, red when overdue). |
+| 2026-04-02 | FK 3057 has no FK decision number field | Form inspection confirmed: FK identifies the case by patient personnummer only. Removed "FK decision number is present" from US-19a acceptance criteria. |
+| 2026-04-02 | FK 3057 shows aggregate time totals, not per-assistant rows | Form inspection confirmed: FK 3057 has three total fields (aktivtid, väntetid, beredskapstid) — no individual assistant breakdown. US-19b rewritten accordingly. |
+| 2026-04-02 | FK 3057 deductions entered at generation time, not stored | Hospital stays and activity absences (barnomsorg/skola/daglig verksamhet) are entered in the generation dialog and written directly to the PDF. Not persisted in the database. |
+| 2026-04-02 | FK 3057 page 2 cost amounts left blank in v0.1 | Requires FK schablonbelopp (annual rate) which changes yearly. Future accounting integration will handle this. Guardian completes page 2 manually. |
 | 2026-04-02 | FK 3057 is not blocked by draft assistant reports | Blocking would prevent the guardian from acting at all if one assistant is slow to finalise. Instead, the guardian is warned which assistants are missing and can choose to proceed with approved reports only or wait. |
 | 2026-03-28 | 7-day coverage grid removed from dashboard (US-03) | The weekly grid duplicated the Schedule page. The dashboard was redesigned as an action centre: who is working today, what needs action, upcoming reports. Identified during sprint planning review. |
 | 2026-03-28 | Assistant-to-shift attribution uses Google Calendar guest invites | Rather than naming conventions or per-assistant calendars, the guardian invites the assistant's email as a guest on each shift event. Kalinga matches the guest email to the assistant in the system. Events with no matching guest are flagged as unassigned. |
@@ -805,30 +809,35 @@
 **Acceptance Criteria:**
 - Given I generate a FK 3057 for a month
 - When I open the PDF
-- Then the guardian's name, personal ID, and address are present
-- And the patient's name and personal ID are present
-- And the FK decision number is present
+- Then the patient's name and personal ID are present
+- And the guardian's name and personal ID are present
+- And the guardian type checkbox (förvaltare / god man / vårdnadshavare) matches what is saved in Settings
+- And the "egna arbetsgivare" employer checkbox is ticked
 - And all values match exactly what is saved in Settings
+
+> ℹ️ **Note:** FK 3057 has no FK decision number field. FK identifies the case by patient personnummer.
 
 > 🔁 **Automated** — field values extracted from PDF and compared against Settings data
 
 ---
 
-### US-19b — FK 3057 contains correct assistant summary
+### US-19b — FK 3057 contains correct aggregate time totals
 **As a** guardian,
-**I want to** see a summary of each assistant's total hours for the month,
-**so that** FK can verify the claim matches the per-assistant FK 3059 forms.
+**I want to** see the correct total hours for the month on the FK 3057,
+**so that** FK can verify the claim matches the sum of all per-assistant FK 3059 forms.
 
 **Acceptance Criteria:**
-- Given I generate a FK 3057 for a month with two or more assistants
+- Given I generate a FK 3057 for a month
 - When I open the PDF
-- Then each assistant is listed by name
-- And their total approved hours for the month are shown
-- And the grand total equals the sum of all assistants' hours
-- And no assistant is listed more than once
-- And no assistant from a different month appears
+- Then the total aktivtid (active time) in hours and minutes is correct
+- And the total väntetid (waiting time) in hours and minutes is correct
+- And the total beredskapstid (standby time) in hours and minutes is correct
+- And each total equals the sum of that time type across all included approved assistant reports for that month
+- And no hours from a different month appear
 
-> 🔁/✋ **Mixed** — assistant list and hour totals are automated; grand total must also be spot-checked manually with a calculator
+> ℹ️ **Note:** FK 3057 shows aggregate totals only — it does not list individual assistants by name. Individual breakdowns appear on the per-assistant FK 3059 forms.
+
+> 🔁/✋ **Mixed** — totals extracted from PDF are automated; cross-check against sum of FK 3059 forms must be spot-checked manually
 
 ---
 
@@ -851,6 +860,33 @@
 > 4. Confirm there is space for a date next to the signature
 > 5. Print one page and confirm the field is legible and has enough physical space to sign by hand
 > 6. Confirm result before this test is marked as passed
+
+---
+
+### US-19e — FK 3057 optional deductions at generation time
+**As a** guardian,
+**I want to** enter any hospital stays or activity absences when generating FK 3057,
+**so that** the form reflects the correct billable hours and FK does not reject the claim.
+
+**Acceptance Criteria:**
+- Given I click Generate FK 3057
+- When the generation dialog opens
+- Then I see an optional section: "Hospital stays this month (sjukhusinläggning)"
+- And I can enter up to 3 date ranges (from / to)
+- And I see an optional section: "Activity absences"
+- And I can tick any combination of: Barnomsorg, Skola, Daglig verksamhet
+
+- Given I leave all deduction fields blank
+- When I generate the FK 3057
+- Then the form is generated with no hospital or activity deductions filled
+- And no warning is shown (blank = none occurred)
+
+- Given I enter one or more hospital date ranges or activity checkboxes
+- When the PDF is generated
+- Then those values appear in the correct FK 3057 fields
+- And the values are not stored in the database — they apply to this generation only
+
+> ✋ **Manual** — verify hospital dates and activity checkboxes appear in correct PDF fields
 
 ---
 
@@ -885,6 +921,7 @@
 - Given I am on the Settings page
 - When the page loads
 - Then I see the guardian's name, personal ID, email, and phone
+- And I see the guardian type (förvaltare / god man / vårdnadshavare) as a selectable option
 - And I see the patient's name, personal ID, and address
 - And I see the FK decision number and weekly approved hours
 - And I can edit and save all fields
@@ -1177,11 +1214,11 @@
 
 ---
 
-### BUG-03 — FK Decision Number stored in Settings but never written to PDF
+### BUG-03 — FK Decision Number not written to FK 3057
 **Severity:** High — FK compliance risk
-**Found in:** PDF code review (pdf.ts)
-**Expected:** `fkDecisionNo` from Settings is written to the FK 3059 and FK 3057 PDF forms
-**Actual:** Field is captured and stored but never mapped to any PDF field. FK forms are sent without the decision number.
+**Found in:** PDF code review (pdf.ts) + FK 3059 form field inspection
+**Expected:** `fkDecisionNo` from Settings is written to the FK 3057 PDF form
+**Actual:** FK 3059 has no decision number field (FK identifies the case by patient PNO). FK 3057 is where the decision number belongs — but the FK 3057 form file (`fk3057.pdf`) is missing from the `forms/` directory. Until FK 3057 is added, the decision number cannot be filled.
 
 ---
 
@@ -1211,13 +1248,14 @@
 
 ---
 
-### BUG-05 — FK 3059 page 1 sections 3 and 4 not filled
+### BUG-05 — FK 3059 page 1 section 3 not filled; section 5 employer type missing
 **Severity:** Medium — FK compliance risk
-**Found in:** PDF code review (pdf.ts)
+**Found in:** PDF code review (pdf.ts) + FK 3059 form field inspection
 **Expected:** FK 3059 page 1 is fully populated including:
-- Section 3: Kollektivavtal (yes/no checkbox — whether a collective agreement applies)
-- Section 4: Beräkningsperiod (the start and end dates of the calculation period)
-**Actual:** Both sections are left blank. FK expects these fields to be completed on every submitted form. Missing section 3 may result in incorrect payroll processing; missing section 4 makes it impossible for FK to verify the reporting period.
+- Section 3: Kollektivavtal (yes/no — whether a collective agreement applies). Varies per guardian — needs to be a Settings field.
+- Section 5: Employer type (kommunen/landstinget / privat anordnare / privatperson) — always '3' (privatperson/egna arbetsgivaren) for this app.
+**Actual:** Section 3 not filled. Section 4 (beräkningsperiod) is filled via `flt_datmod6_1[0]` / `flt_datmod6_2[0]`. Section 5 employer type was not set.
+**Fixed (partial):** Section 5 employer type now hardcoded to '3' (egna arbetsgivaren). Section 3 (kollektivavtal) requires a new Settings field — deferred.
 
 ---
 
