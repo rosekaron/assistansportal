@@ -17,6 +17,7 @@
 | 2026-03-28 | Assistant deletion triggers outstanding report flow, not hard delete without warning | Deleting an assistant with unfinalized hours would silently lose FK-reportable data. Deletion gates on the guardian handling any outstanding report first. Deleted assistants remain visible in historical reports for FK compliance. |
 | 2026-03-28 | Calendar disconnect preserves existing logged hours and synced shifts | Wiping data on disconnect would put FK compliance at risk. Disconnect only stops future syncing. Alternative schedule input methods (e.g. CSV import) are planned for v0.2+. |
 | 2026-03-28 | FK deadline treated as a payment deadline, not just a compliance formality | Missing the deadline means the guardian and assistants do not get paid for that month. This justifies prominent, escalating warnings in the UI (amber at 7 days, red when overdue). |
+| 2026-04-02 | FK 3059 Section 3 (Kollektivavtal) intentionally left blank | Egna arbetsgivare almost never have a collective agreement. Adding a Settings field for an edge case that doesn't apply to the MVP user adds complexity with no practical benefit. Guardians who do have one can fill it manually on the printed form. |
 | 2026-04-02 | FK 3057 has no FK decision number field | Form inspection confirmed: FK identifies the case by patient personnummer only. Removed "FK decision number is present" from US-19a acceptance criteria. |
 | 2026-04-02 | FK 3057 shows aggregate time totals, not per-assistant rows | Form inspection confirmed: FK 3057 has three total fields (aktivtid, väntetid, beredskapstid) — no individual assistant breakdown. US-19b rewritten accordingly. |
 | 2026-04-02 | FK 3057 deductions entered at generation time, not stored | Hospital stays and activity absences (barnomsorg/skola/daglig verksamhet) are entered in the generation dialog and written directly to the PDF. Not persisted in the database. |
@@ -1248,14 +1249,11 @@
 
 ---
 
-### BUG-05 — FK 3059 page 1 section 3 not filled; section 5 employer type missing
+### BUG-05 — FK 3059 page 1 section 5 employer type missing ✅ Closed
 **Severity:** Medium — FK compliance risk
 **Found in:** PDF code review (pdf.ts) + FK 3059 form field inspection
-**Expected:** FK 3059 page 1 is fully populated including:
-- Section 3: Kollektivavtal (yes/no — whether a collective agreement applies). Varies per guardian — needs to be a Settings field.
-- Section 5: Employer type (kommunen/landstinget / privat anordnare / privatperson) — always '3' (privatperson/egna arbetsgivaren) for this app.
-**Actual:** Section 3 not filled. Section 4 (beräkningsperiod) is filled via `flt_datmod6_1[0]` / `flt_datmod6_2[0]`. Section 5 employer type was not set.
-**Fixed (partial):** Section 5 employer type now hardcoded to '3' (egna arbetsgivaren). Section 3 (kollektivavtal) requires a new Settings field — deferred.
+**Fixed:** Section 5 employer type hardcoded to '3' (privatperson/egna arbetsgivaren) — correct for all Kalinga users.
+**Won't fix — Section 3 (Kollektivavtal):** Egna arbetsgivare almost never have a collective agreement. Kalinga's MVP target user will not have one. Leaving Section 3 blank is correct by design. If a user does have a kollektivavtal, they fill it in manually on the printed form before signing.
 
 ---
 
