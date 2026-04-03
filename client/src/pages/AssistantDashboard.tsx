@@ -9,34 +9,117 @@ import { Badge } from "@/components/ui/inputs";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/controls";
 import { ActivityPill, EmptyState, FillBar } from "@/components/shared";
 import { activityById } from "@/lib/activities";
-import { formatDate, formatDateLong, getWeekDates } from "@/lib/utils";
+import { formatDate, formatDateLong } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { LogOut, ChevronLeft, ChevronRight, CheckCircle, FileText, CalendarDays } from "lucide-react";
+import { LogOut, CheckCircle, FileText, CalendarDays, Timer, TimerOff } from "lucide-react";
 
 type Entry = Record<string, string | number | null | undefined>;
 type Slot  = Record<string, string | number | null | undefined>;
+
+function formatTime(iso: string | null | undefined) {
+  if (!iso) return "";
+  return new Date(iso as string).toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" });
+}
+
+function ClockButton({ entry, onClockIn, onClockOut, isLoading }: {
+  entry: Entry;
+  onClockIn: () => void;
+  onClockOut: () => void;
+  isLoading: boolean;
+}) {
+  const clockedIn  = !!entry.clocked_in_at;
+  const clockedOut = !!entry.clocked_out_at;
+
+  if (clockedOut) {
+    return (
+      <div className="text-center space-y-1 py-2">
+        <p className="text-xs text-muted-foreground">Clocked out</p>
+        <p className="font-mono text-lg font-bold text-emerald-400">{entry.actual_hours}h recorded</p>
+        <p className="text-xs text-muted-foreground">
+          {formatTime(entry.clocked_in_at as string)} – {formatTime(entry.clocked_out_at as string)}
+        </p>
+      </div>
+    );
+  }
+
+  if (clockedIn) {
+    return (
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground text-center">
+          Clocked in at {formatTime(entry.clocked_in_at as string)}
+        </p>
+        <Button
+          className="w-full h-14 text-base font-semibold bg-red-600 hover:bg-red-700 text-white"
+          disabled={isLoading}
+          onClick={onClockOut}
+        >
+          <TimerOff className="w-5 h-5 mr-2" />
+          Clock out
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <Button
+      className="w-full h-14 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
+      disabled={isLoading}
+      onClick={onClockIn}
+    >
+      <Timer className="w-5 h-5 mr-2" />
+      Clock in
+    </Button>
+  );
+}
 
 export default function AssistantDashboard() {
   const logout   = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
   const qc       = useQueryClient();
-  const [tab, setTab]           = useState("upcoming");
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [tab, setTab] = useState("upcoming");
 
   const { data: me }           = useQuery({ queryKey: ["assistant-me"],      queryFn: () => assistantSelfApi.me().then((r) => r.data) });
   const { data: entries = [] } = useQuery({ queryKey: ["assistant-entries"], queryFn: () => assistantSelfApi.entries().then((r) => r.data) });
   const { data: slots = [] }   = useQuery({ queryKey: ["assistant-slots"],   queryFn: () => assistantSelfApi.openSlots().then((r) => r.data) });
 
-  const todayStr  = new Date().toISOString().split("T")[0];
-  const weekDates = getWeekDates(weekOffset);
+  const todayStr = new Date().toISOString().split("T")[0];
 
-  const upcoming    = (entries as Entry[]).filter((e) => (e.date as string) >= todayStr && e.req_status !== "rejected").sort((a, b) => (a.date as string).localeCompare(b.date as string));
+  // Today's confirmed shifts
+  const todayEntries = (entries as Entry[])
+    .filter((e) => e.date === todayStr && e.req_status === "approved")
+    .sort((a, b) => (a.start_time as string).localeCompare(b.start_time as string));
+
+  // Next 7 days (excluding today)
+  const in7Days = new Date();
+  in7Days.setDate(in7Days.getDate() + 7);
+  const in7DaysStr = in7Days.toISOString().split("T")[0];
+  const upcoming = (entries as Entry[])
+    .filter((e) => (e.date as string) > todayStr && (e.date as string) <= in7DaysStr && e.req_status !== "rejected")
+    .sort((a, b) => (a.date as string).localeCompare(b.date as string));
+
   const pending     = (entries as Entry[]).filter((e) => e.req_status === "pending");
   const approved    = (entries as Entry[]).filter((e) => e.req_status === "approved");
   const needsReport = (entries as Entry[]).filter((e) => e.req_status === "approved" && e.rep_status === "draft");
-  const thisWeek    = (entries as Entry[]).filter((e) => weekDates.includes(e.date as string) && e.req_status !== "rejected");
-  const weekHours   = thisWeek.reduce((s, e) => s + ((e.hours as number) ?? 0), 0);
 
+  // Weekly hours (Mon–Sun of current week)
+  const today     = new Date();
+  const dayOfWeek = (today.getDay() + 6) % 7; // Mon=0
+  const monday    = new Date(today); monday.setDate(today.getDate() - dayOfWeek);
+  const sunday    = new Date(monday); sunday.setDate(monday.getDate() + 6);
+  const monStr    = monday.toISOString().split("T")[0];
+  const sunStr    = sunday.toISOString().split("T")[0];
+  const weekHours = (entries as Entry[])
+    .filter((e) => (e.date as string) >= monStr && (e.date as string) <= sunStr && e.req_status !== "rejected")
+    .reduce((s, e) => s + ((e.hours as number) ?? 0), 0);
+
+  const clockIn = useMutation({
+    mutationFn: (id: string) => assistantSelfApi.clockIn(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["assistant-entries"] }),
+  });
+  const clockOut = useMutation({
+    mutationFn: (id: string) => assistantSelfApi.clockOut(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["assistant-entries"] }),
+  });
   const accept = useMutation({
     mutationFn: (id: string) => assistantSelfApi.accept(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["assistant-entries"] }),
@@ -57,86 +140,105 @@ export default function AssistantDashboard() {
     },
   });
 
+  const isClockLoading = clockIn.isPending || clockOut.isPending;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-card px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-primary" />
-          <div>
-            <p className="text-sm font-semibold">Assistansportal</p>
-            {me?.assistant && (
-              <p className="text-xs text-muted-foreground">
-                {me.assistant.name} · Assisting {me.patientName}
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          {pending.length > 0 && (
-            <span className="text-xs text-amber-400 font-medium">{pending.length} proposals waiting</span>
+      <header className="border-b border-border bg-card px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+        <div>
+          <p className="text-sm font-semibold">
+            {me?.assistant?.name ?? "Assistant"}
+          </p>
+          {me?.patientName && (
+            <p className="text-xs text-muted-foreground">Assisting {me.patientName}</p>
           )}
-          {needsReport.length > 0 && (
-            <span className="text-xs text-blue-400 font-medium">{needsReport.length} reports due</span>
+        </div>
+        <div className="flex items-center gap-3">
+          {pending.length > 0 && (
+            <button onClick={() => setTab("proposals")}
+              className="text-xs text-amber-400 font-medium">{pending.length} proposals</button>
           )}
           <button onClick={() => { logout(); navigate("/login"); }}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-            <LogOut className="w-3.5 h-3.5" />Log out
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+            <LogOut className="w-3.5 h-3.5" />
           </button>
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+      <div className="max-w-lg mx-auto px-4 py-5 space-y-4">
 
-        {/* Week strip */}
-        <Card>
-          <CardContent className="pt-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setWeekOffset((w) => w - 1)}>
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <span className="text-sm font-medium px-1">
-                  {weekOffset === 0 ? "This week" : weekOffset === -1 ? "Last week" : weekOffset === 1 ? "Next week" : formatDate(weekDates[0])}
-                </span>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setWeekOffset((w) => w + 1)}>
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-              <div className="text-right">
-                <p className="font-mono text-xl font-bold text-blue-400">{weekHours.toFixed(1)}h</p>
-                <p className="text-xs text-muted-foreground">this week</p>
-              </div>
+        {/* Today section */}
+        <div>
+          <div className="flex items-baseline justify-between mb-2">
+            <h2 className="text-sm font-semibold text-foreground">Today</h2>
+            <span className="text-xs text-muted-foreground font-mono">{weekHours.toFixed(1)}h this week</span>
+          </div>
+
+          {todayEntries.length === 0 ? (
+            <Card>
+              <CardContent className="py-6 text-center">
+                <p className="text-sm text-muted-foreground">No shifts today</p>
+                {upcoming.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Next: {formatDateLong(upcoming[0].date as string)} at {upcoming[0].start_time}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {todayEntries.map((e) => (
+                <Card key={e.id as string} className="ring-1 ring-primary/30">
+                  <CardContent className="py-4 space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <p className="font-mono text-2xl font-bold">{e.start_time} – {e.end_time}</p>
+                        <div className="flex items-center gap-2">
+                          <ActivityPill activityId={e.activity_id as string} />
+                          <span className="text-xs text-muted-foreground">{e.hours}h planned</span>
+                        </div>
+                      </div>
+                      <Badge variant="success">Today</Badge>
+                    </div>
+                    <ClockButton
+                      entry={e}
+                      onClockIn={() => clockIn.mutate(e.id as string)}
+                      onClockOut={() => clockOut.mutate(e.id as string)}
+                      isLoading={isClockLoading}
+                    />
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-            <div className="grid grid-cols-7 gap-1">
-              {weekDates.map((date) => {
-                const dayEntries = thisWeek.filter((e) => e.date === date);
-                const isToday    = date === todayStr;
-                const hasPending = dayEntries.some((e) => e.req_status === "pending");
-                const dayHours   = dayEntries.reduce((s, e) => s + ((e.hours as number) ?? 0), 0);
-                return (
-                  <div key={date} className={cn(
-                    "rounded-lg p-2 text-center space-y-1",
-                    isToday ? "bg-primary/15 ring-1 ring-primary/30" : "bg-secondary/30",
-                    dayEntries.length === 0 && "opacity-40"
-                  )}>
-                    <p className={cn("text-[10px] font-medium uppercase", isToday ? "text-primary" : "text-muted-foreground")}>
-                      {new Date(date).toLocaleDateString("en-GB", { weekday: "short" })}
-                    </p>
-                    <p className={cn("text-sm font-bold", isToday ? "text-primary" : "text-foreground")}>
-                      {new Date(date).getDate()}
-                    </p>
-                    {dayHours > 0
-                      ? <p className="text-[10px] font-mono text-emerald-400">{dayHours}h</p>
-                      : <p className="text-[10px] text-muted-foreground">—</p>
-                    }
-                    {hasPending && <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mx-auto" />}
-                  </div>
-                );
-              })}
+          )}
+        </div>
+
+        {/* Next 7 days */}
+        {upcoming.length > 0 && (
+          <div>
+            <h2 className="text-sm font-semibold mb-2">Next 7 days</h2>
+            <div className="space-y-2">
+              {upcoming.map((e) => (
+                <Card key={e.id as string}>
+                  <CardContent className="py-3 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-medium">{formatDateLong(e.date as string)}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="font-mono">{e.start_time} – {e.end_time}</span>
+                        <span>{e.hours}h</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ActivityPill activityId={e.activity_id as string} size="sm" />
+                      {e.req_status === "pending" && <Badge variant="warning">Pending</Badge>}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        )}
 
         {/* Action banners */}
         {(pending.length > 0 || needsReport.length > 0) && (
@@ -144,77 +246,33 @@ export default function AssistantDashboard() {
             {pending.length > 0 && (
               <button onClick={() => setTab("proposals")}
                 className="text-left border border-amber-900/50 bg-amber-950/20 rounded-xl p-3.5 hover:border-amber-700/70 transition-colors">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm font-medium text-amber-300">Shift proposals</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Tap to review</p>
-                  </div>
-                  <span className="font-mono text-sm font-bold text-amber-400 bg-amber-950 border border-amber-900 rounded px-1.5">{pending.length}</span>
-                </div>
+                <p className="text-sm font-medium text-amber-300">Proposals</p>
+                <p className="font-mono text-xl font-bold text-amber-400">{pending.length}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Tap to review</p>
               </button>
             )}
             {needsReport.length > 0 && (
               <button onClick={() => setTab("reports")}
                 className="text-left border border-blue-900/50 bg-blue-950/20 rounded-xl p-3.5 hover:border-blue-700/70 transition-colors">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm font-medium text-blue-300">Reports due</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Submit your hours</p>
-                  </div>
-                  <span className="font-mono text-sm font-bold text-blue-400 bg-blue-950 border border-blue-900 rounded px-1.5">{needsReport.length}</span>
-                </div>
+                <p className="text-sm font-medium text-blue-300">Reports due</p>
+                <p className="font-mono text-xl font-bold text-blue-400">{needsReport.length}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Submit your hours</p>
               </button>
             )}
           </div>
         )}
 
-        {/* Tabs */}
+        {/* Tabs: Proposals / Reports / Open Slots */}
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="w-full">
-            <TabsTrigger value="upcoming" className="flex-1">Upcoming</TabsTrigger>
             <TabsTrigger value="proposals" className="flex-1">
-              Proposals {pending.length > 0 && <span className="ml-1 text-[10px] bg-amber-900 text-amber-400 rounded-full px-1.5">{pending.length}</span>}
+              Proposals {pending.length > 0 && (
+                <span className="ml-1 text-[10px] bg-amber-900 text-amber-400 rounded-full px-1.5">{pending.length}</span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="reports" className="flex-1">Reports</TabsTrigger>
             <TabsTrigger value="slots" className="flex-1">Open slots</TabsTrigger>
           </TabsList>
-
-          {/* Upcoming */}
-          <TabsContent value="upcoming">
-            {upcoming.length === 0
-              ? <EmptyState message="No upcoming shifts — check Open Slots to self-book" />
-              : (
-                <div className="space-y-2 mt-2">
-                  {upcoming.map((e) => {
-                    const isToday = e.date === todayStr;
-                    const act     = activityById(e.activity_id as string);
-                    return (
-                      <Card key={e.id as string} className={isToday ? "ring-1 ring-primary/40" : ""}>
-                        <CardContent className="py-4">
-                          <div className="flex items-start justify-between">
-                            <div className="space-y-1.5">
-                              <div className="flex items-center gap-2">
-                                {isToday && <Badge variant="info" className="text-[10px]">Today</Badge>}
-                                <p className="text-sm font-medium">{formatDateLong(e.date as string)}</p>
-                              </div>
-                              <p className="font-mono text-lg font-semibold">{e.start_time} – {e.end_time}</p>
-                              <div className="flex items-center gap-2">
-                                <ActivityPill activityId={e.activity_id as string} />
-                                <span className="text-xs text-muted-foreground">{e.hours}h</span>
-                              </div>
-                            </div>
-                            <div>
-                              {e.req_status === "pending" && <Badge variant="warning">Pending</Badge>}
-                              {e.req_status === "approved" && <Badge variant="success">✓ Confirmed</Badge>}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-          </TabsContent>
 
           {/* Proposals */}
           <TabsContent value="proposals">
@@ -270,7 +328,7 @@ export default function AssistantDashboard() {
                           <p className="text-sm font-medium">{formatDate(e.date as string)}</p>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <span className="font-mono">{e.start_time} – {e.end_time}</span>
-                            <span>{e.hours}h</span>
+                            <span>{e.actual_hours ? `${e.actual_hours}h actual` : `${e.hours}h planned`}</span>
                           </div>
                           <ActivityPill activityId={e.activity_id as string} size="sm" />
                         </div>

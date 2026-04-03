@@ -126,4 +126,6 @@ export const assistantSelfApi = {
   submitReport: (id: string) => api.put(`/assistant/entries/${id}/submit-report`),
   openSlots:    () => api.get("/assistant/open-slots"),
   selfBook:     (slotId: string) => api.post(`/assistant/self-book/${slotId}`),
+  clockIn:      (id: string) => api.post(`/assistant/entries/${id}/clock-in`),
+  clockOut:     (id: string) => api.post(`/assistant/entries/${id}/clock-out`),
 };

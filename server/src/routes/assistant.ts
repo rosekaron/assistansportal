@@ -96,6 +96,39 @@ router.post("/self-book/:slotId", async (req: AuthRequest, res) => {
   } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 
+router.post("/entries/:id/clock-in", async (req: AuthRequest, res) => {
+  try {
+    const [entry] = await db.select().from(entries).where(
+      and(eq(entries.id, req.params.id), eq(entries.assistantId, req.assistantId!))
+    ).limit(1);
+    if (!entry) return res.status(404).json({ error: "Shift not found" });
+    if (entry.reqStatus !== "approved") return res.status(400).json({ error: "Can only clock in on approved shifts" });
+    if (entry.clockedInAt) return res.status(400).json({ error: "Already clocked in" });
+    const [updated] = await db.update(entries)
+      .set({ clockedInAt: new Date(), updatedAt: new Date() })
+      .where(eq(entries.id, req.params.id)).returning();
+    res.json(updated);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+router.post("/entries/:id/clock-out", async (req: AuthRequest, res) => {
+  try {
+    const [entry] = await db.select().from(entries).where(
+      and(eq(entries.id, req.params.id), eq(entries.assistantId, req.assistantId!))
+    ).limit(1);
+    if (!entry) return res.status(404).json({ error: "Shift not found" });
+    if (!entry.clockedInAt) return res.status(400).json({ error: "Not clocked in yet" });
+    if (entry.clockedOutAt) return res.status(400).json({ error: "Already clocked out" });
+    const now = new Date();
+    const diffMins = (now.getTime() - new Date(entry.clockedInAt).getTime()) / 60000;
+    const actualHours = Math.round(diffMins / 15) * 15 / 60;
+    const [updated] = await db.update(entries)
+      .set({ clockedOutAt: now, actualHours, updatedAt: new Date() })
+      .where(eq(entries.id, req.params.id)).returning();
+    res.json(updated);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
 router.get("/open-slots", async (req: AuthRequest, res) => {
   try {
     const rows = await db.select().from(openSlots).orderBy(openSlots.date, openSlots.startTime);
