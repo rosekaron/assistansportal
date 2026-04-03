@@ -123,7 +123,7 @@ router.post("/entries/:id/clock-out", async (req: AuthRequest, res) => {
     const diffMins = (now.getTime() - new Date(entry.clockedInAt).getTime()) / 60000;
     const actualHours = Math.round(diffMins / 15) * 15 / 60;
     const [updated] = await db.update(entries)
-      .set({ clockedOutAt: now, actualHours, updatedAt: new Date() })
+      .set({ clockedOutAt: now, actualHours, repStatus: "pending", updatedAt: new Date() })
       .where(eq(entries.id, req.params.id)).returning();
     res.json(updated);
   } catch (e) { res.status(500).json({ error: String(e) }); }

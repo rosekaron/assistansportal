@@ -11,7 +11,7 @@ import { ActivityPill, EmptyState, FillBar } from "@/components/shared";
 import { activityById } from "@/lib/activities";
 import { formatDate, formatDateLong } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { LogOut, CheckCircle, FileText, CalendarDays, Timer, TimerOff } from "lucide-react";
+import { LogOut, CheckCircle, CalendarDays, Timer, TimerOff } from "lucide-react";
 
 type Entry = Record<string, string | number | null | undefined>;
 type Slot  = Record<string, string | number | null | undefined>;
@@ -99,7 +99,7 @@ export default function AssistantDashboard() {
 
   const pending     = (entries as Entry[]).filter((e) => e.reqStatus === "pending");
   const approved    = (entries as Entry[]).filter((e) => e.reqStatus === "approved");
-  const needsReport = (entries as Entry[]).filter((e) => e.reqStatus === "approved" && e.repStatus === "draft");
+  const needsReport = [] as Entry[]; // clock-out now auto-submits — no manual step needed
 
   // Weekly hours (Mon–Sun of current week)
   const today     = new Date();
@@ -126,10 +126,6 @@ export default function AssistantDashboard() {
   });
   const reject = useMutation({
     mutationFn: (id: string) => assistantSelfApi.reject(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["assistant-entries"] }),
-  });
-  const submitReport = useMutation({
-    mutationFn: (id: string) => assistantSelfApi.submitReport(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["assistant-entries"] }),
   });
   const selfBook = useMutation({
@@ -317,10 +313,10 @@ export default function AssistantDashboard() {
           {/* Reports */}
           <TabsContent value="reports">
             {approved.length === 0
-              ? <EmptyState message="No approved shifts to report yet" />
+              ? <EmptyState message="No completed shifts yet" />
               : (
                 <div className="space-y-2 mt-2">
-                  <p className="text-xs text-muted-foreground">Submit reports for completed shifts. Your guardian reviews and approves them.</p>
+                  <p className="text-xs text-muted-foreground">Your completed shifts. Guardian reviews and approves them after you clock out.</p>
                   {approved.sort((a, b) => (b.date as string).localeCompare(a.date as string)).map((e) => (
                     <Card key={e.id as string}>
                       <CardContent className="py-3.5 flex items-center justify-between">
@@ -335,12 +331,7 @@ export default function AssistantDashboard() {
                         <div className="flex items-center gap-2">
                           {e.repStatus === "approved" && <Badge variant="success">✓ Approved</Badge>}
                           {e.repStatus === "pending"  && <Badge variant="warning">Under review</Badge>}
-                          {e.repStatus === "draft"    && (
-                            <Button size="sm" variant="outline" disabled={submitReport.isPending}
-                              onClick={() => submitReport.mutate(e.id as string)}>
-                              <FileText className="w-3.5 h-3.5" />Submit
-                            </Button>
-                          )}
+                          {e.repStatus === "draft"    && <Badge variant="default">Not clocked out</Badge>}
                         </div>
                       </CardContent>
                     </Card>
