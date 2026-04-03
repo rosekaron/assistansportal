@@ -7,14 +7,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/inputs";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/controls";
-import { ActivityPill, EmptyState, FillBar } from "@/components/shared";
+import { ActivityPill, EmptyState } from "@/components/shared";
 import { activityById } from "@/lib/activities";
 import { formatDate, formatDateLong } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { LogOut, CheckCircle, CalendarDays, Timer, TimerOff } from "lucide-react";
+import { CheckCircle, Timer, TimerOff } from "lucide-react";
 
 type Entry = Record<string, string | number | null | undefined>;
-type Slot  = Record<string, string | number | null | undefined>;
 
 function formatTime(iso: string | null | undefined) {
   if (!iso) return "";
@@ -80,7 +79,6 @@ export default function AssistantDashboard() {
 
   const { data: me }           = useQuery({ queryKey: ["assistant-me"],      queryFn: () => assistantSelfApi.me().then((r) => r.data) });
   const { data: entries = [] } = useQuery({ queryKey: ["assistant-entries"], queryFn: () => assistantSelfApi.entries().then((r) => r.data) });
-  const { data: slots = [] }   = useQuery({ queryKey: ["assistant-slots"],   queryFn: () => assistantSelfApi.openSlots().then((r) => r.data) });
 
   const todayStr = new Date().toISOString().split("T")[0];
 
@@ -128,14 +126,6 @@ export default function AssistantDashboard() {
     mutationFn: (id: string) => assistantSelfApi.reject(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["assistant-entries"] }),
   });
-  const selfBook = useMutation({
-    mutationFn: (slotId: string) => assistantSelfApi.selfBook(slotId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["assistant-entries"] });
-      qc.invalidateQueries({ queryKey: ["assistant-slots"] });
-    },
-  });
-
   const isClockLoading = clockIn.isPending || clockOut.isPending;
 
   return (
@@ -150,16 +140,10 @@ export default function AssistantDashboard() {
             <p className="text-xs text-muted-foreground">Assisting {me.patientName}</p>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          {pending.length > 0 && (
-            <button onClick={() => setTab("proposals")}
-              className="text-xs text-amber-400 font-medium">{pending.length} proposals</button>
-          )}
-          <button onClick={() => { logout(); navigate("/login"); }}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-            <LogOut className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <button onClick={() => { logout(); navigate("/login"); }}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+          Log out
+        </button>
       </header>
 
       <div className="max-w-lg mx-auto px-4 py-5 space-y-4">
@@ -267,7 +251,6 @@ export default function AssistantDashboard() {
               )}
             </TabsTrigger>
             <TabsTrigger value="reports" className="flex-1">Reports</TabsTrigger>
-            <TabsTrigger value="slots" className="flex-1">Open slots</TabsTrigger>
           </TabsList>
 
           {/* Proposals */}
@@ -340,43 +323,6 @@ export default function AssistantDashboard() {
               )}
           </TabsContent>
 
-          {/* Open slots */}
-          <TabsContent value="slots">
-            {(slots as Slot[]).length === 0
-              ? <EmptyState message="No open slots available right now" />
-              : (
-                <div className="space-y-2 mt-2">
-                  <p className="text-xs text-muted-foreground mb-3">Available shifts you can claim directly.</p>
-                  {(slots as Slot[]).map((slot) => {
-                    const act = activityById(slot.activityId as string);
-                    return (
-                      <Card key={slot.id as string}>
-                        <CardContent className="py-4">
-                          <div className="flex items-start justify-between">
-                            <div className="space-y-1.5">
-                              <p className="text-sm font-medium">{formatDateLong(slot.date as string)}</p>
-                              <p className="font-mono text-lg font-semibold">{slot.startTime} – {slot.endTime}</p>
-                              <div className="flex items-center gap-2">
-                                <ActivityPill activityId={slot.activityId as string} />
-                                <span className="text-xs text-muted-foreground">{slot.hours}h</span>
-                              </div>
-                              <p className="text-xs text-muted-foreground">{act.desc}</p>
-                            </div>
-                            <div className="flex flex-col items-end gap-2">
-                              <FillBar filled={(slot.filled as number) ?? 0} capacity={(slot.capacity as number) ?? 1} />
-                              <Button size="sm" variant="outline" disabled={selfBook.isPending}
-                                onClick={() => selfBook.mutate(slot.id as string)}>
-                                <CalendarDays className="w-3.5 h-3.5" />Book shift
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-          </TabsContent>
         </Tabs>
       </div>
     </div>
