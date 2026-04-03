@@ -47,11 +47,13 @@ export const profileApi = {
 
 // Assistants
 export const assistantsApi = {
-  list:   () => api.get("/assistants"),
-  get:    (id: string) => api.get(`/assistants/${id}`),
-  create: (data: Record<string, unknown>) => api.post("/assistants", data),
-  update: (id: string, data: Record<string, unknown>) => api.put(`/assistants/${id}`, data),
-  delete: (id: string) => api.delete(`/assistants/${id}`),
+  list:        () => api.get("/assistants"),
+  get:         (id: string) => api.get(`/assistants/${id}`),
+  create:      (data: Record<string, unknown>) => api.post("/assistants", data),
+  update:      (id: string, data: Record<string, unknown>) => api.put(`/assistants/${id}`, data),
+  delete:      (id: string) => api.delete(`/assistants/${id}`),
+  linkExisting: (assistantId: string, email: string) => api.post("/assistants/link-existing", { assistantId, email }),
+  linkStatus:  (id: string) => api.get(`/assistants/${id}/link-status`),
 };
 
 // Entries
@@ -119,13 +121,19 @@ export const gcalApi = {
 
 // Assistant self-service
 export const assistantSelfApi = {
-  me:           () => api.get("/assistant/me"),
-  entries:      (params?: Record<string, string>) => api.get("/assistant/entries", { params }),
-  accept:       (id: string) => api.put(`/assistant/entries/${id}/accept`),
-  reject:       (id: string) => api.put(`/assistant/entries/${id}/reject`),
-  submitReport: (id: string) => api.put(`/assistant/entries/${id}/submit-report`),
-  openSlots:    () => api.get("/assistant/open-slots"),
-  selfBook:     (slotId: string) => api.post(`/assistant/self-book/${slotId}`),
-  clockIn:      (id: string) => api.post(`/assistant/entries/${id}/clock-in`),
-  clockOut:     (id: string) => api.post(`/assistant/entries/${id}/clock-out`),
+  me:               () => api.get("/assistant/me"),
+  entries:          (params?: Record<string, string>) => api.get("/assistant/entries", { params }),
+  accept:           (id: string) => api.put(`/assistant/entries/${id}/accept`),
+  reject:           (id: string) => api.put(`/assistant/entries/${id}/reject`),
+  submitReport:     (id: string) => api.put(`/assistant/entries/${id}/submit-report`),
+  openSlots:        () => api.get("/assistant/open-slots"),
+  selfBook:         (slotId: string) => api.post(`/assistant/self-book/${slotId}`),
+  clockIn:          (id: string) => api.post(`/assistant/entries/${id}/clock-in`),
+  clockOut:         (id: string) => api.post(`/assistant/entries/${id}/clock-out`),
+  // Multi-family
+  families:         () => api.get("/assistant/families"),
+  leaveFamily:      (assistantId: string) => api.post(`/assistant/families/${assistantId}/leave`),
+  linkRequests:     () => api.get("/assistant/link-requests"),
+  acceptLink:       (linkId: string) => api.post(`/assistant/link-requests/${linkId}/accept`),
+  declineLink:      (linkId: string) => api.post(`/assistant/link-requests/${linkId}/decline`),
 };

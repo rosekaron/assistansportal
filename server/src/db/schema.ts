@@ -8,13 +8,15 @@ export const reqStatusEnum    = pgEnum("req_status",    ["pending","approved","r
 export const repStatusEnum    = pgEnum("rep_status",    ["draft","pending","approved","rejected"]);
 export const calStatusEnum    = pgEnum("cal_status",    ["tentative","confirmed"]);
 export const sourceEnum       = pgEnum("source",        ["proposal","self_book"]);
-export const inviteStatusEnum = pgEnum("invite_status", ["pending","accepted","declined","revoked"]);
+export const inviteStatusEnum  = pgEnum("invite_status",  ["pending","accepted","declined","revoked"]);
+export const linkStatusEnum    = pgEnum("link_status",    ["pending","accepted","declined"]);
 export const roleEnum         = pgEnum("role",          ["guardian","assistant"]);
 export const entryTypeEnum    = pgEnum("entry_type",    ["active","waiting","standby","sick"]);
 
 // ── Profile ───────────────────────────────────────────────────
 export const profile = pgTable("profile", {
   id:            serial("id").primaryKey(),
+  authId:        integer("auth_id"),          // FK to auth.id — which guardian owns this profile (null = legacy global)
   guardianName:  text("guardian_name").default(""),
   guardianPno:   text("guardian_pno").default(""),
   guardianEmail: text("guardian_email").default(""),
@@ -74,7 +76,20 @@ export const assistants = pgTable("assistants", {
   isFlexible:     boolean("is_flexible").default(false),
   inviteStatus:   inviteStatusEnum("invite_status").default("pending"),
   authId:         integer("auth_id"),
+  // Multi-family: which guardian created this record + display label for the family
+  guardianAuthId: integer("guardian_auth_id"),  // FK to auth.id of the guardian
+  familyLabel:    text("family_label").default(""),  // patient name from guardian profile (for fast display)
   createdAt:      timestamp("created_at").defaultNow(),
+});
+
+// ── Auth ↔ Assistants (many-to-many) ──────────────────────────
+// One assistant auth account can be linked to multiple assistant records (one per family)
+export const authAssistants = pgTable("auth_assistants", {
+  id:          text("id").primaryKey(),
+  authId:      integer("auth_id").notNull(),      // FK to auth.id (assistant role)
+  assistantId: text("assistant_id").notNull().references(() => assistants.id, { onDelete: "cascade" }),
+  status:      linkStatusEnum("status").default("pending"),
+  createdAt:   timestamp("created_at").defaultNow(),
 });
 
 // ── Schedule entries ──────────────────────────────────────────
@@ -162,6 +177,7 @@ export const settings = pgTable("settings", {
 export type Profile           = typeof profile.$inferSelect;
 export type Auth              = typeof auth.$inferSelect;
 export type Assistant         = typeof assistants.$inferSelect;
+export type AuthAssistant     = typeof authAssistants.$inferSelect;
 export type Entry             = typeof entries.$inferSelect;
 export type OpenSlot          = typeof openSlots.$inferSelect;
 export type Blocked           = typeof blocked.$inferSelect;
