@@ -27,16 +27,16 @@ function ClockButton({ entry, onClockIn, onClockOut, isLoading }: {
   onClockOut: () => void;
   isLoading: boolean;
 }) {
-  const clockedIn  = !!entry.clocked_in_at;
-  const clockedOut = !!entry.clocked_out_at;
+  const clockedIn  = !!entry.clockedInAt;
+  const clockedOut = !!entry.clockedOutAt;
 
   if (clockedOut) {
     return (
       <div className="text-center space-y-1 py-2">
         <p className="text-xs text-muted-foreground">Clocked out</p>
-        <p className="font-mono text-lg font-bold text-emerald-400">{entry.actual_hours}h recorded</p>
+        <p className="font-mono text-lg font-bold text-emerald-400">{entry.actualHours}h recorded</p>
         <p className="text-xs text-muted-foreground">
-          {formatTime(entry.clocked_in_at as string)} – {formatTime(entry.clocked_out_at as string)}
+          {formatTime(entry.clockedInAt as string)} – {formatTime(entry.clockedOutAt as string)}
         </p>
       </div>
     );
@@ -46,7 +46,7 @@ function ClockButton({ entry, onClockIn, onClockOut, isLoading }: {
     return (
       <div className="space-y-2">
         <p className="text-xs text-muted-foreground text-center">
-          Clocked in at {formatTime(entry.clocked_in_at as string)}
+          Clocked in at {formatTime(entry.clockedInAt as string)}
         </p>
         <Button
           className="w-full h-14 text-base font-semibold bg-red-600 hover:bg-red-700 text-white"
@@ -86,20 +86,20 @@ export default function AssistantDashboard() {
 
   // Today's confirmed shifts
   const todayEntries = (entries as Entry[])
-    .filter((e) => e.date === todayStr && e.req_status === "approved")
-    .sort((a, b) => (a.start_time as string).localeCompare(b.start_time as string));
+    .filter((e) => e.date === todayStr && e.reqStatus === "approved")
+    .sort((a, b) => (a.startTime as string).localeCompare(b.startTime as string));
 
   // Next 7 days (excluding today)
   const in7Days = new Date();
   in7Days.setDate(in7Days.getDate() + 7);
   const in7DaysStr = in7Days.toISOString().split("T")[0];
   const upcoming = (entries as Entry[])
-    .filter((e) => (e.date as string) > todayStr && (e.date as string) <= in7DaysStr && e.req_status !== "rejected")
+    .filter((e) => (e.date as string) > todayStr && (e.date as string) <= in7DaysStr && e.reqStatus !== "rejected")
     .sort((a, b) => (a.date as string).localeCompare(b.date as string));
 
-  const pending     = (entries as Entry[]).filter((e) => e.req_status === "pending");
-  const approved    = (entries as Entry[]).filter((e) => e.req_status === "approved");
-  const needsReport = (entries as Entry[]).filter((e) => e.req_status === "approved" && e.rep_status === "draft");
+  const pending     = (entries as Entry[]).filter((e) => e.reqStatus === "pending");
+  const approved    = (entries as Entry[]).filter((e) => e.reqStatus === "approved");
+  const needsReport = (entries as Entry[]).filter((e) => e.reqStatus === "approved" && e.repStatus === "draft");
 
   // Weekly hours (Mon–Sun of current week)
   const today     = new Date();
@@ -109,7 +109,7 @@ export default function AssistantDashboard() {
   const monStr    = monday.toISOString().split("T")[0];
   const sunStr    = sunday.toISOString().split("T")[0];
   const weekHours = (entries as Entry[])
-    .filter((e) => (e.date as string) >= monStr && (e.date as string) <= sunStr && e.req_status !== "rejected")
+    .filter((e) => (e.date as string) >= monStr && (e.date as string) <= sunStr && e.reqStatus !== "rejected")
     .reduce((s, e) => s + ((e.hours as number) ?? 0), 0);
 
   const clockIn = useMutation({
@@ -193,9 +193,9 @@ export default function AssistantDashboard() {
                   <CardContent className="py-4 space-y-4">
                     <div className="flex items-start justify-between">
                       <div className="space-y-1">
-                        <p className="font-mono text-2xl font-bold">{e.start_time} – {e.end_time}</p>
+                        <p className="font-mono text-2xl font-bold">{e.startTime} – {e.endTime}</p>
                         <div className="flex items-center gap-2">
-                          <ActivityPill activityId={e.activity_id as string} />
+                          <ActivityPill activityId={e.activityId as string} />
                           <span className="text-xs text-muted-foreground">{e.hours}h planned</span>
                         </div>
                       </div>
@@ -225,13 +225,13 @@ export default function AssistantDashboard() {
                     <div className="space-y-0.5">
                       <p className="text-sm font-medium">{formatDateLong(e.date as string)}</p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="font-mono">{e.start_time} – {e.end_time}</span>
+                        <span className="font-mono">{e.startTime} – {e.endTime}</span>
                         <span>{e.hours}h</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <ActivityPill activityId={e.activity_id as string} size="sm" />
-                      {e.req_status === "pending" && <Badge variant="warning">Pending</Badge>}
+                      <ActivityPill activityId={e.activityId as string} size="sm" />
+                      {e.reqStatus === "pending" && <Badge variant="warning">Pending</Badge>}
                     </div>
                   </CardContent>
                 </Card>
@@ -281,15 +281,15 @@ export default function AssistantDashboard() {
               : (
                 <div className="space-y-3 mt-2">
                   {pending.map((e) => {
-                    const act = activityById(e.activity_id as string);
+                    const act = activityById(e.activityId as string);
                     return (
                       <Card key={e.id as string}>
                         <CardContent className="py-4 space-y-3">
                           <div>
                             <p className="text-sm font-medium">{formatDateLong(e.date as string)}</p>
-                            <p className="font-mono text-xl font-bold mt-0.5">{e.start_time} – {e.end_time}</p>
+                            <p className="font-mono text-xl font-bold mt-0.5">{e.startTime} – {e.endTime}</p>
                             <div className="flex items-center gap-2 mt-1.5">
-                              <ActivityPill activityId={e.activity_id as string} />
+                              <ActivityPill activityId={e.activityId as string} />
                               <span className="text-xs text-muted-foreground">{e.hours}h</span>
                             </div>
                           </div>
@@ -327,15 +327,15 @@ export default function AssistantDashboard() {
                         <div className="space-y-1">
                           <p className="text-sm font-medium">{formatDate(e.date as string)}</p>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span className="font-mono">{e.start_time} – {e.end_time}</span>
-                            <span>{e.actual_hours ? `${e.actual_hours}h actual` : `${e.hours}h planned`}</span>
+                            <span className="font-mono">{e.startTime} – {e.endTime}</span>
+                            <span>{e.actualHours ? `${e.actualHours}h actual` : `${e.hours}h planned`}</span>
                           </div>
-                          <ActivityPill activityId={e.activity_id as string} size="sm" />
+                          <ActivityPill activityId={e.activityId as string} size="sm" />
                         </div>
                         <div className="flex items-center gap-2">
-                          {e.rep_status === "approved" && <Badge variant="success">✓ Approved</Badge>}
-                          {e.rep_status === "pending"  && <Badge variant="warning">Under review</Badge>}
-                          {e.rep_status === "draft"    && (
+                          {e.repStatus === "approved" && <Badge variant="success">✓ Approved</Badge>}
+                          {e.repStatus === "pending"  && <Badge variant="warning">Under review</Badge>}
+                          {e.repStatus === "draft"    && (
                             <Button size="sm" variant="outline" disabled={submitReport.isPending}
                               onClick={() => submitReport.mutate(e.id as string)}>
                               <FileText className="w-3.5 h-3.5" />Submit
@@ -357,16 +357,16 @@ export default function AssistantDashboard() {
                 <div className="space-y-2 mt-2">
                   <p className="text-xs text-muted-foreground mb-3">Available shifts you can claim directly.</p>
                   {(slots as Slot[]).map((slot) => {
-                    const act = activityById(slot.activity_id as string);
+                    const act = activityById(slot.activityId as string);
                     return (
                       <Card key={slot.id as string}>
                         <CardContent className="py-4">
                           <div className="flex items-start justify-between">
                             <div className="space-y-1.5">
                               <p className="text-sm font-medium">{formatDateLong(slot.date as string)}</p>
-                              <p className="font-mono text-lg font-semibold">{slot.start_time} – {slot.end_time}</p>
+                              <p className="font-mono text-lg font-semibold">{slot.startTime} – {slot.endTime}</p>
                               <div className="flex items-center gap-2">
-                                <ActivityPill activityId={slot.activity_id as string} />
+                                <ActivityPill activityId={slot.activityId as string} />
                                 <span className="text-xs text-muted-foreground">{slot.hours}h</span>
                               </div>
                               <p className="text-xs text-muted-foreground">{act.desc}</p>
