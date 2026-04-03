@@ -245,18 +245,18 @@ export default function AssistantDashboard() {
           <div className="grid grid-cols-2 gap-3">
             {pending.length > 0 && (
               <button onClick={() => setTab("proposals")}
-                className="text-left border border-amber-900/50 bg-amber-950/20 rounded-xl p-3.5 hover:border-amber-700/70 transition-colors">
-                <p className="text-sm font-medium text-amber-300">Proposals</p>
-                <p className="font-mono text-xl font-bold text-amber-400">{pending.length}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Tap to review</p>
+                className="text-left bg-card border border-amber-300 rounded-xl p-3.5 hover:border-amber-500 transition-colors">
+                <p className="text-xs text-muted-foreground">Proposals</p>
+                <p className="font-mono text-2xl font-bold text-amber-600">{pending.length}</p>
+                <p className="text-xs text-amber-600 font-medium mt-0.5">Tap to review →</p>
               </button>
             )}
             {needsReport.length > 0 && (
               <button onClick={() => setTab("reports")}
-                className="text-left border border-blue-900/50 bg-blue-950/20 rounded-xl p-3.5 hover:border-blue-700/70 transition-colors">
-                <p className="text-sm font-medium text-blue-300">Reports due</p>
-                <p className="font-mono text-xl font-bold text-blue-400">{needsReport.length}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Submit your hours</p>
+                className="text-left bg-card border border-blue-300 rounded-xl p-3.5 hover:border-blue-500 transition-colors">
+                <p className="text-xs text-muted-foreground">Reports due</p>
+                <p className="font-mono text-2xl font-bold text-blue-600">{needsReport.length}</p>
+                <p className="text-xs text-blue-600 font-medium mt-0.5">Submit hours →</p>
               </button>
             )}
           </div>
