@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { profileApi, settingsApi } from "@/lib/api";
+import { profileApi, settingsApi, gcalApi } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/inputs";
@@ -59,12 +59,27 @@ function ToggleRow({
 
 export default function SettingsPage() {
   const qc = useQueryClient();
-  const [saved,      setSaved]      = useState(false);
-  const [gcalSaved,  setGcalSaved]  = useState(false);
-  const [connecting, setConnecting] = useState(false);
+  const [saved,     setSaved]     = useState(false);
+  const [gcalSaved, setGcalSaved] = useState(false);
 
   const { data: profile }  = useQuery({ queryKey: ["profile"],  queryFn: () => profileApi.get().then((r) => r.data) });
   const { data: settings } = useQuery({ queryKey: ["settings"], queryFn: () => settingsApi.get().then((r) => r.data) });
+  const { data: gcalStatus, refetch: refetchStatus } = useQuery({
+    queryKey: ["gcal-status"],
+    queryFn:  () => gcalApi.status().then((r) => r.data),
+  });
+  const { data: gcalHealth } = useQuery({
+    queryKey: ["gcal-health"],
+    queryFn:  () => gcalApi.health().then((r) => r.data),
+    enabled:  gcalStatus?.connected === true,
+    retry: false,
+  });
+  const { data: calendarList = [] } = useQuery({
+    queryKey: ["gcal-calendars"],
+    queryFn:  () => gcalApi.calendars().then((r) => r.data),
+    enabled:  gcalStatus?.connected === true && gcalHealth?.ok === true,
+    retry: false,
+  });
 
   const [form, setForm] = useState<FormState>({
     guardianName: "", guardianPno: "", guardianEmail: "", guardianPhone: "",
@@ -73,8 +88,7 @@ export default function SettingsPage() {
   });
 
   const [gcal, setGcal] = useState({
-    connected: false, email: "", calendarId: "",
-    syncEnabled: true, reminders: true, reminderHours: "24",
+    calendarId: "", syncEnabled: true, reminders: true, reminderHours: "24",
   });
 
 
@@ -104,16 +118,23 @@ export default function SettingsPage() {
     if (settings) {
       setGcal((g) => ({
         ...g,
-        connected:     settings.gcal_connected === "true",
-        email:         settings.gcal_email      ?? "",
-        calendarId:    settings.gcal_calendar_id ?? "",
-        syncEnabled:   settings.gcal_sync_enabled !== "false",
-        reminders:     settings.gcal_reminders    !== "false",
+        calendarId:    settings.gcal_calendar_id   ?? "",
+        syncEnabled:   settings.gcal_sync_enabled  !== "false",
+        reminders:     settings.gcal_reminders     !== "false",
         reminderHours: settings.gcal_reminder_hours ?? "24",
       }));
-
     }
   }, [settings]);
+
+  // Handle return from Google OAuth (?gcal_connected=true)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("gcal_connected") === "true") {
+      refetchStatus();
+      // Clean up the URL
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [refetchStatus]);
 
   const saveProfile = useMutation({
     mutationFn: () => profileApi.update({ ...form, weeklyHours: parseInt(form.weeklyHours) }),
@@ -129,6 +150,7 @@ export default function SettingsPage() {
       gcal_sync_enabled:   String(gcal.syncEnabled),
       gcal_reminders:      String(gcal.reminders),
       gcal_reminder_hours: gcal.reminderHours,
+      gcal_calendar_id:    gcal.calendarId,
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["settings"] });
@@ -137,20 +159,17 @@ export default function SettingsPage() {
     },
   });
 
+  const disconnect = useMutation({
+    mutationFn: () => gcalApi.disconnect(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["gcal-status"] });
+      qc.invalidateQueries({ queryKey: ["gcal-health"] });
+      qc.invalidateQueries({ queryKey: ["gcal-calendars"] });
+    },
+  });
 
-  function simulateConnect() {
-    setConnecting(true);
-    setTimeout(() => {
-      setConnecting(false);
-      const email = form.guardianEmail || "guardian@gmail.com";
-      setGcal((g) => ({ ...g, connected: true, email, calendarId: "primary" }));
-      settingsApi.update({ gcal_connected: "true", gcal_email: email });
-    }, 1800);
-  }
-
-  function disconnect() {
-    setGcal((g) => ({ ...g, connected: false, email: "", calendarId: "" }));
-    settingsApi.update({ gcal_connected: "false", gcal_email: "" });
+  function connectGcal() {
+    window.location.href = gcalApi.connectUrl();
   }
 
   return (
@@ -161,9 +180,29 @@ export default function SettingsPage() {
       <SectionLabel>Integrations</SectionLabel>
       <Card className="mb-6">
         <CardContent className="pt-5">
-          <div className={cn("flex items-center justify-between", gcal.connected ? "mb-5" : "")}>
+
+          {/* Broken connection warning (US-13c) */}
+          {gcalStatus?.connected && gcalHealth?.ok === false && (
+            <div className="mb-4 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+              <span className="text-amber-500 mt-0.5">⚠</span>
+              <div>
+                <p className="font-semibold">Calendar connection broken</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Google revoked access or the token expired. Shifts won't sync until you reconnect.
+                </p>
+                <button
+                  onClick={connectGcal}
+                  className="text-xs font-semibold underline underline-offset-2 mt-1 hover:text-amber-900"
+                >
+                  Reconnect Google Calendar →
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className={cn("flex items-center justify-between", gcalStatus?.connected ? "mb-5" : "")}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center shrink-0 border border-border">
                 <svg width="20" height="20" viewBox="0 0 48 48">
                   <rect x="6" y="6" width="36" height="36" rx="4" fill="#fff"/>
                   <rect x="6" y="6" width="36" height="12" rx="4" fill="#4285F4"/>
@@ -176,40 +215,50 @@ export default function SettingsPage() {
               <div>
                 <p className="text-sm font-semibold">Google Calendar</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {gcal.connected
-                    ? <span>Connected as <span className="text-blue-400">{gcal.email}</span></span>
-                    : "Sync schedules with Google Calendar"}
+                  {gcalStatus?.connected
+                    ? <span>Connected as <span className="text-primary">{gcalStatus.email}</span></span>
+                    : "Sync your care schedule with Google Calendar"}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {gcal.connected && (
-                <span className="text-xs bg-emerald-950 text-emerald-400 border border-emerald-900 rounded-full px-2 py-0.5">● Connected</span>
+              {gcalStatus?.connected && gcalHealth?.ok !== false && (
+                <span className="text-xs bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full px-2 py-0.5">● Connected</span>
               )}
-              {gcal.connected ? (
-                <Button variant="ghost" size="sm" onClick={disconnect}>Disconnect</Button>
+              {gcalStatus?.connected ? (
+                <Button variant="ghost" size="sm" onClick={() => disconnect.mutate()} disabled={disconnect.isPending}>
+                  Disconnect
+                </Button>
               ) : (
-                <Button size="sm" onClick={simulateConnect} disabled={connecting}>
-                  {connecting
-                    ? <><span className="w-3 h-3 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />Connecting…</>
-                    : "Connect Google Calendar"}
+                <Button size="sm" onClick={connectGcal}>
+                  Connect Google Calendar
                 </Button>
               )}
             </div>
           </div>
 
-          {gcal.connected && (
+          {gcalStatus?.connected && (
             <div className="border-t border-border pt-5 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Calendar</Label>
-                  <Select value={gcal.calendarId} onValueChange={(v) => setGcal((g) => ({ ...g, calendarId: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="primary">{gcal.email} (primary)</SelectItem>
-                      <SelectItem value="assistance">Assistance Schedule (shared)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Care calendar</Label>
+                  {(calendarList as { id: string; summary: string; primary?: boolean }[]).length > 0 ? (
+                    <Select value={gcal.calendarId || "primary"} onValueChange={(v) => setGcal((g) => ({ ...g, calendarId: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Select calendar" /></SelectTrigger>
+                      <SelectContent>
+                        {(calendarList as { id: string; summary: string; primary?: boolean }[]).map((c) => (
+                          <SelectItem key={c.id} value={c.id!}>
+                            {c.summary}{c.primary ? " (primary)" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-xs text-muted-foreground py-2">
+                      {gcalHealth?.ok === false ? "Reconnect to load calendars" : "Loading calendars…"}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">Use a dedicated care calendar, not your personal one</p>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Reminder (hours before shift)</Label>
@@ -238,8 +287,10 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="flex justify-end gap-2">
-                {gcalSaved && <span className="text-xs text-emerald-400 self-center">✓ Saved</span>}
-                <Button size="sm" variant="outline" onClick={() => saveGcal.mutate()}>Save calendar settings</Button>
+                {gcalSaved && <span className="text-xs text-emerald-600 self-center">✓ Saved</span>}
+                <Button size="sm" variant="outline" onClick={() => saveGcal.mutate()} disabled={saveGcal.isPending}>
+                  Save calendar settings
+                </Button>
               </div>
             </div>
           )}

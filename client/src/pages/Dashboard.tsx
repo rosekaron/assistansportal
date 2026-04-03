@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { profileApi, entriesApi, assistantsApi, pdfApi } from "@/lib/api";
+import { profileApi, entriesApi, assistantsApi, pdfApi, gcalApi } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/inputs";
@@ -27,6 +27,13 @@ export default function Dashboard() {
   const { data: profile }         = useQuery({ queryKey: ["profile"],    queryFn: () => profileApi.get().then(r => r.data) });
   const { data: assistants = [] } = useQuery({ queryKey: ["assistants"], queryFn: () => assistantsApi.list().then(r => r.data) });
   const { data: entries    = [] } = useQuery({ queryKey: ["entries"],    queryFn: () => entriesApi.list().then(r => r.data) });
+  const { data: gcalStatus }      = useQuery({ queryKey: ["gcal-status"], queryFn: () => gcalApi.status().then(r => r.data) });
+  const { data: gcalHealth }      = useQuery({
+    queryKey: ["gcal-health"],
+    queryFn:  () => gcalApi.health().then(r => r.data),
+    enabled:  gcalStatus?.connected === true,
+    retry: false,
+  });
 
   const now      = new Date();
   const todayStr = now.toISOString().split("T")[0];
@@ -84,6 +91,20 @@ export default function Dashboard() {
 
   return (
     <div>
+      {/* Broken calendar connection warning (US-13c) */}
+      {gcalStatus?.connected && gcalHealth?.ok === false && (
+        <div className="mb-4 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+          <AlertCircle className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />
+          <div>
+            <p className="font-semibold">Google Calendar connection broken</p>
+            <p className="text-xs text-amber-700 mt-0.5">Shifts won't sync until you reconnect.</p>
+          </div>
+          <a href="/settings" className="ml-auto text-xs font-semibold underline underline-offset-2 whitespace-nowrap hover:text-amber-900">
+            Fix in Settings →
+          </a>
+        </div>
+      )}
+
       {/* Setup banner */}
       {!profile?.setupDone && (
         <div className="mb-5 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">

@@ -173,6 +173,31 @@ router.delete("/events/:eventId", requireAuth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 
+// ── List user's calendars ─────────────────────────────────────
+router.get("/calendars", requireAuth, async (_req, res) => {
+  try {
+    const { calendar } = await getCalendarClient();
+    const { data } = await calendar.calendarList.list({ maxResults: 50 });
+    const items = (data.items ?? []).map(c => ({ id: c.id, summary: c.summary, primary: c.primary }));
+    res.json(items);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// ── Health check — test whether the token is still valid ──────
+router.get("/health", requireAuth, async (_req, res) => {
+  try {
+    const rows = await db.select().from(settings);
+    const s = Object.fromEntries(rows.map(r => [r.key, r.value]));
+    if (s.gcal_connected !== "true") return res.json({ ok: false, reason: "not_connected" });
+
+    const { calendar } = await getCalendarClient();
+    await calendar.calendarList.list({ maxResults: 1 });
+    res.json({ ok: true });
+  } catch (e) {
+    res.json({ ok: false, reason: "api_error", detail: String(e) });
+  }
+});
+
 // ── List upcoming events from Google Calendar ─────────────────
 router.get("/events", requireAuth, async (req, res) => {
   try {
