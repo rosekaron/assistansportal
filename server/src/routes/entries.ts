@@ -64,7 +64,11 @@ router.put("/:id", requireAuth, async (req, res) => {
   if (d.startTime   ?? d.start_time   !== undefined) allowed.startTime   = d.startTime   ?? d.start_time;
   if (d.endTime     ?? d.end_time     !== undefined) allowed.endTime     = d.endTime     ?? d.end_time;
   if (d.activityId  ?? d.activity_id  !== undefined) allowed.activityId  = d.activityId  ?? d.activity_id;
-  if (d.gcalEventId !== undefined) allowed.gcalEventId = d.gcalEventId;
+  if (d.gcalEventId          !== undefined) allowed.gcalEventId      = d.gcalEventId;
+  if (d.clockedInAt          !== undefined) allowed.clockedInAt      = d.clockedInAt  ? new Date(d.clockedInAt)  : null;
+  if (d.clockedOutAt         !== undefined) allowed.clockedOutAt     = d.clockedOutAt ? new Date(d.clockedOutAt) : null;
+  if (d.actualHours          !== undefined) allowed.actualHours      = d.actualHours;
+  if (d.guardianAdjusted     !== undefined) allowed.guardianAdjusted = d.guardianAdjusted;
   allowed.updatedAt = new Date();
 
   const [row] = await db.update(entries).set(allowed).where(eq(entries.id, req.params.id)).returning();

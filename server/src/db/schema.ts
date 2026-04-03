@@ -93,9 +93,11 @@ export const entries = pgTable("entries", {
   activityId:   text("activity_id"),
   gcalEventId:  text("gcal_event_id"),
   // Clock in/out — actual times recorded by the assistant
-  clockedInAt:  timestamp("clocked_in_at"),
-  clockedOutAt: timestamp("clocked_out_at"),
-  actualHours:  real("actual_hours"),
+  clockedInAt:      timestamp("clocked_in_at"),
+  clockedOutAt:     timestamp("clocked_out_at"),
+  actualHours:      real("actual_hours"),
+  // Guardian override — set when guardian manually corrects clock times
+  guardianAdjusted: boolean("guardian_adjusted").default(false),
   createdAt:    timestamp("created_at").defaultNow(),
   updatedAt:    timestamp("updated_at").defaultNow(),
 });

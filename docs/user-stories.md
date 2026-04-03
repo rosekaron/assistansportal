@@ -1,5 +1,5 @@
 # User Stories — Kalinga Assistansportal
-> Version: v0.1 | Last updated: 2026-04-02 (FK 3057 form review)
+> Version: v0.1 | Last updated: 2026-04-03 (multi-family assistant support)
 
 ---
 
@@ -29,6 +29,11 @@
 | 2026-04-02 | FK 3057 deductions entered at generation time, not stored | Hospital stays and activity absences (barnomsorg/skola/daglig verksamhet) are entered in the generation dialog and written directly to the PDF. Not persisted in the database. |
 | 2026-04-02 | FK 3057 page 2 cost amounts left blank in v0.1 | Requires FK schablonbelopp (annual rate) which changes yearly. Future accounting integration will handle this. Guardian completes page 2 manually. |
 | 2026-04-02 | FK 3057 is not blocked by draft assistant reports | Blocking would prevent the guardian from acting at all if one assistant is slow to finalise. Instead, the guardian is warned which assistants are missing and can choose to proceed with approved reports only or wait. |
+| 2026-04-03 | An assistant can be linked to multiple guardian families | Assistants frequently work part-time for more than one egna arbetsgivare family. The schema uses a junction table (auth_assistants) instead of a single FK. One login shows all families. |
+| 2026-04-03 | FK compliance for multi-family assistants lies with each guardian independently | Each guardian is a separate employer. FK 3059 and 3057 are submitted per-guardian. The weekly hour grant limit is per care package. The assistant's total hours view is informational only — no FK aggregation across guardians is required. Swedish labor law overtime caps (ArbL) technically apply across all employers but enforcement requires assistant self-declaration — out of MVP scope. |
+| 2026-04-03 | Family tag color is auto-assigned per assistant session, not configurable | Colors are visual aids to distinguish families in the unified view. Configurable colors add settings complexity with low value. Auto-assignment (based on family order linked) is sufficient for MVP. |
+| 2026-04-03 | Assistant must accept before being linked to a new family | A guardian adding an existing assistant sends a link request, not a registration invite. The assistant confirms before their account is connected to the new family's shifts. This protects the assistant's privacy and prevents unwanted access. |
+| 2026-04-03 | Guardian is notified if an assistant removes themselves from the family | An assistant disconnecting from a guardian's account is operationally significant — it may affect scheduling and FK reporting. The guardian receives an in-app alert and email. |
 | 2026-03-28 | 7-day coverage grid removed from dashboard (US-03) | The weekly grid duplicated the Schedule page. The dashboard was redesigned as an action centre: who is working today, what needs action, upcoming reports. Identified during sprint planning review. |
 | 2026-03-28 | Assistant-to-shift attribution uses Google Calendar guest invites | Rather than naming conventions or per-assistant calendars, the guardian invites the assistant's email as a guest on each shift event. Kalinga matches the guest email to the assistant in the system. Events with no matching guest are flagged as unassigned. |
 
@@ -1279,10 +1284,11 @@
 **Acceptance Criteria:**
 - Given I am logged in as an assistant
 - When I open the app
-- Then I see today's date and any shifts scheduled for me today
-- And I see upcoming shifts for the next 7 days grouped by day
-- And each shift shows: date, planned start and end time, planned hours
-- And each shift shows its clock status: Not started / In progress / Completed / Not clocked
+- Then I see today's shifts from all families I am linked to, sorted by start time
+- And each shift shows: planned start and end time, planned hours, and a family tag identifying which family it belongs to
+- And each shift shows its clock status: Not started / In progress / Completed
+- And I see upcoming shifts for the next 7 days from all families, sorted chronologically with family tags
+- And the header shows my total hours worked this week across all families (informational)
 
 - Given I have a shift today that has not been clocked in
 - When I open the app
@@ -1290,7 +1296,11 @@
 
 - Given I am currently clocked in to a shift
 - When I open the app
-- Then the Clock out button is the primary visual action on the screen
+- Then the Clock out button for that shift is the primary visual action on the screen
+
+- Given I am linked to more than one family
+- When I view today's shifts
+- Then each shift card shows a distinct colour-coded family tag so I can tell families apart at a glance
 
 - Given I am not assigned any shifts in the next 7 days
 - When I open the app
@@ -1300,7 +1310,7 @@
 - When I access it directly
 - Then I am redirected to my home screen and see an access-denied message
 
-> 🔁/✋ **Mixed** — routing and redirect are automated; shift list content must be verified manually against guardian-created entries
+> 🔁/✋ **Mixed** — routing and redirect are automated; shift list content and family tag display must be verified manually against guardian-created entries
 
 ---
 
@@ -1395,3 +1405,83 @@
 - And the entry is marked "Guardian-adjusted"
 
 > 🔁/✋ **Mixed** — save and status update are automated; the "Guardian-adjusted" label must be verified manually in the report view
+
+---
+
+### US-24 — Assistant linked to multiple families
+**As an** assistant who works for more than one family,
+**I want** my single login to show shifts from all my families in one view,
+**so that** I don't need separate accounts and can manage my whole workday in one place.
+
+**Acceptance Criteria:**
+- Given I have accepted link requests from two or more guardian families
+- When I log in
+- Then I see shifts from all linked families in the today view and upcoming list
+- And each shift is labelled with a family tag (patient first name) in a distinct colour per family
+- And shifts from different families on the same day are shown in chronological order
+- And the weekly hours total is aggregated across all families
+
+- Given I have shifts from two families on the same day
+- When I view today
+- Then each shift card shows the correct family tag
+- And I can clock in and clock out for each shift independently
+
+- Given I have no shifts from any family today
+- When I open the app
+- Then I see a message that there are no shifts today
+- And my next upcoming shift (from any family) is shown beneath
+
+> 🔁/✋ **Mixed** — data aggregation across families is automated; family tag display and colour distinction must be verified manually
+
+---
+
+### US-25 — Guardian adds an assistant who already has an account
+**As a** guardian,
+**I want to** add an assistant who already uses the app,
+**so that** they are linked to my family's shifts without needing to create a new account.
+
+**Acceptance Criteria:**
+- Given I add a new assistant using an email address that already belongs to an existing assistant account
+- When I submit the form
+- Then the system detects the existing account
+- And sends the assistant a link request (not a registration invite)
+- And the assistant's record appears in my assistant list with a "Pending link" status
+
+- Given the assistant receives a link request
+- When they open the notification or email
+- Then they see which family is requesting to link their account
+- And they can accept or decline
+
+- Given the assistant accepts the link request
+- When they next open the app
+- Then my family's shifts appear in their today view and upcoming list with my family tag
+
+- Given the assistant declines the link request
+- When I view my assistant list
+- Then their record is removed and I am notified that they declined
+
+> 🔁/✋ **Mixed** — link request creation and status updates are automated; accept/decline flow must be verified manually end-to-end
+
+---
+
+### US-26 — Assistant removes themselves from a family
+**As an** assistant,
+**I want to** be able to remove myself from a family I no longer work for,
+**so that** their shifts no longer appear in my view.
+
+**Acceptance Criteria:**
+- Given I am linked to more than one family
+- When I view my account settings
+- Then I see a list of all families I am linked to
+
+- Given I remove myself from a family
+- When I confirm
+- Then that family's shifts disappear from my today view and upcoming list immediately
+- And I can no longer clock in or out for that family's entries
+- And the guardian receives an in-app notification and email informing them that I have disconnected
+
+- Given the guardian receives the disconnection alert
+- Then the assistant's status in their assistant list changes to "Inactive"
+- And any upcoming shifts assigned to that assistant are flagged as unassigned
+
+> 🔁/✋ **Mixed** — disconnection and status update are automated; guardian notification and unassigned flag must be verified manually

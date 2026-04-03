@@ -8,7 +8,7 @@ import { PageHeader, AssistantAvatar, ActivityPill, EmptyState } from "@/compone
 import { activityById } from "@/lib/activities";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { FileDown, ChevronLeft, ChevronRight, CheckCircle2, Clock, FileText, AlertCircle, Plus, Trash2 } from "lucide-react";
+import { FileDown, ChevronLeft, ChevronRight, CheckCircle2, Clock, FileText, AlertCircle, Plus, Trash2, Pencil, X } from "lucide-react";
 
 // FK schablonbelopp 2026 — update annually or make configurable in Settings
 const FK_HOURLY_RATE = 334; // SEK per approved assistance hour
@@ -52,12 +52,24 @@ const MONTHS = [
 
 function pad(n: number) { return String(n).padStart(2,"0"); }
 
+// Helper: compute actualHours from two HH:MM strings (handles midnight cross)
+function calcActualHours(inTime: string, outTime: string): number {
+  const [inH, inM]   = inTime.split(":").map(Number);
+  const [outH, outM] = outTime.split(":").map(Number);
+  let mins = (outH * 60 + outM) - (inH * 60 + inM);
+  if (mins < 0) mins += 24 * 60; // overnight
+  return Math.round(mins / 15) * 15 / 60; // round to nearest 15 min
+}
+
 export default function ReportsPage() {
   const qc = useQueryClient();
   const now = new Date();
   const [year,  setYear]  = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
   const [selectedAssistant, setSelectedAssistant] = useState<string>("all");
+  // Guardian time-adjustment state: maps entryId → { in, out }
+  const [adjusting, setAdjusting] = useState<string | null>(null);
+  const [adjustTimes, setAdjustTimes] = useState({ in: "", out: "" });
 
   const { data: profile }        = useQuery({ queryKey: ["profile"],    queryFn: () => profileApi.get().then(r => r.data) });
   const { data: assistants = [] } = useQuery({ queryKey: ["assistants"], queryFn: () => assistantsApi.list().then(r => r.data) });
@@ -118,6 +130,20 @@ export default function ReportsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["entries", year, month] }),
   });
 
+  const guardianAdjust = useMutation({
+    mutationFn: ({ id, date, inTime, outTime }: { id: string; date: string; inTime: string; outTime: string }) => {
+      const clockedInAt  = new Date(`${date}T${inTime}:00`).toISOString();
+      const clockedOutAt = new Date(`${date}T${outTime}:00`).toISOString();
+      const actualHours  = calcActualHours(inTime, outTime);
+      return entriesApi.update(id, { clockedInAt, clockedOutAt, actualHours, guardianAdjusted: true, repStatus: "pending" });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["entries", year, month] });
+      setAdjusting(null);
+      setAdjustTimes({ in: "", out: "" });
+    },
+  });
+
   const approveAll = useMutation({
     mutationFn: async (assistantId: string) => {
       const toApprove = (entries as Entry[]).filter(e =>
@@ -167,13 +193,17 @@ export default function ReportsPage() {
         (e.reqStatus ?? e.req_status) === "approved" &&
         (e.repStatus ?? e.rep_status) === "pending"
       );
+      const notClocked = myEntries.filter(e =>
+        (e.reqStatus ?? e.req_status) === "approved" &&
+        (e.repStatus ?? e.rep_status) === "draft"
+      );
       const repApproved = myEntries.filter(e => (e.repStatus ?? e.rep_status) === "approved");
 
       const totalHours    = scheduled.reduce((s, e) => s + ((e.hours as number) ?? 0), 0);
       const approvedHours = approved.reduce((s, e) => s + ((e.hours as number) ?? 0), 0);
       const reportedHours = repApproved.reduce((s, e) => s + ((e.hours as number) ?? 0), 0);
 
-      return { assistant: a, myEntries, approved, repPending, repApproved, totalHours, approvedHours, reportedHours };
+      return { assistant: a, myEntries, approved, repPending, notClocked, repApproved, totalHours, approvedHours, reportedHours };
     }).filter(s => s.myEntries.length > 0);
   }, [assistants, entries]);
 
@@ -285,9 +315,10 @@ export default function ReportsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4 mb-6">
-          {summaries.map(({ assistant, approved, repPending, repApproved, approvedHours, reportedHours }) => {
-            const allReported = repPending.length === 0 && repApproved.length > 0;
-            const needsAction = repPending.length > 0;
+          {summaries.map(({ assistant, approved, repPending, notClocked, repApproved, approvedHours, reportedHours }) => {
+            const allReported = repPending.length === 0 && notClocked.length === 0 && repApproved.length > 0;
+            const needsAction = repPending.length > 0 || notClocked.length > 0;
+            const actionCount = repPending.length + notClocked.length;
             return (
               <Card
                 key={assistant.id as string}
@@ -315,7 +346,7 @@ export default function ReportsPage() {
                     {allReported
                       ? <span className="flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5"><CheckCircle2 className="w-3 h-3" />Ready</span>
                       : needsAction
-                      ? <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5"><Clock className="w-3 h-3" />{repPending.length} to review</span>
+                      ? <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5"><Clock className="w-3 h-3" />{actionCount} to review</span>
                       : <span className="flex items-center gap-1 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5"><AlertCircle className="w-3 h-3" />No reports</span>
                     }
                   </div>
@@ -334,15 +365,21 @@ export default function ReportsPage() {
                     </div>
                   </div>
 
-                  {needsAction && (
+                  {notClocked.length > 0 && (
+                    <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {notClocked.length} shift{notClocked.length > 1 ? "s" : ""} not clocked — fix times below
+                    </p>
+                  )}
+                  {repPending.length > 0 && (
                     <Button
                       size="sm" variant="outline"
-                      className="mt-3 w-full text-xs border-amber-200 text-amber-700 hover:bg-amber-50"
+                      className="mt-2 w-full text-xs border-amber-200 text-amber-700 hover:bg-amber-50"
                       disabled={approveAll.isPending}
                       onClick={e => { e.stopPropagation(); approveAll.mutate(assistant.id as string); }}
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      Approve all {repPending.length} pending reports
+                      Approve all {repPending.length} pending report{repPending.length !== 1 ? "s" : ""}
                     </Button>
                   )}
                   <Button
@@ -632,7 +669,7 @@ export default function ReportsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-secondary/30">
-                    {["Assistant","Date","Time","Activity","Type","Hours","Report status","Action"].map(h => (
+                    {["Assistant","Date","Time","Activity","Type","Hours","Status",""].map(h => (
                       <th key={h} className="text-left text-xs font-medium uppercase tracking-wide text-muted-foreground px-4 py-3">{h}</th>
                     ))}
                   </tr>
@@ -640,12 +677,14 @@ export default function ReportsPage() {
                 <tbody>
                   {filteredEntries.map(e => {
                     const a       = (assistants as Assistant[]).find(x => x.id === (e.assistantId ?? e.assistant_id));
-                    const repSt   = (e.repStatus ?? e.rep_status) as string;
-                    const entType = (e.entryType ?? e.entry_type) as string;
-                    const isPending  = repSt === "pending";
-                    const isApproved = repSt === "approved";
-                    const isDraft    = repSt === "draft";
-                    const isSick     = entType === "sick";
+                    const repSt          = (e.repStatus ?? e.rep_status) as string;
+                    const entType        = (e.entryType ?? e.entry_type) as string;
+                    const isPending      = repSt === "pending";
+                    const isApproved     = repSt === "approved";
+                    const isDraft        = repSt === "draft";
+                    const isSick         = entType === "sick";
+                    const isAdjusted     = !!e.guardianAdjusted;
+                    const isAdjustingRow = adjusting === (e.id as string);
 
                     return (
                       <tr key={e.id as string} className={cn(
@@ -682,13 +721,23 @@ export default function ReportsPage() {
                         </td>
                         <td className="px-4 py-3 font-mono text-sm font-semibold">{e.hours}h</td>
                         <td className="px-4 py-3">
-                          <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold", statusColor(repSt))}>
-                            {repSt === "approved" ? "✓ Approved" : repSt === "pending" ? "Under review" : repSt === "rejected" ? "Rejected" : "Draft"}
-                          </span>
+                          {isAdjusted ? (
+                            <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border-blue-200">
+                              ✎ Guardian-adjusted
+                            </span>
+                          ) : isDraft ? (
+                            <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-red-50 text-red-600 border-red-200">
+                              ⚠ Not clocked
+                            </span>
+                          ) : (
+                            <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold", statusColor(repSt))}>
+                              {repSt === "approved" ? "✓ Approved" : repSt === "pending" ? "Under review" : repSt === "rejected" ? "Rejected" : "Draft"}
+                            </span>
+                          )}
                         </td>
-                        <td className="px-4 py-3">
-                          {isPending && (
-                            <div className="flex gap-1.5">
+                        <td className="px-4 py-3 min-w-[180px]">
+                          {isPending && !isAdjustingRow && (
+                            <div className="flex gap-1.5 flex-wrap">
                               <Button
                                 size="sm" variant="approve"
                                 disabled={approveEntry.isPending}
@@ -703,10 +752,80 @@ export default function ReportsPage() {
                               >
                                 ✕
                               </Button>
+                              <Button
+                                size="sm" variant="outline"
+                                className="text-xs px-2"
+                                onClick={() => { setAdjusting(e.id as string); setAdjustTimes({ in: "", out: "" }); }}
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </Button>
                             </div>
                           )}
-                          {isApproved && <span className="text-xs text-emerald-600 font-medium">✓ Done</span>}
-                          {isDraft    && <span className="text-xs text-muted-foreground">Awaiting submission</span>}
+                          {isApproved && !isAdjustingRow && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-emerald-600 font-medium">✓ Done</span>
+                              <Button
+                                size="sm" variant="outline"
+                                className="text-xs px-2 h-6"
+                                onClick={() => { setAdjusting(e.id as string); setAdjustTimes({ in: "", out: "" }); }}
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          )}
+                          {isDraft && !isAdjustingRow && (
+                            <Button
+                              size="sm" variant="outline"
+                              className="text-xs border-red-200 text-red-600 hover:bg-red-50"
+                              onClick={() => { setAdjusting(e.id as string); setAdjustTimes({ in: (e.startTime ?? e.start_time) as string ?? "", out: (e.endTime ?? e.end_time) as string ?? "" }); }}
+                            >
+                              <Pencil className="w-3 h-3 mr-1" />Fix times
+                            </Button>
+                          )}
+                          {isAdjustingRow && (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="time"
+                                  value={adjustTimes.in}
+                                  onChange={ev => setAdjustTimes(t => ({ ...t, in: ev.target.value }))}
+                                  className="text-xs border border-border rounded px-1.5 py-1 w-24 focus:outline-none focus:border-primary"
+                                />
+                                <span className="text-xs text-muted-foreground">–</span>
+                                <input
+                                  type="time"
+                                  value={adjustTimes.out}
+                                  onChange={ev => setAdjustTimes(t => ({ ...t, out: ev.target.value }))}
+                                  className="text-xs border border-border rounded px-1.5 py-1 w-24 focus:outline-none focus:border-primary"
+                                />
+                              </div>
+                              {adjustTimes.in && adjustTimes.out && (
+                                <p className="text-xs text-muted-foreground">
+                                  {calcActualHours(adjustTimes.in, adjustTimes.out)}h actual
+                                </p>
+                              )}
+                              <div className="flex gap-1.5">
+                                <Button
+                                  size="sm"
+                                  disabled={!adjustTimes.in || !adjustTimes.out || guardianAdjust.isPending}
+                                  onClick={() => guardianAdjust.mutate({
+                                    id: e.id as string,
+                                    date: e.date as string,
+                                    inTime: adjustTimes.in,
+                                    outTime: adjustTimes.out,
+                                  })}
+                                >
+                                  Save
+                                </Button>
+                                <Button
+                                  size="sm" variant="ghost"
+                                  onClick={() => setAdjusting(null)}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
