@@ -89,31 +89,30 @@ These are part of the roadmap but deferred after v1.
 
 ## Traceability
 
-Populated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| STAB-01 | — | Pending |
-| STAB-02 | — | Pending |
-| STAB-03 | — | Pending |
-| STAB-04 | — | Pending |
-| LEAV-01 | — | Pending |
-| LEAV-02 | — | Pending |
-| LEAV-03 | — | Pending |
-| PAY-01 | — | Pending |
-| PAY-02 | — | Pending |
-| PAY-03 | — | Pending |
-| TAX-01 | — | Pending |
-| TAX-02 | — | Pending |
-| SCHED-01 | — | Pending |
-| COMP-01 | — | Pending |
-| COMP-02 | — | Pending |
+| STAB-01 | 1 | Pending |
+| STAB-02 | 1 | Pending |
+| STAB-03 | 1 | Pending |
+| STAB-04 | 1 | Pending |
+| LEAV-01 | 2 | Pending |
+| LEAV-02 | 2 | Pending |
+| LEAV-03 | 2 | Pending |
+| PAY-01 | 3 | Pending |
+| PAY-02 | 3 | Pending |
+| PAY-03 | 3 | Pending |
+| TAX-01 | 4 | Pending |
+| TAX-02 | 4 | Pending |
+| SCHED-01 | 5 | Pending |
+| COMP-01 | 5 | Pending |
+| COMP-02 | 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 15 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 15 ⚠️
+- Mapped to phases: 15
+- Unmapped: 0 ✓
 
 ---
+
 *Requirements defined: 2026-04-06*
-*Last updated: 2026-04-06 — initial definition*
+*Last updated: 2026-04-06 — roadmap traceability complete*
