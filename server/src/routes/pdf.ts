@@ -4,7 +4,7 @@ import { spawnSync } from "child_process";
 import { db } from "../db";
 import { entries, assistants, profile } from "../db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 import path from "path";
 import fs from "fs";
 import os from "os";
@@ -52,7 +52,7 @@ async function decryptAndFill(formPath: string, fields: Record<string, string>):
 }
 
 // ── FK 3059 Tidsredovisning — one PDF per assistant ───────────
-router.post("/fk3059", requireAuth, async (req, res) => {
+router.post("/fk3059", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   try {
     const { year, month, assistantId } = req.body as {
       year: string; month: string; assistantId: string;
@@ -196,7 +196,7 @@ router.post("/fk3059", requireAuth, async (req, res) => {
 });
 
 // ── FK 3057 Räkning ───────────────────────────────────────────
-router.post("/fk3057", requireAuth, async (req, res) => {
+router.post("/fk3057", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   try {
     const { year, month } = req.body as { year: string; month: string };
     const formPath = path.join(FORMS_DIR, "fk3057.pdf");
@@ -257,7 +257,7 @@ router.post("/fk3057", requireAuth, async (req, res) => {
 });
 
 // ── List available forms ──────────────────────────────────────
-router.get("/forms", requireAuth, (_req, res) => {
+router.get("/forms", requireAuth, requireGuardian, (_req: AuthRequest, res) => {
   const available = ["fk3057.pdf", "fk3059.pdf"].map(name => ({
     name,
     exists: fs.existsSync(path.join(FORMS_DIR, name)),

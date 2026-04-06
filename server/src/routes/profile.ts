@@ -1,16 +1,16 @@
 import { Router } from "express";
 import { db } from "../db";
 import { profile } from "../db/schema";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 
 const router = Router();
 
-router.get("/", requireAuth, async (_req, res) => {
+router.get("/", requireAuth, requireGuardian, async (_req: AuthRequest, res) => {
   const [p] = await db.select().from(profile).limit(1);
   res.json(p ?? {});
 });
 
-router.put("/", requireAuth, async (req, res) => {
+router.put("/", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   const data = req.body;
   const [existing] = await db.select().from(profile).limit(1);
 

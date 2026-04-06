@@ -2,12 +2,12 @@ import { Router } from "express";
 import { db } from "../db";
 import { entries } from "../db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 import { newId } from "../lib/id";
 
 const router = Router();
 
-router.get("/", requireAuth, async (req, res) => {
+router.get("/", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   const { start, end, assistantId } = req.query as Record<string, string>;
   let query = db.select().from(entries);
 
@@ -23,7 +23,7 @@ router.get("/", requireAuth, async (req, res) => {
   res.json(rows);
 });
 
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   const d = req.body;
   const [row] = await db.insert(entries).values({
     id:          newId("e"),
@@ -44,7 +44,7 @@ router.post("/", requireAuth, async (req, res) => {
 });
 
 // Bulk create (for week proposals)
-router.post("/bulk", requireAuth, async (req, res) => {
+router.post("/bulk", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   const { items } = req.body as { items: typeof entries.$inferInsert[] };
   if (!items?.length) return res.status(400).json({ error: "No items" });
 
@@ -53,7 +53,7 @@ router.post("/bulk", requireAuth, async (req, res) => {
   res.status(201).json(rows);
 });
 
-router.put("/:id", requireAuth, async (req, res) => {
+router.put("/:id", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   const d = req.body;
   const allowed: Partial<typeof entries.$inferInsert> = {};
   if (d.entryType   ?? d.entry_type   !== undefined) allowed.entryType   = d.entryType   ?? d.entry_type;
@@ -71,7 +71,7 @@ router.put("/:id", requireAuth, async (req, res) => {
   res.json(row);
 });
 
-router.delete("/:id", requireAuth, async (req, res) => {
+router.delete("/:id", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   await db.delete(entries).where(eq(entries.id, req.params.id));
   res.json({ ok: true });
 });

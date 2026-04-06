@@ -2,11 +2,11 @@ import { Router } from "express";
 import { db } from "../db";
 import { entries, assistants, profile, openSlots } from "../db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
-import { requireAuth, AuthRequest } from "../middleware/auth";
+import { requireAuth, requireAssistant, AuthRequest } from "../middleware/auth";
 import { newId } from "../lib/id";
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, requireAssistant);
 
 router.get("/me", async (req: AuthRequest, res) => {
   try {

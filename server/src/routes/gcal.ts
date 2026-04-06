@@ -2,7 +2,7 @@ import { Router } from "express";
 import { google } from "googleapis";
 import { db } from "../db";
 import { settings } from "../db/schema";
-import { requireAuth, AuthRequest } from "../middleware/auth";
+import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 import * as dotenv from "dotenv";
 dotenv.config();
 
@@ -91,7 +91,7 @@ async function getCalendarClient() {
 }
 
 // ── Get calendar status ───────────────────────────────────────
-router.get("/status", requireAuth, async (_req, res) => {
+router.get("/status", requireAuth, requireGuardian, async (_req: AuthRequest, res) => {
   try {
     const rows = await db.select().from(settings);
     const s = Object.fromEntries(rows.map(r => [r.key, r.value]));
@@ -104,7 +104,7 @@ router.get("/status", requireAuth, async (_req, res) => {
 });
 
 // ── Disconnect ────────────────────────────────────────────────
-router.post("/disconnect", requireAuth, async (_req, res) => {
+router.post("/disconnect", requireAuth, requireGuardian, async (_req: AuthRequest, res) => {
   try {
     const upsert = async (key: string, value: string) => {
       await db.insert(settings).values({ key, value })
@@ -119,7 +119,7 @@ router.post("/disconnect", requireAuth, async (_req, res) => {
 });
 
 // ── Create a calendar event (blocked time or shift) ───────────
-router.post("/events", requireAuth, async (req, res) => {
+router.post("/events", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   try {
     const { summary, description, date, startTime, endTime, attendeeEmail, colorId } = req.body;
     const { calendar, calendarId } = await getCalendarClient();
@@ -151,7 +151,7 @@ router.post("/events", requireAuth, async (req, res) => {
 });
 
 // ── Update an event ───────────────────────────────────────────
-router.put("/events/:eventId", requireAuth, async (req, res) => {
+router.put("/events/:eventId", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   try {
     const { summary, status } = req.body;
     const { calendar, calendarId } = await getCalendarClient();
@@ -165,7 +165,7 @@ router.put("/events/:eventId", requireAuth, async (req, res) => {
 });
 
 // ── Delete an event ───────────────────────────────────────────
-router.delete("/events/:eventId", requireAuth, async (req, res) => {
+router.delete("/events/:eventId", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   try {
     const { calendar, calendarId } = await getCalendarClient();
     await calendar.events.delete({ calendarId, eventId: req.params.eventId });
@@ -174,7 +174,7 @@ router.delete("/events/:eventId", requireAuth, async (req, res) => {
 });
 
 // ── List upcoming events from Google Calendar ─────────────────
-router.get("/events", requireAuth, async (req, res) => {
+router.get("/events", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   try {
     const { start, end } = req.query as Record<string, string>;
     const { calendar, calendarId } = await getCalendarClient();

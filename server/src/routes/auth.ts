@@ -5,7 +5,7 @@ import crypto from "crypto";
 import { db } from "../db";
 import { auth, emailVerifications, passwordResets, assistants, invites, profile } from "../db/schema";
 import { eq, and, gt } from "drizzle-orm";
-import { requireAuth, AuthRequest } from "../middleware/auth";
+import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 import { sendVerificationEmail, sendPasswordResetEmail, sendAssistantInviteEmail } from "../lib/email";
 
 const router = Router();
@@ -182,7 +182,7 @@ router.post("/accept-invite", async (req, res) => {
 });
 
 // ── Send assistant invite email ───────────────────────────────
-router.post("/send-invite-email", requireAuth, async (req: AuthRequest, res) => {
+router.post("/send-invite-email", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   try {
     const { inviteId } = req.body;
     const [invite] = await db.select().from(invites).where(eq(invites.id, inviteId)).limit(1);

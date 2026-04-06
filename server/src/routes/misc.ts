@@ -2,18 +2,18 @@ import { Router } from "express";
 import { db } from "../db";
 import { openSlots, blocked, invites, settings } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 import { newId } from "../lib/id";
 
 const router = Router();
 
 // ── Open Slots ────────────────────────────────────────────────
-router.get("/slots", requireAuth, async (_req, res) => {
+router.get("/slots", requireAuth, requireGuardian, async (_req: AuthRequest, res) => {
   const rows = await db.select().from(openSlots).orderBy(openSlots.date, openSlots.startTime);
   res.json(rows);
 });
 
-router.post("/slots", requireAuth, async (req, res) => {
+router.post("/slots", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   const d = req.body;
   const [row] = await db.insert(openSlots).values({
     id:         newId("s"),
@@ -27,18 +27,18 @@ router.post("/slots", requireAuth, async (req, res) => {
   res.status(201).json(row);
 });
 
-router.delete("/slots/:id", requireAuth, async (req, res) => {
+router.delete("/slots/:id", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   await db.delete(openSlots).where(eq(openSlots.id, req.params.id));
   res.json({ ok: true });
 });
 
 // ── Blocked ───────────────────────────────────────────────────
-router.get("/blocked", requireAuth, async (_req, res) => {
+router.get("/blocked", requireAuth, requireGuardian, async (_req: AuthRequest, res) => {
   const rows = await db.select().from(blocked).orderBy(blocked.date, blocked.startTime);
   res.json(rows);
 });
 
-router.post("/blocked", requireAuth, async (req, res) => {
+router.post("/blocked", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   const d = req.body;
   const [row] = await db.insert(blocked).values({
     id: newId("b"),
@@ -50,18 +50,18 @@ router.post("/blocked", requireAuth, async (req, res) => {
   res.status(201).json(row);
 });
 
-router.delete("/blocked/:id", requireAuth, async (req, res) => {
+router.delete("/blocked/:id", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   await db.delete(blocked).where(eq(blocked.id, req.params.id));
   res.json({ ok: true });
 });
 
 // ── Invites ───────────────────────────────────────────────────
-router.get("/invites", requireAuth, async (_req, res) => {
+router.get("/invites", requireAuth, requireGuardian, async (_req: AuthRequest, res) => {
   const rows = await db.select().from(invites).orderBy(invites.createdAt);
   res.json(rows);
 });
 
-router.post("/invites", requireAuth, async (req, res) => {
+router.post("/invites", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   const d = req.body;
   const [row] = await db.insert(invites).values({
     id: newId("inv"), name: d.name, email: d.email,
@@ -75,25 +75,25 @@ router.post("/invites", requireAuth, async (req, res) => {
   res.status(201).json(row);
 });
 
-router.put("/invites/:id", requireAuth, async (req, res) => {
+router.put("/invites/:id", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   const { status } = req.body;
   const [row] = await db.update(invites).set({ status }).where(eq(invites.id, req.params.id)).returning();
   res.json(row);
 });
 
-router.delete("/invites/:id", requireAuth, async (req, res) => {
+router.delete("/invites/:id", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   await db.delete(invites).where(eq(invites.id, req.params.id));
   res.json({ ok: true });
 });
 
 // ── Settings ──────────────────────────────────────────────────
-router.get("/settings", requireAuth, async (_req, res) => {
+router.get("/settings", requireAuth, requireGuardian, async (_req: AuthRequest, res) => {
   const rows = await db.select().from(settings);
   const map = Object.fromEntries(rows.map(r => [r.key, r.value]));
   res.json(map);
 });
 
-router.put("/settings", requireAuth, async (req, res) => {
+router.put("/settings", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   const data: Record<string, string> = req.body;
   for (const [key, value] of Object.entries(data)) {
     await db

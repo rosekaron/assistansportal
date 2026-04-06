@@ -2,13 +2,13 @@ import { Router } from "express";
 import { db } from "../db";
 import { costs } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 import { newId } from "../lib/id";
 
 const router = Router();
 
 // GET /api/costs?month=YYYY-MM
-router.get("/", requireAuth, async (req, res) => {
+router.get("/", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   const { month } = req.query as Record<string, string>;
   const rows = month
     ? await db.select().from(costs).where(eq(costs.month, month)).orderBy(costs.createdAt)
@@ -17,7 +17,7 @@ router.get("/", requireAuth, async (req, res) => {
 });
 
 // POST /api/costs
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   const d = req.body;
   const [row] = await db.insert(costs).values({
     id:          newId("cost"),
@@ -31,7 +31,7 @@ router.post("/", requireAuth, async (req, res) => {
 });
 
 // DELETE /api/costs/:id
-router.delete("/:id", requireAuth, async (req, res) => {
+router.delete("/:id", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   await db.delete(costs).where(eq(costs.id, req.params.id));
   res.json({ ok: true });
 });
