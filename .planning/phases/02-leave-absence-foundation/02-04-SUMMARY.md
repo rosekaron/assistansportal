@@ -59,8 +59,8 @@ completed: 2026-04-06
 - **Duration:** ~25 min
 - **Started:** 2026-04-06
 - **Completed:** 2026-04-06
-- **Tasks:** 1 (+ human verify checkpoint pending)
-- **Files modified:** 5 (1 created, 4 modified)
+- **Tasks:** 2 (1 implementation + 1 human verify checkpoint — PASSED)
+- **Files modified:** 6 (1 created, 5 modified)
 
 ## Accomplishments
 
@@ -81,6 +81,9 @@ completed: 2026-04-06
 
 1. **Task 1: Frånvaro frontend** - `2dcfb6b` (feat)
    Files: client/src/lib/api.ts, client/src/pages/Leave.tsx, client/src/components/Layout.tsx, client/src/App.tsx, client/src/pages/Assistants.tsx
+2. **Post-Task-1 fix: SelectItem empty-value crash + Tailwind PostCSS config** - `3604ba4` (fix)
+   Files: client/src/pages/Leave.tsx, client/postcss.config.js
+3. **Task 2: Human verification checkpoint** - PASSED (browser-verified, no commit)
 
 ## Files Created/Modified
 
@@ -99,7 +102,28 @@ completed: 2026-04-06
 
 ## Deviations from Plan
 
-None — plan executed exactly as written. All UI-SPEC copy, color thresholds, badge variants, table columns, dialog fields, and interaction flows match the spec.
+### Auto-fixed Issues
+
+**1. [Rule 1 - Bug] Fixed SelectItem empty-value crash**
+- **Found during:** Human verification (post-Task-1)
+- **Issue:** shadcn/radix SelectItem does not accept an empty string `""` as value — throws runtime error on render
+- **Fix:** Replaced empty string values with `"__all__"` sentinel in all three filter selects and in the dialog Assistent select's "Alla assistenter" option; updated filter comparisons accordingly
+- **Files modified:** client/src/pages/Leave.tsx
+- **Verification:** All three filter selects render without crash; "__all__" sentinel correctly treated as "no filter"
+- **Committed in:** 3604ba4
+
+**2. [Rule 3 - Blocking] Fixed Tailwind PostCSS config for Vite**
+- **Found during:** Human verification (post-Task-1)
+- **Issue:** PostCSS config used CommonJS `module.exports` syntax which is incompatible with the Vite ESM build context
+- **Fix:** Updated client/postcss.config.js to use ESM `export default` syntax
+- **Files modified:** client/postcss.config.js
+- **Verification:** Dev server starts without PostCSS errors; Tailwind styles apply correctly
+- **Committed in:** 3604ba4
+
+---
+
+**Total deviations:** 2 auto-fixed (1 bug, 1 blocking)
+**Impact on plan:** Both fixes were necessary for the app to render correctly in the browser. No scope changes — all plan features were delivered as specified.
 
 ## Known Stubs
 
@@ -118,7 +142,16 @@ None. All trust boundaries from the threat register addressed:
 
 ## Human Verification Checkpoint
 
-Plan 02-04 Task 2 is a `checkpoint:human-verify` gate. The frontend is complete and TypeScript-clean. Verification requires browser testing of all 8 steps in the checkpoint (sidebar nav, page load, record dialog, VAB balance update, date validation, delete flow, Assistants page balance row, filter behavior).
+Plan 02-04 Task 2 was a `checkpoint:human-verify` gate. All 8 verification steps PASSED:
+
+1. "Frånvaro" visible in sidebar between Schedule and Reports (CalendarOff icon)
+2. Frånvaro page loads: balance cards, empty state, 3 filter selects
+3. "Registrera frånvaro" dialog: Assistent, Typ, Startdatum, Slutdatum fields present
+4. VAB recorded: 115/120 balance, row in table (1 mars - 5 mars 2026, 5 dagar, VAB badge)
+5. Date validation: end-before-start rejected with inline error
+6. Delete: inline confirm ("Ja, radera") removes row, balance restored to 120
+7. Assistants page: per-assistant "Fran varo 2026 — VAB kvar: 120 dagar — Sjukfranvaro: 0 dagar" row
+8. Filters: 3 filter selects (Assistent, Typ, Manad) present with __all__ sentinel fix
 
 ## Self-Check: PASSED
 
@@ -129,9 +162,12 @@ Plan 02-04 Task 2 is a `checkpoint:human-verify` gate. The frontend is complete 
 | client/src/components/Layout.tsx | FOUND |
 | client/src/App.tsx | FOUND |
 | client/src/pages/Assistants.tsx | FOUND |
+| client/postcss.config.js (ESM fix) | FOUND |
 | Commit 2dcfb6b (Task 1 — Frånvaro frontend) | FOUND |
+| Commit 3604ba4 (fix — SelectItem + PostCSS) | FOUND |
 | TypeScript: npx tsc --noEmit | CLEAN (no errors) |
 | Server tests: 34 passed, 4 skipped | VERIFIED |
+| Human verification checkpoint | PASSED (all 8 steps) |
 
 ---
 *Phase: 02-leave-absence-foundation*
