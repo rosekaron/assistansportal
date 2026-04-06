@@ -4,13 +4,14 @@ import {
 } from "drizzle-orm/pg-core";
 
 // ── Enums ─────────────────────────────────────────────────────
-export const reqStatusEnum    = pgEnum("req_status",    ["pending","approved","rejected"]);
+export const reqStatusEnum    = pgEnum("req_status",    ["pending","approved","rejected","cancelled"]);
 export const repStatusEnum    = pgEnum("rep_status",    ["draft","pending","approved","rejected"]);
 export const calStatusEnum    = pgEnum("cal_status",    ["tentative","confirmed"]);
 export const sourceEnum       = pgEnum("source",        ["proposal","self_book"]);
 export const inviteStatusEnum = pgEnum("invite_status", ["pending","accepted","declined","revoked"]);
 export const roleEnum         = pgEnum("role",          ["guardian","assistant"]);
 export const entryTypeEnum    = pgEnum("entry_type",    ["active","waiting","standby","sick"]);
+export const absenceTypeEnum  = pgEnum("absence_type",  ["sjukfrånvaro","vab","semester","other"]);
 
 // ── Profile ───────────────────────────────────────────────────
 export const profile = pgTable("profile", {
@@ -152,6 +153,19 @@ export const settings = pgTable("settings", {
   value: text("value").notNull().default(""),
 });
 
+// ── Absences ──────────────────────────────────────────────────
+export const absences = pgTable("absences", {
+  id:          text("id").primaryKey(),
+  guardianId:  integer("guardian_id").notNull(),
+  // null = absence applies to ALL assistants for this guardian (e.g. public holiday)
+  // NOTE: single-tenant deployment; guardianId = req.userId from JWT (auth.id)
+  assistantId: text("assistant_id"),
+  absenceType: absenceTypeEnum("absence_type").notNull(),
+  startDate:   text("start_date").notNull(),  // YYYY-MM-DD
+  endDate:     text("end_date").notNull(),     // YYYY-MM-DD
+  createdAt:   timestamp("created_at").defaultNow(),
+});
+
 // ── Types ─────────────────────────────────────────────────────
 export type Profile           = typeof profile.$inferSelect;
 export type Auth              = typeof auth.$inferSelect;
@@ -162,3 +176,4 @@ export type Blocked           = typeof blocked.$inferSelect;
 export type Invite            = typeof invites.$inferSelect;
 export type EmailVerification = typeof emailVerifications.$inferSelect;
 export type PasswordReset     = typeof passwordResets.$inferSelect;
+export type Absence           = typeof absences.$inferSelect;
