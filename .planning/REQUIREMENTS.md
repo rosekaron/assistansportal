@@ -44,6 +44,12 @@
 
 ## v2 Requirements
 
+### Care Plans (Backlog — added 2026-04-07)
+
+- **CARE-01**: Guardian can create a structured care plan for the care recipient — includes diagnosis information, physical therapy instructions, and suggested daily activities
+- **CARE-02**: Care plan is visible to assigned assistants so they can follow care instructions during shifts
+- **CARE-03**: Guardian can update care plan sections independently (diagnosis, therapy, activities) with a revision history
+
 These are part of the roadmap but deferred after v1.
 
 ### Scheduling & UX
