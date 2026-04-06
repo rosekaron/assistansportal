@@ -115,6 +115,11 @@ export const gcalApi = {
   deleteEvent: (eventId: string) => api.delete(`/gcal/events/${eventId}`),
 };
 
+// Rates (env-var sourced from server)
+export const ratesApi = {
+  get: () => api.get<{ fkHourlyRate: number; employerTaxRate: number }>("/rates"),
+};
+
 // Assistant self-service
 export const assistantSelfApi = {
   me:           () => api.get("/assistant/me"),
