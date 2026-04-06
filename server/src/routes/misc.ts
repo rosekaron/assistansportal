@@ -7,6 +7,10 @@ import { newId } from "../lib/id";
 
 const router = Router();
 
+// Rate constants — read from env vars at startup with fallback defaults
+const FK_HOURLY_RATE    = parseFloat(process.env.FK_HOURLY_RATE    ?? "334");
+const EMPLOYER_TAX_RATE = parseFloat(process.env.EMPLOYER_TAX_RATE ?? "0.3142");
+
 // ── Open Slots ────────────────────────────────────────────────
 router.get("/slots", requireAuth, requireGuardian, async (_req: AuthRequest, res) => {
   const rows = await db.select().from(openSlots).orderBy(openSlots.date, openSlots.startTime);
@@ -102,6 +106,11 @@ router.put("/settings", requireAuth, requireGuardian, async (req: AuthRequest, r
       .onConflictDoUpdate({ target: settings.key, set: { value: String(value) } });
   }
   res.json({ ok: true });
+});
+
+// ── Rates (env-var sourced) ───────────────────────────────────
+router.get("/rates", requireAuth, requireGuardian, (_req, res) => {
+  res.json({ fkHourlyRate: FK_HOURLY_RATE, employerTaxRate: EMPLOYER_TAX_RATE });
 });
 
 export default router;

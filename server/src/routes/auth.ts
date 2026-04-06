@@ -41,7 +41,7 @@ router.post("/register", async (req, res) => {
         ? "Account created. Check your email to verify your account."
         : "Account created. Email sending not configured — use the button below to verify.",
       emailSent,
-      devVerifyToken: token, // always return in dev — harmless if email works
+      ...(process.env.NODE_ENV !== "production" ? { devVerifyToken: token } : {}),
     });
   } catch (e) {
     console.error("[auth] error:", e);
@@ -73,6 +73,9 @@ router.get("/verify-email", async (req, res) => {
 
 // ── Dev-only: verify without email ────────────────────────────
 router.post("/dev-verify", async (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).json({ error: "Not found" });
+  }
   try {
     const { token } = req.body;
     const [record] = await db.select().from(emailVerifications).where(eq(emailVerifications.token, token)).limit(1);

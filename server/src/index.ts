@@ -4,6 +4,12 @@ import path from "path";
 import * as dotenv from "dotenv";
 dotenv.config();
 
+// Startup guard: refuse to start with missing or insecure JWT secret
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "dev_secret") {
+  console.error("FATAL: JWT_SECRET not set or uses insecure default 'dev_secret'. Aborting.");
+  process.exit(1);
+}
+
 // Ensure Homebrew binaries (qpdf etc.) are in PATH
 process.env.PATH = `/opt/homebrew/bin:${process.env.PATH}`;
 
