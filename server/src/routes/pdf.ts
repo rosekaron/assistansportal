@@ -206,11 +206,12 @@ router.post("/fk3057", requireAuth, requireGuardian, async (req: AuthRequest, re
 
     const [prof] = await db.select().from(profile).limit(1);
     const mm = month.padStart(2, "0");
+    const daysInMonth = new Date(parseInt(year), parseInt(mm), 0).getDate();
 
     const monthEntries = await db.select().from(entries)
       .where(and(
         gte(entries.date, `${year}-${mm}-01`),
-        lte(entries.date, `${year}-${mm}-31`),
+        lte(entries.date, `${year}-${mm}-${String(daysInMonth).padStart(2, "0")}`),
         eq(entries.reqStatus, "approved"),
         eq(entries.repStatus, "approved"),
       ));
