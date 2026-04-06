@@ -42,7 +42,23 @@
       "Bash(curl -s -X POST http://localhost:3001/api/auth/login -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"rose@karon.se\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"Kalinga2026\"\"\"\"}')",
       "Bash(curl -s -X POST http://localhost:3001/api/auth/login -H \"Content-Type: application/json\" -d '{\"\"email\"\":\"\"rose@karon.se\"\",\"\"password\"\":\"\"Kalinga2026\"\"}')",
       "Bash(open http://localhost:5173)",
-      "Bash(node -e \"const s = require\\(''/Users/rosekaron/.claude/settings.json''\\); console.log\\(s.hooks.Stop[0].hooks[0].command\\)\")"
+      "Bash(node -e \"const s = require\\(''/Users/rosekaron/.claude/settings.json''\\); console.log\\(s.hooks.Stop[0].hooks[0].command\\)\")",
+      "Bash(docker exec:*)",
+      "Bash(nc -zv 127.0.0.1 5432)",
+      "Bash(wc -l .planning/codebase/*.md)",
+      "Bash(grep -E '\\(sk-[a-zA-Z0-9]{20,}|sk_live_[a-zA-Z0-9]+|sk_test_[a-zA-Z0-9]+|ghp_[a-zA-Z0-9]{36}|gho_[a-zA-Z0-9]{36}|glpat-[a-zA-Z0-9_-]+|AKIA[A-Z0-9]{16}|xox[baprs]-[a-zA-Z0-9-]+|-----BEGIN.*PRIVATE KEY|eyJ[a-zA-Z0-9_-]+\\\\.eyJ[a-zA-Z0-9_-]+\\\\.\\)' .planning/codebase/*.md)",
+      "Bash(node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" commit \"docs: map existing codebase\" --files .planning/codebase/*.md)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(/usr/local/bin/node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" config-new-project '{\"\"mode\"\":\"\"interactive\"\",\"\"granularity\"\":\"\"standard\"\",\"\"parallelization\"\":true,\"\"commit_docs\"\":true,\"\"model_profile\"\":\"\"budget\"\",\"\"workflow\"\":{\"\"research\"\":true,\"\"plan_check\"\":true,\"\"verifier\"\":true,\"\"nyquist_validation\"\":true}}')",
+      "Bash(/usr/local/bin/node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" commit \"chore: add project config\" --files .planning/config.json)",
+      "Bash(/usr/local/bin/node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" commit \"docs: initialize project\" --files .planning/PROJECT.md)",
+      "Bash(/usr/local/bin/node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" commit \"docs: complete project research\" --files \".planning/research/STACK.md .planning/research/FEATURES.md .planning/research/ARCHITECTURE.md .planning/research/PITFALLS.md .planning/research/SUMMARY.md .planning/research/PAYROLL_AGI_TECHNICAL_SPEC.md .planning/research/SWEDISH_PAYROLL_RATES_2026.md .planning/research/README.md .planning/research/RESEARCH_SUMMARY.md .planning/research/STATUS.md\")",
+      "Bash(/usr/local/bin/node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" commit \"docs: define v1 requirements\" --files .planning/REQUIREMENTS.md)",
+      "Bash(/usr/local/bin/node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" commit \"docs: create roadmap and initialize project state\" --files \".planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md\")",
+      "Bash(wc -l server/src/routes/*.ts)",
+      "Skill(gsd-execute-phase)",
+      "Skill(gsd-execute-phase:*)"
     ]
   }
 }
