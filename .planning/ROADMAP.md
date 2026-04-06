@@ -58,7 +58,13 @@ Plans:
 2. Hours marked as absence are automatically excluded when FK 3059 and FK 3057 forms calculate total billable hours
 3. Guardian can view remaining VAB balance (max 120 days/year) and sick leave accrual per assistant on a single visibility page
 
-**Plans:** TBD
+**Plans:** 4 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Wave 0: failing test stubs for LEAV-01, LEAV-02, LEAV-03 (3 test files)
+- [ ] 02-02-PLAN.md — Wave 1: absences table + absenceTypeEnum + reqStatusEnum "cancelled" + drizzle-kit push
+- [ ] 02-03-PLAN.md — Wave 2: absences CRUD routes + FK billing exclusion + assistant clock-in block
+- [ ] 02-04-PLAN.md — Wave 3: Frånvaro page + balance cards + sidebar nav + Assistants page integration
 
 ---
 
@@ -121,7 +127,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Stability & Correctness | 4/4 | Complete   | 2026-04-06 |
-| 2. Leave & Absence Foundation | 0/3 | Not started | — |
+| 2. Leave & Absence Foundation | 0/4 | In progress | — |
 | 3. Payroll Calculation & Recording | 0/3 | Not started | — |
 | 4. Tax Reporting (AGI) | 0/3 | Not started | — |
 | 5. Scheduling & Compliance Workflow | 0/3 | Not started | — |
@@ -175,6 +181,7 @@ Phase 5: Scheduling & Compliance (can proceed in parallel with Phase 4, depends 
 
 *Roadmap created: 2026-04-06*
 *Phase 1 planned: 2026-04-06 — 4 plans, 3 waves*
+*Phase 2 planned: 2026-04-06 — 4 plans, 4 waves*
 
 ---
 
