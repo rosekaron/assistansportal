@@ -16,6 +16,7 @@ import ReportsPage        from "@/pages/Reports";
 import AssistantsPage     from "@/pages/Assistants";
 import SettingsPage       from "@/pages/Settings";
 import AssistantDashboard from "@/pages/AssistantDashboard";
+import LeaveAbsencePage   from "@/pages/Leave";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const token    = useAuthStore((s) => s.token);
@@ -79,6 +80,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/calendar"  element={<CalendarPage />} />
         <Route path="/hours"     element={<HoursPage />} />
+        <Route path="/leave"     element={<LeaveAbsencePage />} />
         <Route path="/reports"   element={<ReportsPage />} />
         <Route path="/assistants"element={<AssistantsPage />} />
         <Route path="/settings"  element={<SettingsPage />} />

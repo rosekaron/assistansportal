@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { assistantsApi, invitesApi, profileApi } from "@/lib/api";
+import { assistantsApi, invitesApi, profileApi, absenceApi } from "@/lib/api";
+import type { AbsenceBalance } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Badge, Textarea } from "@/components/ui/inputs";
+import { Input, Label, Badge, Textarea, Separator } from "@/components/ui/inputs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageHeader, AssistantAvatar, SectionLabel, EmptyState } from "@/components/shared";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,44 @@ import { UserPlus, X, Pencil } from "lucide-react";
 
 type Assistant = Record<string, string | number | boolean | null>;
 type Invite    = Record<string, string | number | boolean | null>;
+
+function AssistantAbsenceSummary({ assistantId }: { assistantId: string }) {
+  const year = new Date().getFullYear();
+  const { data: balance, isLoading } = useQuery<AbsenceBalance>({
+    queryKey: ["absences", "balance", assistantId],
+    queryFn:  () => absenceApi.balance(assistantId).then((r) => r.data),
+  });
+
+  const vabRemaining = isLoading ? null : (balance?.vabRemaining ?? 120);
+  const sickDays     = isLoading ? null : (balance?.sickDays ?? 0);
+
+  const vabColorClass =
+    vabRemaining === null ? "text-muted-foreground" :
+    vabRemaining >= 30    ? "text-emerald-600" :
+    vabRemaining >= 10    ? "text-amber-600" :
+    "text-red-600";
+
+  return (
+    <>
+      <Separator className="my-3" />
+      <SectionLabel>Frånvaro {year}</SectionLabel>
+      <div className="flex gap-6 text-sm">
+        <span>
+          <span className="text-muted-foreground">VAB kvar: </span>
+          <span className={cn("font-semibold", vabColorClass)}>
+            {vabRemaining === null ? "--" : `${vabRemaining} dagar`}
+          </span>
+        </span>
+        <span>
+          <span className="text-muted-foreground">Sjukfrånvaro: </span>
+          <span className="font-semibold">
+            {sickDays === null ? "--" : `${sickDays} dagar`}
+          </span>
+        </span>
+      </div>
+    </>
+  );
+}
 
 export default function AssistantsPage() {
   const qc = useQueryClient();
@@ -166,6 +205,7 @@ export default function AssistantsPage() {
                     </div>
                   )}
                   <Badge variant="success" className="text-[10px]">● Active</Badge>
+                  <AssistantAbsenceSummary assistantId={a.id as string} />
                 </div>
               </CardContent>
             </Card>

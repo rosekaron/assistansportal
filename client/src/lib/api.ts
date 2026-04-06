@@ -2,6 +2,25 @@ import axios from "axios";
 
 const api = axios.create({ baseURL: "/api" });
 
+// Absence types
+export type AbsenceType = "sjukfrånvaro" | "vab" | "semester" | "other";
+
+export type Absence = {
+  id: string;
+  guardianId: number;
+  assistantId: string | null;
+  absenceType: AbsenceType;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+};
+
+export type AbsenceBalance = {
+  vabRemaining: number;
+  sickDays: number;
+  year: number;
+};
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -118,6 +137,18 @@ export const gcalApi = {
 // Rates (env-var sourced from server)
 export const ratesApi = {
   get: () => api.get<{ fkHourlyRate: number; employerTaxRate: number }>("/rates"),
+};
+
+// Absences
+export const absenceApi = {
+  list:    (params?: Record<string, string>) =>
+    api.get<Absence[]>("/absences", { params }),
+  create:  (data: Record<string, unknown>) =>
+    api.post<Absence>("/absences", data),
+  delete:  (id: string) =>
+    api.delete<{ ok: boolean }>(`/absences/${id}`),
+  balance: (assistantId: string) =>
+    api.get<AbsenceBalance>(`/absences/balance/${assistantId}`),
 };
 
 // Assistant self-service

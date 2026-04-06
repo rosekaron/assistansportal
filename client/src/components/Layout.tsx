@@ -3,11 +3,12 @@ import { useAuthStore } from "@/store/auth";
 import { useQuery } from "@tanstack/react-query";
 import { profileApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, CalendarDays, Users, Settings, LogOut, FileText } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Users, Settings, LogOut, FileText, CalendarOff } from "lucide-react";
 
 const nav = [
   { to: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
   { to: "/calendar",   label: "Schedule",    icon: CalendarDays },
+  { to: "/leave",      label: "Frånvaro",   icon: CalendarOff },
   { to: "/reports",    label: "Reports",     icon: FileText },
   { to: "/assistants", label: "Assistants",  icon: Users },
   { to: "/settings",   label: "Settings",    icon: Settings },
