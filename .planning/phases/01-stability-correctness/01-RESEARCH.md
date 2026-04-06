@@ -464,21 +464,20 @@ Lines 125-168 are noted in CONCERNS.md as having dual-access patterns (`e.reqSta
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does `blocked` data belong to guardians only or both roles?**
-   - What we know: `Hours.tsx` shows blocked time in the guardian UI. The client `blockedApi` is used in `Hours.tsx` (guardian page). The `assistant.ts` self-service routes do not reference blocked time.
-   - What's unclear: Should `requireGuardian` be applied to all blocked endpoints in `misc.ts`, or should assistants be able to read blocked time (to avoid scheduling into blocked windows)?
-   - Recommendation: Apply `requireGuardian` to blocked CRUD by default; if assistants need to read blocked time, scope that to a read-only assistant endpoint in a later phase.
+   - **RESOLVED:** Guardian-only. D-04 (CONTEXT.md) explicitly lists "blocked" in the guardian-facing routes requiring `requireGuardian`. The `assistant.ts` self-service routes have no blocked endpoint. Plan 02 Task 1 applies `requireGuardian` to all blocked handlers in `misc.ts`.
+   - Implementation consequence: All GET/POST/DELETE blocked handlers in `misc.ts` get `requireGuardian`. No change needed to assistant routes.
 
 2. **Should `/api/auth/send-invite-email` get `requireGuardian`?**
-   - What we know: It currently has `requireAuth` only (auth.ts line 185). Only guardians should send invite emails.
-   - Recommendation: Add `requireGuardian` to this endpoint as part of the STAB-01 sweep.
+   - **RESOLVED: Yes.** Only guardians send invite emails. D-04 locks `requireGuardian` on all guardian-facing routes, and invite email sending is a guardian-only action. Plan 02 Task 1 now includes `server/src/routes/auth.ts` with a step to add `requireGuardian` to the `/send-invite-email` handler.
+   - Implementation consequence: `auth.ts` added to Plan 02 Task 1 `<files>`. The `/send-invite-email` route handler chain becomes `requireAuth, requireGuardian, async (req: AuthRequest, res) => { ... }`.
 
 3. **Client token storage via `localStorage`?**
    - What we know: `api.ts` reads from `localStorage.getItem("token")` (line 7) not the Zustand store. The Zustand store persists under key `"auth"` but stores `{ token, role, assistantId }` — the API client reads `"token"` directly. This is a pre-existing inconsistency.
    - What's unclear: Is there a data integrity issue if a user has `"auth"` in localStorage but not a standalone `"token"` key?
-   - Recommendation: Out of scope for Phase 1 — log the observation, do not touch auth storage.
+   - **RESOLVED:** Out of scope for Phase 1 — log the observation, do not touch auth storage.
 
 ---
 
