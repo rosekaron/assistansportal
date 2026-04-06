@@ -169,3 +169,25 @@ Phase 5: Scheduling & Compliance (can proceed in parallel with Phase 4, depends 
 
 *Roadmap created: 2026-04-06*
 *Ready for planning. Next: `/gsd-plan-phase 1`*
+
+---
+
+## Backlog
+
+Items captured during discuss-phase that are deferred from v1 scope.
+
+### BACKLOG-01: Full Route Test Coverage
+**Captured:** 2026-04-06 (Phase 1 discuss-phase)
+**Scope:** 100% line coverage of all user-facing API routes (~50 endpoints across 9 route files). Includes complex routes requiring test infrastructure for qpdf binary mocking (PDF routes), Google OAuth token mocking (GCal routes), and Nodemailer mocking (auth routes).
+**Estimated effort:** ~16 days
+**Trigger:** After Phase 1 ships and test framework is in place. Can be addressed as Phase 1b or folded into Phase 2+.
+
+### BACKLOG-02: Configurable Rate Settings UI
+**Captured:** 2026-04-06 (Phase 1 discuss-phase)
+**Scope:** Guardian-editable FK hourly rate and employer tax rate from the Settings page, persisted in DB, no server restart required. Currently deferred in favour of env-var approach.
+**Trigger:** B2B expansion or multi-country milestone, when rate variation across guardian accounts becomes necessary.
+
+### BACKLOG-03: Multi-Country / European Expansion
+**Captured:** 2026-04-06 (Phase 1 discuss-phase)
+**Scope:** Strategic review of user stories and roadmap for operating in multiple European countries beyond Sweden. Involves compliance framework differences, multi-language support, and regulatory adaptations per country.
+**Trigger:** Post-v1, when the Swedish single-family use case is validated and B2B/SaaS growth is the next horizon.
