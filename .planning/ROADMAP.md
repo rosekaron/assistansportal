@@ -35,7 +35,13 @@
 3. Guardian can view and modify FK hourly rate and employer tax rate (arbetsgivaravgifter) in Settings without code deploy
 4. All API response types are defined in TypeScript; client code consistently accesses fields by their correct camelCase names
 
-**Plans:** TBD
+**Plans:** 4 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Vitest test framework setup and failing test stubs for all 4 STAB requirements (Wave 0)
+- [ ] 01-02-PLAN.md — Role middleware enforcement on all guardian routes + error sanitization (STAB-01)
+- [ ] 01-03-PLAN.md — FK 3057 date fix + JWT startup guard + dev-verify gate + /api/rates endpoint (STAB-02, STAB-03)
+- [ ] 01-04-PLAN.md — Client camelCase types + Hours.tsx/Reports.tsx migration + rate consumption (STAB-04)
 
 ---
 
@@ -114,7 +120,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Stability & Correctness | 0/3 | Not started | — |
+| 1. Stability & Correctness | 0/4 | Planned | — |
 | 2. Leave & Absence Foundation | 0/3 | Not started | — |
 | 3. Payroll Calculation & Recording | 0/3 | Not started | — |
 | 4. Tax Reporting (AGI) | 0/3 | Not started | — |
@@ -168,7 +174,7 @@ Phase 5: Scheduling & Compliance (can proceed in parallel with Phase 4, depends 
 ---
 
 *Roadmap created: 2026-04-06*
-*Ready for planning. Next: `/gsd-plan-phase 1`*
+*Phase 1 planned: 2026-04-06 — 4 plans, 3 waves*
 
 ---
 
