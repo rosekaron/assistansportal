@@ -14,7 +14,10 @@ router.get("/me", async (req: AuthRequest, res) => {
     const [assistant] = await db.select().from(assistants).where(eq(assistants.id, req.assistantId)).limit(1);
     const [prof]      = await db.select().from(profile).limit(1);
     res.json({ assistant, patientName: prof?.patientName, weeklyHours: prof?.weeklyHours });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[assistant] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 router.get("/entries", async (req: AuthRequest, res) => {
@@ -29,7 +32,10 @@ router.get("/entries", async (req: AuthRequest, res) => {
       )
     ).orderBy(entries.date, entries.startTime);
     res.json(rows);
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[assistant] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 router.put("/entries/:id/accept", async (req: AuthRequest, res) => {
@@ -43,7 +49,10 @@ router.put("/entries/:id/accept", async (req: AuthRequest, res) => {
       .set({ reqStatus: "approved", calStatus: "confirmed", updatedAt: new Date() })
       .where(eq(entries.id, req.params.id)).returning();
     res.json(updated);
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[assistant] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 router.put("/entries/:id/reject", async (req: AuthRequest, res) => {
@@ -56,7 +65,10 @@ router.put("/entries/:id/reject", async (req: AuthRequest, res) => {
       .set({ reqStatus: "rejected", calStatus: null, updatedAt: new Date() })
       .where(eq(entries.id, req.params.id)).returning();
     res.json(updated);
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[assistant] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 router.put("/entries/:id/submit-report", async (req: AuthRequest, res) => {
@@ -70,7 +82,10 @@ router.put("/entries/:id/submit-report", async (req: AuthRequest, res) => {
       .set({ repStatus: "pending", updatedAt: new Date() })
       .where(eq(entries.id, req.params.id)).returning();
     res.json(updated);
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[assistant] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 router.post("/self-book/:slotId", async (req: AuthRequest, res) => {
@@ -93,7 +108,10 @@ router.post("/self-book/:slotId", async (req: AuthRequest, res) => {
       await db.delete(openSlots).where(eq(openSlots.id, slot.id));
     }
     res.status(201).json(entry);
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[assistant] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 router.get("/open-slots", async (req: AuthRequest, res) => {
@@ -107,7 +125,10 @@ router.get("/open-slots", async (req: AuthRequest, res) => {
       return { ...slot, filled, isFull: filled >= (slot.capacity ?? 1) };
     }));
     res.json(withFill.filter(s => !s.isFull));
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[assistant] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 export default router;

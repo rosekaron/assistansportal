@@ -43,7 +43,10 @@ router.post("/register", async (req, res) => {
       emailSent,
       devVerifyToken: token, // always return in dev — harmless if email works
     });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Verify email (redirect from email link) ───────────────────
@@ -62,7 +65,10 @@ router.get("/verify-email", async (req, res) => {
     const [user] = await db.select().from(auth).where(eq(auth.id, record.userId)).limit(1);
     const jwtToken = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: "30d" });
     res.redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/verify-success?token=${jwtToken}&role=${user.role}`);
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Dev-only: verify without email ────────────────────────────
@@ -78,7 +84,10 @@ router.post("/dev-verify", async (req, res) => {
     const [user] = await db.select().from(auth).where(eq(auth.id, record.userId)).limit(1);
     const jwtToken = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: "30d" });
     res.json({ token: jwtToken, role: user.role, message: "Email verified" });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Login ─────────────────────────────────────────────────────
@@ -98,7 +107,10 @@ router.post("/login", async (req, res) => {
 
     const token = jwt.sign({ userId: user.id, role: user.role, assistantId: user.assistantId }, JWT_SECRET, { expiresIn: "30d" });
     res.json({ token, userId: user.id, role: user.role, assistantId: user.assistantId ?? null });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Resend verification ───────────────────────────────────────
@@ -113,7 +125,10 @@ router.post("/resend-verification", async (req, res) => {
       try { await sendVerificationEmail(email, token); } catch {}
     }
     res.json({ message: "If this email exists and is unverified, a new link has been sent." });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Forgot password ───────────────────────────────────────────
@@ -128,7 +143,10 @@ router.post("/forgot-password", async (req, res) => {
       try { await sendPasswordResetEmail(email, token); } catch {}
     }
     res.json({ message: "If this email exists, a reset link has been sent." });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Reset password ────────────────────────────────────────────
@@ -146,7 +164,10 @@ router.post("/reset-password", async (req, res) => {
     await db.update(auth).set({ passwordHash: hash }).where(eq(auth.id, record.userId));
     await db.update(passwordResets).set({ used: true }).where(eq(passwordResets.id, record.id));
     res.json({ message: "Password updated. You can now log in." });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Accept assistant invite ───────────────────────────────────
@@ -178,7 +199,10 @@ router.post("/accept-invite", async (req, res) => {
 
     const jwtToken = jwt.sign({ userId: user.id, role: "assistant", assistantId: assistant?.id }, JWT_SECRET, { expiresIn: "30d" });
     res.json({ token: jwtToken, role: "assistant", assistantId: assistant?.id ?? null, message: "Account created. Welcome!" });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Send assistant invite email ───────────────────────────────
@@ -198,9 +222,13 @@ router.post("/send-invite-email", requireAuth, requireGuardian, async (req: Auth
       );
       res.json({ ok: true });
     } catch (e) {
-      res.status(500).json({ error: "Could not send email: " + String(e) });
+      console.error("[auth] error:", e);
+      res.status(500).json({ error: "Internal server error" });
     }
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Get current user ──────────────────────────────────────────
@@ -209,7 +237,10 @@ router.get("/me", requireAuth, async (req: AuthRequest, res) => {
     const [user] = await db.select().from(auth).where(eq(auth.id, req.userId!)).limit(1);
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json({ id: user.id, email: user.email, role: user.role, assistantId: user.assistantId, verified: user.emailVerified });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 export default router;

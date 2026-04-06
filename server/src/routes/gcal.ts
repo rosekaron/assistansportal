@@ -100,7 +100,10 @@ router.get("/status", requireAuth, requireGuardian, async (_req: AuthRequest, re
       email:       s.gcal_email ?? "",
       calendarId:  s.gcal_calendar_id ?? "primary",
     });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[gcal] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Disconnect ────────────────────────────────────────────────
@@ -115,7 +118,10 @@ router.post("/disconnect", requireAuth, requireGuardian, async (_req: AuthReques
     await upsert("gcal_access_token",  "");
     await upsert("gcal_refresh_token", "");
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[gcal] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Create a calendar event (blocked time or shift) ───────────
@@ -145,8 +151,8 @@ router.post("/events", requireAuth, requireGuardian, async (req: AuthRequest, re
 
     res.json({ eventId: data.id, htmlLink: data.htmlLink });
   } catch (e) {
-    console.error("Create event error:", e);
-    res.status(500).json({ error: String(e) });
+    console.error("[gcal] error:", e);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -161,7 +167,10 @@ router.put("/events/:eventId", requireAuth, requireGuardian, async (req: AuthReq
       requestBody: { summary, status },
     });
     res.json({ ok: true, eventId: data.id });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[gcal] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Delete an event ───────────────────────────────────────────
@@ -170,7 +179,10 @@ router.delete("/events/:eventId", requireAuth, requireGuardian, async (req: Auth
     const { calendar, calendarId } = await getCalendarClient();
     await calendar.events.delete({ calendarId, eventId: req.params.eventId });
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[gcal] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── List upcoming events from Google Calendar ─────────────────
@@ -187,7 +199,10 @@ router.get("/events", requireAuth, requireGuardian, async (req: AuthRequest, res
       maxResults: 100,
     });
     res.json(data.items ?? []);
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[gcal] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 export default router;

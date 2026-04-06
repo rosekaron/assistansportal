@@ -188,10 +188,9 @@ router.post("/fk3059", requireAuth, requireGuardian, async (req: AuthRequest, re
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.send(filledBytes);
 
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error("\n❌ FK3059 error:", msg, "\n");
-    res.status(500).json({ error: msg });
+  } catch (e) {
+    console.error("[pdf] error:", e);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -251,8 +250,8 @@ router.post("/fk3057", requireAuth, requireGuardian, async (req: AuthRequest, re
     res.setHeader("Content-Disposition", `attachment; filename="FK3057-${year}-${mm}.pdf"`);
     res.send(Buffer.from(filledBytes));
   } catch (e) {
-    console.error("FK3057 error:", e);
-    res.status(500).json({ error: String(e) });
+    console.error("[pdf] error:", e);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
