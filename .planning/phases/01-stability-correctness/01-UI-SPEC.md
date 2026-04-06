@@ -80,13 +80,13 @@ introduce any new typography values.
 | Role | Size | Weight | Line Height | Tailwind Class |
 |------|------|--------|-------------|----------------|
 | Body | 16px (1rem) | 400 (regular) | 1.6 | `text-base` |
-| Label / Small | 14.4px (0.9rem) | 400 (regular) | 1.5 | `text-sm` |
-| Heading h3 / Card title | 18px (1.125rem) | 500 (medium) | 1.6 | `text-lg font-medium` |
-| Heading h2 | 20px (1.25rem) | 600 (semibold) | 1.5 | `text-xl font-semibold` |
-| Heading h1 | 24px (1.5rem) | 600 (semibold) | 1.4 | `text-2xl font-semibold` |
+| Label / Small | 14px (0.875rem) | 400 (regular) | 1.5 | `text-sm` |
+| Heading h3 / Card title / h2 | 18px (1.125rem) | 600 (semibold) | 1.6 | `text-lg font-semibold` |
+| Heading h1 / Page title | 24px (1.5rem) | 600 (semibold) | 1.4 | `text-2xl font-semibold` |
 
-Weights in use: **400 (regular)** and **600 (semibold)**, with **500 (medium)** reserved for h3 only.
-No new weights may be introduced in Phase 1.
+Weights in use: **400 (regular)** and **600 (semibold)** only. The 500 (medium) weight is not
+used. The 20px (text-xl) tier has been merged into the 18px tier. No new weights or sizes may be
+introduced in Phase 1.
 
 Source: `index.css` lines 68–70 (heading styles), `tailwind.config.js` lines 28–35 (fontSize scale).
 
@@ -205,4 +205,5 @@ the existing manual pattern in `client/src/components/ui/`.
 
 *Phase: 01-stability-correctness*
 *UI-SPEC created: 2026-04-06 by gsd-ui-researcher*
+*Revised: 2026-04-06 — typography fixes: merged 5 sizes to 4, reduced weights from 3 to 2*
 *All values pre-populated from codebase — no user questions required*
