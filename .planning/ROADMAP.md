@@ -5,7 +5,7 @@
 **Phases:** 6
 **Granularity:** Standard (5-8 phases)
 **Coverage:** 15/15 v1 requirements mapped
-**Last Updated:** 2026-04-06
+**Last Updated:** 2026-04-07
 
 ---
 
@@ -84,7 +84,14 @@ Plans:
 4. All pages use consistent typography, spacing, and color tokens
 5. The design system is ready to support Phase 3 payroll UI without visual debt
 
-**Plans:** TBD
+**Plans:** 5 plans
+
+Plans:
+- [ ] 02.5-01-PLAN.md — Wave 1: Fix Tailwind ESM/CJS bug (tailwind.config.js require() → import) — unblocks all visual work
+- [ ] 02.5-02-PLAN.md — Wave 2: Update index.css colour tokens to B2B professional palette
+- [ ] 02.5-03-PLAN.md — Wave 3: Redesign guardian Layout.tsx sidebar + Dashboard.tsx card layout (parallel with 02.5-04)
+- [ ] 02.5-04-PLAN.md — Wave 3: Redesign AssistantDashboard.tsx — eliminate dark-mode artefacts, apply light theme (parallel with 02.5-03)
+- [ ] 02.5-05-PLAN.md — Wave 4: Consistency pass across Leave, Login, Calendar, Reports, Assistants, Settings
 
 ---
 
@@ -125,7 +132,7 @@ Plans:
 
 ### Phase 5: Scheduling & Compliance Workflow
 
-**Goal:** Guardian has a unified view of all assistants' shifts, a monthly checklist of compliance steps, and automated deadline reminders so the full compliance cycle is manageable in one tool.
+**Goal:** Guardian has a unified view of all assistants' shifts, a monthly compliance checklist of compliance steps, and automated deadline reminders so the full compliance cycle is manageable in one tool.
 
 **Depends on:** Phase 4
 
@@ -146,11 +153,12 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Stability & Correctness | 4/4 | Complete   | 2026-04-06 |
-| 2. Leave & Absence Foundation | 0/4 | In progress | — |
-| 3. Payroll Calculation & Recording | 0/3 | Not started | — |
-| 4. Tax Reporting (AGI) | 0/3 | Not started | — |
-| 5. Scheduling & Compliance Workflow | 0/3 | Not started | — |
+| 1. Stability & Correctness | 4/4 | Complete | 2026-04-06 |
+| 2. Leave & Absence Foundation | 4/4 | Complete | 2026-04-06 |
+| 2.5. UI Overhaul & Design System | 0/5 | In progress | — |
+| 3. Payroll Calculation & Recording | 0/TBD | Not started | — |
+| 4. Tax Reporting (AGI) | 0/TBD | Not started | — |
+| 5. Scheduling & Compliance Workflow | 0/TBD | Not started | — |
 
 ---
 
@@ -160,6 +168,8 @@ Plans:
 Phase 1: Stability & Correctness (foundation)
   ↓
 Phase 2: Leave & Absence (enables correct billable hours calculation)
+  ↓
+Phase 2.5: UI Overhaul & Design System (visual foundation for Phase 3 payroll UI)
   ↓
 Phase 3: Payroll Calculation (depends on billable hours + absences)
   ↓
@@ -202,25 +212,4 @@ Phase 5: Scheduling & Compliance (can proceed in parallel with Phase 4, depends 
 *Roadmap created: 2026-04-06*
 *Phase 1 planned: 2026-04-06 — 4 plans, 3 waves*
 *Phase 2 planned: 2026-04-06 — 4 plans, 4 waves*
-
----
-
-## Backlog
-
-Items captured during discuss-phase that are deferred from v1 scope.
-
-### BACKLOG-01: Full Route Test Coverage
-**Captured:** 2026-04-06 (Phase 1 discuss-phase)
-**Scope:** 100% line coverage of all user-facing API routes (~50 endpoints across 9 route files). Includes complex routes requiring test infrastructure for qpdf binary mocking (PDF routes), Google OAuth token mocking (GCal routes), and Nodemailer mocking (auth routes).
-**Estimated effort:** ~16 days
-**Trigger:** After Phase 1 ships and test framework is in place. Can be addressed as Phase 1b or folded into Phase 2+.
-
-### BACKLOG-02: Configurable Rate Settings UI
-**Captured:** 2026-04-06 (Phase 1 discuss-phase)
-**Scope:** Guardian-editable FK hourly rate and employer tax rate from the Settings page, persisted in DB, no server restart required. Currently deferred in favour of env-var approach.
-**Trigger:** B2B expansion or multi-country milestone, when rate variation across guardian accounts becomes necessary.
-
-### BACKLOG-03: Multi-Country / European Expansion
-**Captured:** 2026-04-06 (Phase 1 discuss-phase)
-**Scope:** Strategic review of user stories and roadmap for operating in multiple European countries beyond Sweden. Involves compliance framework differences, multi-language support, and regulatory adaptations per country.
-**Trigger:** Post-v1, when the Swedish single-family use case is validated and B2B/SaaS growth is the next horizon.
+*Phase 2.5 planned: 2026-04-07 — 5 plans, 4 waves*
