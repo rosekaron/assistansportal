@@ -11,7 +11,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: Stability & Correctness** — Fix critical security, data isolation, and calculation bugs before adding features
+- [x] **Phase 1: Stability & Correctness** — Fix critical security, data isolation, and calculation bugs before adding features (completed 2026-04-06)
 - [ ] **Phase 2: Leave & Absence Foundation** — Implement absence tracking so billable hours can be calculated correctly downstream
 - [ ] **Phase 3: Payroll Calculation & Recording** — Monthly payroll per assistant with 2026 Swedish tax rates and employer contributions
 - [ ] **Phase 4: Tax Reporting (AGI)** — Generate Skatteverket-ready AGI declarations per month
@@ -35,13 +35,13 @@
 3. Guardian can view and modify FK hourly rate and employer tax rate (arbetsgivaravgifter) in Settings without code deploy
 4. All API response types are defined in TypeScript; client code consistently accesses fields by their correct camelCase names
 
-**Plans:** 4 plans
+**Plans:** 4/4 plans complete
 
 Plans:
-- [ ] 01-01-PLAN.md — Vitest test framework setup and failing test stubs for all 4 STAB requirements (Wave 0)
-- [ ] 01-02-PLAN.md — Role middleware enforcement on all guardian routes + error sanitization (STAB-01)
-- [ ] 01-03-PLAN.md — FK 3057 date fix + JWT startup guard + dev-verify gate + /api/rates endpoint (STAB-02, STAB-03)
-- [ ] 01-04-PLAN.md — Client camelCase types + Hours.tsx/Reports.tsx migration + rate consumption (STAB-04)
+- [x] 01-01-PLAN.md — Vitest test framework setup and failing test stubs for all 4 STAB requirements (Wave 0)
+- [x] 01-02-PLAN.md — Role middleware enforcement on all guardian routes + error sanitization (STAB-01)
+- [x] 01-03-PLAN.md — FK 3057 date fix + JWT startup guard + dev-verify gate + /api/rates endpoint (STAB-02, STAB-03)
+- [x] 01-04-PLAN.md — Client camelCase types + Hours.tsx/Reports.tsx migration + rate consumption (STAB-04)
 
 ---
 
@@ -120,7 +120,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Stability & Correctness | 0/4 | Planned | — |
+| 1. Stability & Correctness | 4/4 | Complete   | 2026-04-06 |
 | 2. Leave & Absence Foundation | 0/3 | Not started | — |
 | 3. Payroll Calculation & Recording | 0/3 | Not started | — |
 | 4. Tax Reporting (AGI) | 0/3 | Not started | — |

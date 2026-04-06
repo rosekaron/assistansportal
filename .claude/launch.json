@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "assistansportal",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "client"],
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": ["/usr/local/bin/npm", "run", "dev", "--prefix", "client"],
       "port": 5173
     }
   ]
