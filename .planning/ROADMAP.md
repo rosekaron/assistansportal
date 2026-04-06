@@ -2,7 +2,7 @@
 
 **Project:** Swedish personal assistance (assistansersättning) self-management platform with compliance and payroll integration
 **Version:** v1 — Stability, Compliance, and Core Payroll
-**Phases:** 5
+**Phases:** 6
 **Granularity:** Standard (5-8 phases)
 **Coverage:** 15/15 v1 requirements mapped
 **Last Updated:** 2026-04-06
@@ -12,7 +12,8 @@
 ## Phases
 
 - [x] **Phase 1: Stability & Correctness** — Fix critical security, data isolation, and calculation bugs before adding features (completed 2026-04-06)
-- [ ] **Phase 2: Leave & Absence Foundation** — Implement absence tracking so billable hours can be calculated correctly downstream
+- [x] **Phase 2: Leave & Absence Foundation** — Implement absence tracking so billable hours can be calculated correctly downstream (completed 2026-04-06)
+- [ ] **Phase 2.5: UI Overhaul & Design System** — Fix Tailwind CSS rendering, rebuild visual design to B2B-ready care.com-inspired standard for both guardian and assistant views
 - [ ] **Phase 3: Payroll Calculation & Recording** — Monthly payroll per assistant with 2026 Swedish tax rates and employer contributions
 - [ ] **Phase 4: Tax Reporting (AGI)** — Generate Skatteverket-ready AGI declarations per month
 - [ ] **Phase 5: Scheduling & Compliance Workflow** — Multi-assistant schedule grid, monthly compliance checklist, and deadline reminders
@@ -65,6 +66,25 @@ Plans:
 - [x] 02-02-PLAN.md — Wave 1: absences table + absenceTypeEnum + reqStatusEnum "cancelled" + drizzle-kit push
 - [x] 02-03-PLAN.md — Wave 2: absences CRUD routes + FK billing exclusion + assistant clock-in block
 - [x] 02-04-PLAN.md — Wave 3: Frånvaro page + balance cards + sidebar nav + Assistants page integration
+
+---
+
+### Phase 2.5: UI Overhaul & Design System
+
+**Goal:** Fix the broken Tailwind CSS build and rebuild the visual design to a B2B-ready, care.com-inspired professional standard suitable for both self-managing guardians and enterprise sale to care organisations (Humana, Attendo). Covers both guardian and assistant views.
+
+**Depends on:** Phase 2
+
+**Requirements:** No functional requirements — pure UI/UX quality phase
+
+**Success Criteria** (what must be TRUE):
+1. Tailwind utility classes render correctly in the browser (flex layouts, colors, shadows all applied)
+2. Guardian sidebar and page layouts look professional and trust-inspiring — appropriate for a B2B demo to a care organisation
+3. Assistant dashboard is visually polished and clearly communicates shift information
+4. All pages use consistent typography, spacing, and color tokens
+5. The design system is ready to support Phase 3 payroll UI without visual debt
+
+**Plans:** TBD
 
 ---
 
