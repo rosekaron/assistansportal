@@ -141,3 +141,18 @@ None — no external service configuration required.
 ---
 *Phase: 02-leave-absence-foundation*
 *Completed: 2026-04-06*
+
+## Self-Check: PASSED
+
+| Item | Status |
+|------|--------|
+| server/src/lib/absence-utils.ts | FOUND |
+| server/src/routes/absences.ts | FOUND |
+| server/src/routes/pdf.ts | FOUND |
+| server/src/routes/assistant.ts | FOUND |
+| server/src/index.ts | FOUND |
+| .planning/phases/02-leave-absence-foundation/02-03-SUMMARY.md | FOUND |
+| Commit b54b1d0 (Task 1 — absence-utils.ts and absences.ts) | FOUND |
+| Commit 4b6c04d (Task 2 — FK billing exclusion and clock-in block) | FOUND |
+| Commit 14796e9 (docs — plan metadata) | FOUND |
+| All 6 test files GREEN (34 passed, 4 skipped) | VERIFIED |
