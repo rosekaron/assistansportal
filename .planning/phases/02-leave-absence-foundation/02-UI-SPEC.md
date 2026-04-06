@@ -1,10 +1,11 @@
 ---
 phase: 2
 slug: leave-absence-foundation
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-04-06
+reviewed_at: 2026-04-06
 ---
 
 # Phase 2 — UI Design Contract: Leave & Absence Foundation
@@ -67,6 +68,8 @@ PageHeader (title + "Registrera frånvaro" button)
     └── Absence table (date range | assistant | type badge | created | delete button)
 ```
 
+Primary focal point: "Registrera frånvaro" button in PageHeader — highest-contrast interactive element on the page.
+
 Content max-width: `max-w-5xl` (matches existing Layout.tsx main content area).
 Padding: `px-8 py-8` (matches existing pages).
 
@@ -101,7 +104,7 @@ Exceptions:
 - Balance cards: use 3-column grid with `gap-4` (16px) matching existing card grid patterns
 - Dialog content: internal padding `p-6` (24px) — matches existing `dialog.tsx` `DialogContent`
 - Form rows: `space-y-4` (16px) between label+field pairs
-- Table rows: `py-3` (12px) vertical padding per row — matches existing table patterns in `Assistants.tsx`
+- Table rows: `py-2` (8px) vertical padding per row — consistent with existing `Hours.tsx` and `Assistants.tsx` table patterns
 
 ---
 
@@ -112,12 +115,13 @@ All values sourced from `index.css` and `tailwind.config.js` — do not override
 | Role | Size | Weight | Line Height | Usage in Phase 2 |
 |------|------|--------|-------------|------------------|
 | Body | 16px (1rem) | 400 (regular) | 1.6 | Absence table cell text, dialog body text |
-| Label / small | 14.4px (0.9rem / `text-sm`) | 400 | 1.5 | Filter labels, form helper text, balance sub-labels |
+| Label / small / micro | 14.4px (0.9rem / `text-sm`) | 400 | 1.5 | Filter labels, form helper text, balance sub-labels, SectionLabel caps (`text-sm font-semibold`), badge text |
 | Heading (page) | 20px (1.25rem / `text-xl`) | 600 (semibold) | 1.5 | PageHeader title ("Frånvaro") — via `shared.tsx` PageHeader |
-| Heading (card) | 18px (1.125rem / `text-lg`) | 500 (medium) | 1.6 | Card section headings, dialog title |
-| Micro label | 12.8px (0.8rem / `text-xs`) | 600 (semibold) | 1.4 | SectionLabel caps ("VAB-SALDO", "SJUKFRÅNVARO"), badge text |
+| Heading (card) | 18px (1.125rem / `text-lg`) | 600 (semibold) | 1.6 | Card section headings, dialog title — override `CardTitle` with `font-semibold` via className |
 
-Two weights only: **regular (400)** for body/data and **semibold (600)** for headings and labels. `font-medium` (500) is used only for card titles where the existing `CardTitle` component uses it.
+Two weights only: **regular (400)** for body/data and **semibold (600)** for all headings, labels, and badges. Do not use `font-medium` (500) or `font-bold` (700) — `CardTitle` must be overridden with `className="font-semibold"` wherever used in Phase 2 components. Balance card display numbers use `font-semibold` (600), not `font-bold` (700).
+
+SectionLabel caps ("VAB-SALDO", "SJUKFRÅNVARO") and badge text use `text-sm font-semibold` — not `text-xs`.
 
 ---
 
@@ -279,10 +283,10 @@ For Phase 2 with typically 1–3 assistants: render one card per assistant.
 ```
 Card
 ├── CardHeader
-│   ├── CardTitle (text-sm): "[AssistantAvatar] [Name]"
+│   ├── CardTitle (text-sm font-semibold): "[AssistantAvatar] [Name]"
 │   └── CardDescription: "VAB-saldo [year]"
 └── CardContent
-    ├── Large number: "118" (text-3xl font-bold, color by threshold)
+    ├── Large number: "118" (text-3xl font-semibold, color by threshold)
     ├── Sub-label: "dagar kvar av 120" (text-sm text-muted-foreground)
     └── Progress bar: thin, 4px height, filled = used/120 (use inline style or FillBar component)
 ```
@@ -292,10 +296,10 @@ Card
 ```
 Card
 ├── CardHeader
-│   ├── CardTitle (text-sm): "[AssistantAvatar] [Name]"
+│   ├── CardTitle (text-sm font-semibold): "[AssistantAvatar] [Name]"
 │   └── CardDescription: "Sjukfrånvaro [year]"
 └── CardContent
-    ├── Large number: "2" (text-3xl font-bold text-foreground)
+    ├── Large number: "2" (text-3xl font-semibold text-foreground)
     └── Sub-label: "dagar registrerade" (text-sm text-muted-foreground)
 ```
 
@@ -405,5 +409,7 @@ These items are explicitly excluded from this design contract:
 
 *Phase: 02-leave-absence-foundation*
 *UI-SPEC created: 2026-04-06*
+*UI-SPEC revised: 2026-04-06 — fixed typography (4 sizes, 2 weights) and spacing (table row py-2) per checker BLOCK findings*
+*UI-SPEC revised: 2026-04-06 — fixed balance card display numbers from `font-bold` (700) to `font-semibold` (600) to enforce two-weight rule; added focal point declaration to Frånvaro page layout contract*
 *Pre-populated from: CONTEXT.md (7 decisions), RESEARCH.md (stack + patterns), codebase scan (all tokens, components, layout)*
 *User questions asked: 0 — all contract fields resolved from upstream artifacts and codebase*
