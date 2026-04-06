@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
-import { entries, assistants, profile, openSlots } from "../db/schema";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { entries, assistants, profile, openSlots, absences } from "../db/schema";
+import { eq, and, gte, lte, or, isNull } from "drizzle-orm";
 import { requireAuth, requireAssistant, AuthRequest } from "../middleware/auth";
 import { newId } from "../lib/id";
 
@@ -45,6 +45,24 @@ router.put("/entries/:id/accept", async (req: AuthRequest, res) => {
     ).limit(1);
     if (!entry) return res.status(404).json({ error: "Shift not found" });
     if (entry.reqStatus !== "pending") return res.status(400).json({ error: "Shift is not pending" });
+
+    // Block clock-in if the entry date is covered by an active absence (D-02, T-02-03-04)
+    // Server-side enforcement is authoritative — frontend check is UX-only.
+    const activeAbsence = await db.select().from(absences).where(
+      and(
+        or(
+          eq(absences.assistantId, req.assistantId!),
+          isNull(absences.assistantId),
+        ),
+        lte(absences.startDate, entry.date),
+        gte(absences.endDate, entry.date),
+      )
+    ).limit(1);
+
+    if (activeAbsence.length > 0) {
+      return res.status(409).json({ error: "Assistant has an active absence on this date" });
+    }
+
     const [updated] = await db.update(entries)
       .set({ reqStatus: "approved", calStatus: "confirmed", updatedAt: new Date() })
       .where(eq(entries.id, req.params.id)).returning();

@@ -2,9 +2,10 @@ import { Router } from "express";
 import { PDFDocument } from "pdf-lib";
 import { spawnSync } from "child_process";
 import { db } from "../db";
-import { entries, assistants, profile } from "../db/schema";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { entries, assistants, profile, absences } from "../db/schema";
+import { eq, and, gte, lte, or, isNull } from "drizzle-orm";
 import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
+import { filterBillableEntries } from "../lib/absence-utils";
 import path from "path";
 import fs from "fs";
 import os from "os";
@@ -81,6 +82,26 @@ router.post("/fk3059", requireAuth, requireGuardian, async (req: AuthRequest, re
       ))
       .orderBy(entries.date, entries.startTime);
 
+    // Fetch absences covering this month for this assistant (including null-assistantId)
+    // LEAV-02: exclude entries whose date falls within any absence range
+    const monthAbsences = await db.select({
+      assistantId: absences.assistantId,
+      startDate:   absences.startDate,
+      endDate:     absences.endDate,
+      absenceType: absences.absenceType,
+    }).from(absences).where(
+      and(
+        or(
+          eq(absences.assistantId, assistantId),
+          isNull(absences.assistantId),
+        ),
+        lte(absences.startDate, end),
+        gte(absences.endDate, start),
+      )
+    );
+
+    const billableEntries = filterBillableEntries(monthEntries, monthAbsences);
+
     // ── Build field map ───────────────────────────────────────
     const fields: Record<string, string> = {};
 
@@ -149,8 +170,8 @@ router.post("/fk3059", requireAuth, requireGuardian, async (req: AuthRequest, re
     // Totals per type (active=1, waiting=2, standby=3)
     const totMins = { active: 0, waiting: 0, standby: 0 };
 
-    for (let i = 0; i < Math.min(monthEntries.length, slots.length); i++) {
-      const e    = monthEntries[i];
+    for (let i = 0; i < Math.min(billableEntries.length, slots.length); i++) {
+      const e    = billableEntries[i];
       const slot = slots[i];
       const day  = String(parseInt(e.date.split("-")[2])); // "3" not "03"
 
@@ -216,7 +237,27 @@ router.post("/fk3057", requireAuth, requireGuardian, async (req: AuthRequest, re
         eq(entries.repStatus, "approved"),
       ));
 
-    const totalHours  = monthEntries.reduce((s, e) => s + (e.hours ?? 0), 0);
+    // Fetch all absences covering this month for FK 3057 (all assistants, all absence types)
+    // LEAV-02: exclude entries whose date falls within any absence range
+    // NOTE: FK 3057 absence query is not scoped by guardianId because the entries table
+    // is also unscoped (single-tenant design per RESEARCH.md Pitfall 6). This is a known
+    // v1 single-tenant assumption — tracked for MULTI-01 in a future multi-tenant phase.
+    const fk3057Start = `${year}-${mm}-01`;
+    const fk3057End   = `${year}-${mm}-${String(daysInMonth).padStart(2, "0")}`;
+    const allAbsences = await db.select({
+      assistantId: absences.assistantId,
+      startDate:   absences.startDate,
+      endDate:     absences.endDate,
+      absenceType: absences.absenceType,
+    }).from(absences).where(
+      and(
+        lte(absences.startDate, fk3057End),
+        gte(absences.endDate, fk3057Start),
+      )
+    );
+
+    const billableFk3057 = filterBillableEntries(monthEntries, allAbsences);
+    const totalHours  = billableFk3057.reduce((s, e) => s + (e.hours ?? 0), 0);
     const totalMins   = Math.round((totalHours % 1) * 60);
     const totalHrsInt = Math.floor(totalHours);
 

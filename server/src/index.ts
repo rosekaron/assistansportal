@@ -23,6 +23,7 @@ import entriesRoutes         from "./routes/entries";
 import miscRoutes            from "./routes/misc";
 import pdfRoutes             from "./routes/pdf";
 import costsRoutes           from "./routes/costs";
+import absencesRoutes        from "./routes/absences";
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -41,6 +42,7 @@ app.use("/api/entries",     entriesRoutes);
 app.use("/api",             miscRoutes);
 app.use("/api/pdf",         pdfRoutes);
 app.use("/api/costs",       costsRoutes);
+app.use("/api/absences",    absencesRoutes);
 
 app.get("/api/health", (_req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
 
