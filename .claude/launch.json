@@ -4,7 +4,7 @@
     {
       "name": "assistansportal",
       "runtimeExecutable": "/usr/local/bin/node",
-      "runtimeArgs": ["/usr/local/bin/npm", "run", "dev", "--prefix", "client"],
+      "runtimeArgs": ["client/node_modules/vite/bin/vite.js", "client", "--host", "0.0.0.0"],
       "port": 5173
     }
   ]

@@ -312,12 +312,12 @@ export default function LeaveAbsencePage() {
         {/* Assistant filter */}
         <div className="flex flex-col gap-1 min-w-[160px]">
           <Label htmlFor="filter-assistant">Assistent</Label>
-          <Select value={filterAssistant} onValueChange={setFilterAssistant}>
+          <Select value={filterAssistant || "__all__"} onValueChange={(v) => setFilterAssistant(v === "__all__" ? "" : v)}>
             <SelectTrigger id="filter-assistant">
               <SelectValue placeholder="Alla assistenter" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Alla assistenter</SelectItem>
+              <SelectItem value="__all__">Alla assistenter</SelectItem>
               {assistants.map((a) => (
                 <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
               ))}
@@ -328,12 +328,12 @@ export default function LeaveAbsencePage() {
         {/* Type filter */}
         <div className="flex flex-col gap-1 min-w-[160px]">
           <Label htmlFor="filter-type">Typ</Label>
-          <Select value={filterType} onValueChange={setFilterType}>
+          <Select value={filterType || "__all__"} onValueChange={(v) => setFilterType(v === "__all__" ? "" : v)}>
             <SelectTrigger id="filter-type">
               <SelectValue placeholder="Alla typer" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Alla typer</SelectItem>
+              <SelectItem value="__all__">Alla typer</SelectItem>
               <SelectItem value="sjukfrånvaro">Sjukfrånvaro</SelectItem>
               <SelectItem value="vab">VAB (vård av barn)</SelectItem>
               <SelectItem value="semester">Semester</SelectItem>
@@ -345,12 +345,12 @@ export default function LeaveAbsencePage() {
         {/* Month filter */}
         <div className="flex flex-col gap-1 min-w-[160px]">
           <Label htmlFor="filter-month">Månad</Label>
-          <Select value={filterMonth} onValueChange={setFilterMonth}>
+          <Select value={filterMonth || "__all__"} onValueChange={(v) => setFilterMonth(v === "__all__" ? "" : v)}>
             <SelectTrigger id="filter-month">
               <SelectValue placeholder="Alla månader" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Alla månader</SelectItem>
+              <SelectItem value="__all__">Alla månader</SelectItem>
               {uniqueMonths.map((ym) => (
                 <SelectItem key={ym} value={ym}>{formatMonthLabel(ym)}</SelectItem>
               ))}
@@ -473,14 +473,14 @@ export default function LeaveAbsencePage() {
             <div className="space-y-1.5">
               <Label htmlFor="dialog-assistant">Assistent</Label>
               <Select
-                value={formState.assistantId}
-                onValueChange={(v) => setFormState((f) => ({ ...f, assistantId: v }))}
+                value={formState.assistantId || "__all__"}
+                onValueChange={(v) => setFormState((f) => ({ ...f, assistantId: v === "__all__" ? "" : v }))}
               >
                 <SelectTrigger id="dialog-assistant">
                   <SelectValue placeholder="Alla assistenter" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Alla assistenter</SelectItem>
+                  <SelectItem value="__all__">Alla assistenter</SelectItem>
                   {assistants.map((a) => (
                     <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                   ))}
