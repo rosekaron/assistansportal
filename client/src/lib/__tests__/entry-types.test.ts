@@ -1,27 +1,10 @@
 import { describe, it, expect } from "vitest";
+import type { Entry } from "@/lib/types";
 
 // Type-level regression: verify that Entry fields are camelCase.
 // These tests check runtime field names that match the Drizzle schema output.
-
-// Mirror of server/src/db/schema.ts Entry type — manually duplicated per D-05 Claude's discretion.
+// Import is from client/src/lib/types.ts — the real exported interface.
 // If these tests fail to compile, the camelCase fix is incomplete.
-interface Entry {
-  id:          string;
-  assistantId: string;
-  date:        string;
-  startTime:   string;
-  endTime:     string;
-  hours:       number;
-  entryType:   string | null;
-  reqStatus:   string | null;
-  repStatus:   string | null;
-  source:      string | null;
-  calStatus:   string | null;
-  activityId:  string | null;
-  gcalEventId: string | null;
-  createdAt:   Date | null;
-  updatedAt:   Date | null;
-}
 
 describe("STAB-04: Entry type uses camelCase field names", () => {
   it("Entry interface has reqStatus (not req_status)", () => {

@@ -12,9 +12,7 @@ import {
 } from "@/components/shared";
 import { formatDate, getWeekDates } from "@/lib/utils";
 import { Calendar, Plus, ChevronLeft, ChevronRight } from "lucide-react";
-
-type Entry   = Record<string, string | number | null | undefined>;
-type Blocked = Record<string, string | number | null | undefined>;
+import type { Entry, Blocked, Assistant } from "@/lib/types";
 
 export default function HoursPage() {
   const [tab, setTab] = useState("schedule");
@@ -24,7 +22,7 @@ export default function HoursPage() {
   const { data: blocked    = [] } = useQuery({ queryKey: ["blocked"],    queryFn: () => blockedApi.list().then((r) => r.data)     });
   const { data: assistants = [] } = useQuery({ queryKey: ["assistants"], queryFn: () => assistantsApi.list().then((r) => r.data) });
 
-  const pendingReps = (entries as Entry[]).filter((e) => e.req_status === "approved" && e.rep_status === "pending").length;
+  const pendingReps = (entries as Entry[]).filter((e) => e.reqStatus === "approved" && e.repStatus === "pending").length;
 
   return (
     <div>
@@ -49,10 +47,10 @@ export default function HoursPage() {
         </TabsList>
 
         <TabsContent value="schedule">
-          <ScheduleTab entries={entries as Entry[]} assistants={assistants} />
+          <ScheduleTab entries={entries as Entry[]} assistants={assistants as Assistant[]} />
         </TabsContent>
         <TabsContent value="reports">
-          <ReportsTab entries={entries as Entry[]} assistants={assistants} qc={qc} />
+          <ReportsTab entries={entries as Entry[]} assistants={assistants as Assistant[]} qc={qc} />
         </TabsContent>
         <TabsContent value="blocked">
           <BlockedTab blocked={blocked as Blocked[]} qc={qc} />
@@ -63,26 +61,26 @@ export default function HoursPage() {
 }
 
 // ── Schedule tab ──────────────────────────────────────────────
-function ScheduleTab({ entries, assistants }: { entries: Entry[]; assistants: Entry[] }) {
+function ScheduleTab({ entries, assistants }: { entries: Entry[]; assistants: Assistant[] }) {
   const [weekOffset, setWeekOffset] = useState(0);
   const weekDates = getWeekDates(weekOffset);
   const todayStr  = new Date().toISOString().split("T")[0];
 
-  const weekEntries = entries.filter((e) => weekDates.includes(e.date as string) && e.req_status !== "rejected");
+  const weekEntries = entries.filter((e) => weekDates.includes(e.date as string) && e.reqStatus !== "rejected");
 
   const merged = useMemo(() => {
     const map = new Map<string, Entry[]>();
     for (const e of weekEntries) {
-      const key = `${e.date}|${e.start_time}|${e.end_time}`;
+      const key = `${e.date}|${e.startTime}|${e.endTime}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(e);
     }
     return Array.from(map.entries())
-      .map(([key, group]) => ({ key, group, date: group[0].date as string, startTime: group[0].start_time as string, endTime: group[0].end_time as string, hours: group[0].hours as number }))
+      .map(([key, group]) => ({ key, group, date: group[0].date as string, startTime: group[0].startTime as string, endTime: group[0].endTime as string, hours: group[0].hours as number }))
       .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
   }, [weekEntries]);
 
-  const aById = (id: string) => assistants.find((a) => a.id === id) as Entry | undefined;
+  const aById = (id: string) => assistants.find((a) => a.id === id) as Assistant | undefined;
 
   return (
     <div>
@@ -118,17 +116,17 @@ function ScheduleTab({ entries, assistants }: { entries: Entry[]; assistants: En
                       {multi ? (
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <AvatarStack assistants={group.map((e) => aById(e.assistant_id as string) ?? {}).map((a) => ({ id: a.id as string, initials: a.initials as string, color: a.color as string, name: a.name as string }))} />
+                            <AvatarStack assistants={group.map((e) => aById(e.assistantId as string)).filter((a): a is Assistant => !!a).map((a) => ({ id: a.id, initials: a.initials ?? "", color: a.color ?? "#6366f1", name: a.name }))} />
                             <Badge variant="info">{group.length} concurrent</Badge>
                           </div>
                           <div className="space-y-0.5 ml-1">
                             {group.map((e) => {
-                              const a = aById(e.assistant_id as string);
+                              const a = aById(e.assistantId as string);
                               return (
                                 <div key={e.id as string} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                   <div className="w-1.5 h-1.5 rounded-full" style={{ background: a?.color as string ?? "#6366f1" }} />
                                   {a?.name as string}
-                                  <ReqBadge status={e.req_status as "pending"|"approved"|"rejected"} />
+                                  <ReqBadge status={e.reqStatus as "pending"|"approved"|"rejected"} />
                                 </div>
                               );
                             })}
@@ -136,16 +134,16 @@ function ScheduleTab({ entries, assistants }: { entries: Entry[]; assistants: En
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          {(() => { const a = aById(group[0].assistant_id as string); return <AssistantAvatar name={a?.name as string} initials={a?.initials as string} color={a?.color as string} size={28} />; })()}
-                          <span className="text-sm">{aById(group[0].assistant_id as string)?.name as string}</span>
+                          {(() => { const a = aById(group[0].assistantId as string); return <AssistantAvatar name={a?.name as string} initials={a?.initials as string} color={a?.color as string} size={28} />; })()}
+                          <span className="text-sm">{aById(group[0].assistantId as string)?.name as string}</span>
                         </div>
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm">{formatDate(date)}{isToday && <Badge variant="info" className="ml-1.5 text-[10px]">Today</Badge>}</td>
                     <td className="px-4 py-3 font-mono text-xs text-foreground">{startTime} – {endTime}</td>
                     <td className="px-4 py-3 font-mono text-xs">{hours}h{multi && <span className="text-muted-foreground"> ×{group.length}</span>}</td>
-                    <td className="px-4 py-3">{multi ? <ReqBadge status={(group.every((e) => e.req_status === "approved") ? "approved" : "pending") as "pending"|"approved"|"rejected"} /> : <ReqBadge status={group[0].req_status as "pending"|"approved"|"rejected"} />}</td>
-                    <td className="px-4 py-3"><CalBadge status={group[0].cal_status as "tentative"|"confirmed"|null} /></td>
+                    <td className="px-4 py-3">{multi ? <ReqBadge status={(group.every((e) => e.reqStatus === "approved") ? "approved" : "pending") as "pending"|"approved"|"rejected"} /> : <ReqBadge status={group[0].reqStatus as "pending"|"approved"|"rejected"} />}</td>
+                    <td className="px-4 py-3"><CalBadge status={group[0].calStatus as "tentative"|"confirmed"|null} /></td>
                   </tr>
                 );
               })}
@@ -158,7 +156,7 @@ function ScheduleTab({ entries, assistants }: { entries: Entry[]; assistants: En
 }
 
 // ── Reports tab ───────────────────────────────────────────────
-function ReportsTab({ entries, assistants, qc }: { entries: Entry[]; assistants: Entry[]; qc: ReturnType<typeof useQueryClient> }) {
+function ReportsTab({ entries, assistants, qc }: { entries: Entry[]; assistants: Assistant[]; qc: ReturnType<typeof useQueryClient> }) {
   const [filterAid, setFilterAid] = useState("all");
 
   const update = useMutation({
@@ -167,9 +165,9 @@ function ReportsTab({ entries, assistants, qc }: { entries: Entry[]; assistants:
   });
 
   const filtered = entries
-    .filter((e) => e.req_status !== "rejected" && (filterAid === "all" || e.assistant_id === filterAid))
+    .filter((e) => e.reqStatus !== "rejected" && (filterAid === "all" || e.assistantId === filterAid))
     .sort((a, b) => {
-      const pri = (e: Entry) => e.req_status === "approved" && e.rep_status === "pending" ? 0 : e.req_status === "pending" ? 1 : e.rep_status === "approved" ? 2 : 3;
+      const pri = (e: Entry) => e.reqStatus === "approved" && e.repStatus === "pending" ? 0 : e.reqStatus === "pending" ? 1 : e.repStatus === "approved" ? 2 : 3;
       return pri(a) - pri(b) || (a.date as string).localeCompare(b.date as string);
     });
 
@@ -195,16 +193,16 @@ function ReportsTab({ entries, assistants, qc }: { entries: Entry[]; assistants:
             </thead>
             <tbody>
               {filtered.map((e) => {
-                const a        = assistants.find((x) => x.id === e.assistant_id) as Entry | undefined;
-                const needsRep = e.req_status === "approved" && e.rep_status === "pending";
-                const needsReq = e.req_status === "pending";
+                const a        = assistants.find((x) => x.id === e.assistantId) as Assistant | undefined;
+                const needsRep = e.reqStatus === "approved" && e.repStatus === "pending";
+                const needsReq = e.reqStatus === "pending";
                 return (
                   <tr key={e.id as string} className={`border-b border-border/50 last:border-0 hover:bg-accent/50 ${needsRep ? "bg-amber-950/10" : ""}`}>
                     <td className="px-4 py-3"><div className="flex items-center gap-2"><AssistantAvatar name={a?.name as string} initials={a?.initials as string} color={a?.color as string} size={26} /><span className="text-sm">{a?.name as string}</span></div></td>
                     <td className="px-4 py-3 text-sm">{formatDate(e.date as string)}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{e.start_time} – {e.end_time}</td>
-                    <td className="px-4 py-3"><ReqBadge status={e.req_status as "pending"|"approved"|"rejected"} /></td>
-                    <td className="px-4 py-3"><RepBadge status={e.rep_status as "draft"|"pending"|"approved"|"rejected"} /></td>
+                    <td className="px-4 py-3 font-mono text-xs">{e.startTime} – {e.endTime}</td>
+                    <td className="px-4 py-3"><ReqBadge status={e.reqStatus as "pending"|"approved"|"rejected"} /></td>
+                    <td className="px-4 py-3"><RepBadge status={e.repStatus as "draft"|"pending"|"approved"|"rejected"} /></td>
                     <td className="px-4 py-3">
                       {needsRep && (
                         <div className="flex gap-2">
@@ -213,7 +211,7 @@ function ReportsTab({ entries, assistants, qc }: { entries: Entry[]; assistants:
                         </div>
                       )}
                       {needsReq && <span className="text-xs text-muted-foreground">Awaiting schedule</span>}
-                      {!needsRep && !needsReq && e.rep_status === "approved" && <Badge variant="success">✓ Done</Badge>}
+                      {!needsRep && !needsReq && e.repStatus === "approved" && <Badge variant="success">✓ Done</Badge>}
                     </td>
                   </tr>
                 );
@@ -261,7 +259,7 @@ function BlockedTab({ blocked, qc }: { blocked: Blocked[]; qc: ReturnType<typeof
               {blocked.sort((a, b) => (a.date as string).localeCompare(b.date as string)).map((b) => (
                 <tr key={b.id as string} className="border-b border-border/50 last:border-0 hover:bg-accent/50">
                   <td className="px-4 py-3">{formatDate(b.date as string)}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{b.start_time} – {b.end_time}</td>
+                  <td className="px-4 py-3 font-mono text-xs">{b.startTime} – {b.endTime}</td>
                   <td className="px-4 py-3 text-muted-foreground text-sm">{b.reason || <em>No reason</em>}</td>
                   <td className="px-4 py-3"><Button size="sm" variant="ghost" onClick={() => del.mutate(b.id as string)}>↩ Unblock</Button></td>
                 </tr>

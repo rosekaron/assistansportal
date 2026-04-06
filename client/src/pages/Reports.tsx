@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { entriesApi, assistantsApi, profileApi, pdfApi, costsApi } from "@/lib/api";
+import { entriesApi, assistantsApi, profileApi, pdfApi, costsApi, ratesApi } from "@/lib/api";
+import type { Entry, Assistant } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/inputs";
@@ -9,9 +10,6 @@ import { activityById } from "@/lib/activities";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { FileDown, ChevronLeft, ChevronRight, CheckCircle2, Clock, FileText, AlertCircle, Plus, Trash2 } from "lucide-react";
-
-// FK schablonbelopp 2026 — update annually or make configurable in Settings
-const FK_HOURLY_RATE = 334; // SEK per approved assistance hour
 
 type Cost = {
   id: string;
@@ -40,11 +38,6 @@ const COST_COLORS: Record<string, string> = {
   other:        "bg-slate-50 text-slate-600 border-slate-200",
 };
 
-const EMPLOYER_TAX_RATE = 0.3142; // arbetsgivaravgifter rate
-
-type Entry     = Record<string, string | number | null | undefined>;
-type Assistant = Record<string, string | number | null | undefined>;
-
 const MONTHS = [
   "January","February","March","April","May","June",
   "July","August","September","October","November","December"
@@ -71,6 +64,15 @@ export default function ReportsPage() {
   });
 
   const monthKey = `${year}-${pad(month + 1)}`;
+
+  const { data: rates, isError: ratesError } = useQuery({
+    queryKey: ["rates"],
+    queryFn:  () => ratesApi.get().then((r) => r.data),
+    staleTime: 5 * 60 * 1000, // 5 minutes — rates change rarely
+  });
+
+  const fkHourlyRate    = rates?.fkHourlyRate    ?? 334;
+  const employerTaxRate = rates?.employerTaxRate  ?? 0.3142;
 
   // ── Costs ─────────────────────────────────────────────────────
   const [showAddCost, setShowAddCost] = useState(false);
@@ -121,9 +123,9 @@ export default function ReportsPage() {
   const approveAll = useMutation({
     mutationFn: async (assistantId: string) => {
       const toApprove = (entries as Entry[]).filter(e =>
-        (e.assistantId ?? e.assistant_id) === assistantId &&
-        (e.reqStatus ?? e.req_status) === "approved" &&
-        (e.repStatus ?? e.rep_status) === "pending"
+        e.assistantId === assistantId &&
+        e.reqStatus === "approved" &&
+        e.repStatus === "pending"
       );
       for (const e of toApprove) {
         await entriesApi.update(e.id as string, { repStatus: "approved" });
@@ -159,15 +161,15 @@ export default function ReportsPage() {
     return (assistants as Assistant[]).map(a => {
       const aid = a.id as string;
       const myEntries = (entries as Entry[]).filter(e =>
-        (e.assistantId ?? e.assistant_id) === aid
+        e.assistantId === aid
       );
-      const scheduled  = myEntries.filter(e => (e.reqStatus ?? e.req_status) !== "rejected");
-      const approved   = myEntries.filter(e => (e.reqStatus ?? e.req_status) === "approved");
+      const scheduled  = myEntries.filter(e => e.reqStatus !== "rejected");
+      const approved   = myEntries.filter(e => e.reqStatus === "approved");
       const repPending = myEntries.filter(e =>
-        (e.reqStatus ?? e.req_status) === "approved" &&
-        (e.repStatus ?? e.rep_status) === "pending"
+        e.reqStatus === "approved" &&
+        e.repStatus === "pending"
       );
-      const repApproved = myEntries.filter(e => (e.repStatus ?? e.rep_status) === "approved");
+      const repApproved = myEntries.filter(e => e.repStatus === "approved");
 
       const totalHours    = scheduled.reduce((s, e) => s + ((e.hours as number) ?? 0), 0);
       const approvedHours = approved.reduce((s, e) => s + ((e.hours as number) ?? 0), 0);
@@ -179,8 +181,8 @@ export default function ReportsPage() {
 
   const filteredEntries = useMemo(() => {
     return (entries as Entry[])
-      .filter(e => selectedAssistant === "all" || (e.assistantId ?? e.assistant_id) === selectedAssistant)
-      .filter(e => (e.reqStatus ?? e.req_status) === "approved")
+      .filter(e => selectedAssistant === "all" || e.assistantId === selectedAssistant)
+      .filter(e => e.reqStatus === "approved")
       .sort((a, b) => (a.date as string).localeCompare(b.date as string));
   }, [entries, selectedAssistant]);
 
@@ -188,8 +190,8 @@ export default function ReportsPage() {
   // FK 3057 can only be generated when all reports for the month are approved
   // (hours on 3057 must match sum of all 3059s — FK will reject mismatches)
   const monthPendingCount = (entries as Entry[]).filter(e =>
-    (e.reqStatus ?? e.req_status) === "approved" &&
-    (e.repStatus ?? e.rep_status) === "pending"
+    e.reqStatus === "approved" &&
+    e.repStatus === "pending"
   ).length;
 
   // ── Cost calculations ──────────────────────────────────────────
@@ -200,13 +202,13 @@ export default function ReportsPage() {
   })).filter(x => x.total > 0);
   // FK reimbursement = approved hours × schablonbelopp
   const approvedHoursThisMonth = (entries as Entry[])
-    .filter(e => (e.reqStatus ?? e.req_status) === "approved")
+    .filter(e => e.reqStatus === "approved")
     .reduce((s, e) => s + ((e.hours as number) ?? 0), 0);
-  const fkReimbursement  = approvedHoursThisMonth * FK_HOURLY_RATE;
+  const fkReimbursement  = approvedHoursThisMonth * fkHourlyRate;
   const costBalance      = fkReimbursement - totalCosts;
   // Employer tax hint when wages are being entered
   const wageHint = costForm.category === "wages" && Number(costForm.amountSek) > 0
-    ? Math.round(Number(costForm.amountSek) * EMPLOYER_TAX_RATE)
+    ? Math.round(Number(costForm.amountSek) * employerTaxRate)
     : 0;
 
   const statusColor = (s: string) => ({
@@ -247,11 +249,17 @@ export default function ReportsPage() {
         }
       />
 
+      {ratesError && (
+        <p className="text-sm text-muted-foreground mb-4">
+          Unable to load rate configuration. Default rates are being used.
+        </p>
+      )}
+
       {/* ── Cross-month pending alert ── */}
       {(() => {
         const allPending = (allEntries as Entry[]).filter(e =>
-          (e.reqStatus ?? e.req_status) === "approved" &&
-          (e.repStatus ?? e.rep_status) === "pending"
+          e.reqStatus === "approved" &&
+          e.repStatus === "pending"
         );
         const otherMonthPending = allPending.filter(e => {
           const d = (e.date as string ?? "").slice(0, 7);
@@ -455,7 +463,7 @@ export default function ReportsPage() {
                   <span className="text-xs text-purple-700">
                     <strong>Tip:</strong> don't forget arbetsgivaravgifter — approx.{" "}
                     <strong>{wageHint.toLocaleString("sv-SE")} kr</strong>{" "}
-                    ({(EMPLOYER_TAX_RATE * 100).toFixed(1)}% of wages). Add it as a separate "Employer tax" entry.
+                    ({(employerTaxRate * 100).toFixed(1)}% of wages). Add it as a separate "Employer tax" entry.
                   </span>
                 </div>
               )}
@@ -539,7 +547,7 @@ export default function ReportsPage() {
               <div>
                 <p className="text-sm font-medium text-foreground">FK reimbursement</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {approvedHoursThisMonth}h approved × {FK_HOURLY_RATE} kr schablonbelopp
+                  {approvedHoursThisMonth}h approved × {fkHourlyRate} kr schablonbelopp
                 </p>
               </div>
               <span className="font-mono font-semibold text-sm whitespace-nowrap">
@@ -639,9 +647,9 @@ export default function ReportsPage() {
                 </thead>
                 <tbody>
                   {filteredEntries.map(e => {
-                    const a       = (assistants as Assistant[]).find(x => x.id === (e.assistantId ?? e.assistant_id));
-                    const repSt   = (e.repStatus ?? e.rep_status) as string;
-                    const entType = (e.entryType ?? e.entry_type) as string;
+                    const a       = (assistants as Assistant[]).find(x => x.id === e.assistantId);
+                    const repSt   = e.repStatus as string;
+                    const entType = e.entryType as string;
                     const isPending  = repSt === "pending";
                     const isApproved = repSt === "approved";
                     const isDraft    = repSt === "draft";
@@ -663,14 +671,14 @@ export default function ReportsPage() {
                         </td>
                         <td className="px-4 py-3 text-sm">{formatDate(e.date as string)}</td>
                         <td className="px-4 py-3 font-mono text-xs text-foreground">
-                          {(e.startTime ?? e.start_time) as string} – {(e.endTime ?? e.end_time) as string}
+                          {e.startTime as string} – {e.endTime as string}
                         </td>
                         <td className="px-4 py-3">
-                          <ActivityPill activityId={(e.activityId ?? e.activity_id) as string} />
+                          <ActivityPill activityId={e.activityId as string} />
                         </td>
                         <td className="px-4 py-3">
                           <select
-                            value={(e.entryType ?? e.entry_type ?? "active") as string}
+                            value={(e.entryType ?? "active") as string}
                             onChange={(ev) => setEntryType.mutate({ id: e.id as string, entryType: ev.target.value })}
                             className="text-xs bg-secondary border border-border rounded px-1.5 py-1 text-foreground cursor-pointer"
                           >
@@ -717,7 +725,7 @@ export default function ReportsPage() {
                     <td colSpan={5} className="px-4 py-3 text-sm font-semibold text-foreground">Total</td>
                     <td className="px-4 py-3 font-mono text-base font-bold text-primary">{totalApprovedHours}h</td>
                     <td colSpan={2} className="px-4 py-3 text-xs text-muted-foreground">
-                      {filteredEntries.filter(e => (e.repStatus ?? e.rep_status) === "approved").reduce((s,e) => s + ((e.hours as number) ?? 0), 0)}h approved for FK invoice
+                      {filteredEntries.filter(e => e.repStatus === "approved").reduce((s,e) => s + ((e.hours as number) ?? 0), 0)}h approved for FK invoice
                     </td>
                   </tr>
                 </tfoot>

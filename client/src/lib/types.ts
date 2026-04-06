@@ -38,6 +38,7 @@ export interface Blocked {
 export interface Assistant {
   id:             string;
   name:           string;
+  initials:       string | null;
   color:          string | null;
   personnummer:   string | null;
   email:          string | null;
