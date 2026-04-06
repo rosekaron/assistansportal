@@ -8,7 +8,7 @@ import { Input, Label, Badge } from "@/components/ui/inputs";
 import {
   Select, SelectTrigger, SelectContent, SelectItem, SelectValue,
 } from "@/components/ui/controls";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageHeader, AssistantAvatar, SectionLabel, EmptyState } from "@/components/shared";
 import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -84,7 +84,7 @@ function AssistantBalanceCards({
             />
             {assistant.name}
           </CardTitle>
-          <CardDescription>VAB-saldo {year}</CardDescription>
+          <CardDescription>VAB kvar {year}</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -161,6 +161,7 @@ export default function LeaveAbsencePage() {
 
   // Inline delete confirm
   const [confirmDeleteId,  setConfirmDeleteId]   = useState<string | null>(null);
+  const [deleteError,      setDeleteError]        = useState("");
 
   // Filters
   const [filterAssistant, setFilterAssistant]   = useState("");
@@ -168,7 +169,7 @@ export default function LeaveAbsencePage() {
   const [filterMonth,     setFilterMonth]        = useState("");
 
   // Data
-  const { data: absenceList = [] } = useQuery<Absence[]>({
+  const { data: absenceList = [], isError: absenceListError } = useQuery<Absence[]>({
     queryKey: ["absences"],
     queryFn:  () => absenceApi.list().then((r) => r.data),
   });
@@ -207,6 +208,10 @@ export default function LeaveAbsencePage() {
         qc.invalidateQueries({ queryKey: ["absences", "balance", a.id] })
       );
       setConfirmDeleteId(null);
+      setDeleteError("");
+    },
+    onError: () => {
+      setDeleteError("Kunde inte radera. Försök igen.");
     },
   });
 
@@ -362,7 +367,11 @@ export default function LeaveAbsencePage() {
       {/* Absence table */}
       <Card>
         <CardContent className="pt-5 p-0 overflow-hidden">
-          {filtered.length === 0 ? (
+          {absenceListError ? (
+            <div className="px-4 py-3 text-sm text-destructive">
+              Kunde inte hämta frånvaro. Kontrollera anslutningen och ladda om sidan.
+            </div>
+          ) : filtered.length === 0 ? (
             <EmptyState
               message={
                 absenceList.length === 0
@@ -377,7 +386,7 @@ export default function LeaveAbsencePage() {
                   {["Assistent", "Period", "Antal dagar", "Typ", "Registrerad", "Åtgärder"].map((h) => (
                     <th
                       key={h}
-                      className="text-left text-[11px] uppercase tracking-wide text-muted-foreground px-4 py-3 font-medium"
+                      className="text-left text-[11px] uppercase tracking-wide text-muted-foreground px-4 py-3 font-semibold"
                     >
                       {h}
                     </th>
@@ -402,7 +411,7 @@ export default function LeaveAbsencePage() {
                               color={asst.color}
                               size={24}
                             />
-                            <span className="font-medium text-foreground">{asst.name}</span>
+                            <span className="text-foreground">{asst.name}</span>
                           </div>
                         ) : (
                           <span className="text-muted-foreground">Alla assistenter</span>
@@ -423,6 +432,7 @@ export default function LeaveAbsencePage() {
                       <td className="px-4 py-2" style={{ width: 48 }}>
                         {isConfirming ? (
                           <div className="flex items-center gap-2 whitespace-nowrap">
+                            {deleteError && <span className="text-xs text-destructive">{deleteError}</span>}
                             <span className="text-xs text-foreground">Bekräfta radering?</span>
                             <Button
                               size="sm"
@@ -466,6 +476,9 @@ export default function LeaveAbsencePage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Registrera frånvaro</DialogTitle>
+            <DialogDescription>
+              Välj assistent, typ av frånvaro och period.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">

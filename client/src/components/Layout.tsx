@@ -29,7 +29,7 @@ export default function Layout() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "hsl(210 20% 97%)" }}>
+    <div className="flex h-screen overflow-hidden bg-background">
 
       {/* Sidebar — warm white with soft border */}
       <aside className="w-60 shrink-0 flex flex-col border-r border-border bg-white shadow-sm">
@@ -37,7 +37,7 @@ export default function Layout() {
         {/* Logo */}
         <div className="px-6 pt-7 pb-6">
           <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "hsl(201 70% 42%)" }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                 <circle cx="9" cy="7" r="4"/>
@@ -64,11 +64,10 @@ export default function Layout() {
                 cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
                   isActive
-                    ? "text-white shadow-sm"
+                    ? "bg-primary text-white shadow-sm"
                     : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 )
               }
-              style={({ isActive }) => isActive ? { background: "hsl(201 70% 42%)" } : {}}
             >
               <Icon className="w-4.5 h-4.5 shrink-0" style={{ width: 18, height: 18 }} />
               {label}
@@ -81,7 +80,7 @@ export default function Layout() {
           {profile?.weeklyHours && (
             <div className="bg-blue-50 rounded-xl px-3 py-2.5">
               <p className="text-xs text-muted-foreground">Weekly hours (FK)</p>
-              <p className="text-lg font-bold mt-0.5" style={{ color: "hsl(201 70% 38%)" }}>
+              <p className="text-lg font-bold mt-0.5 text-primary">
                 {profile.weeklyHours}h
                 <span className="text-xs font-normal text-muted-foreground"> / week</span>
               </p>
@@ -98,7 +97,7 @@ export default function Layout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto" style={{ background: "hsl(210 20% 97%)" }}>
+      <main className="flex-1 overflow-y-auto bg-background">
         <div className="max-w-5xl mx-auto px-8 py-8">
           <Outlet />
         </div>

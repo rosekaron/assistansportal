@@ -124,7 +124,7 @@ export function PageHeader({
 // ── Section label ─────────────────────────────────────────────
 export function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+    <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-3">
       {children}
     </p>
   );
