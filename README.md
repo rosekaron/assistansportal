@@ -1,8 +1,52 @@
 # Assistansportal
 
-Personal assistance hours management for Swedish FK assistansersättning.
+Assistansportal
+Care management platform for personal assistance — Nordics & Europe
 
-Manage scheduling, assistants, hour reporting, and generate FK 3057 PDF forms — all locally on your Mac.
+Problem
+In Sweden alone, over 17,000 people receive state-funded personal assistance under LSS. Thousands more self-arrange care outside the public system. The families, individuals, and small care companies managing this assistance spend hours every week on manual administration: tracking hours in Excel, filing reports to Försäkringskassan, managing payroll and Skatteverket forms using tools never designed for this purpose.
+The result: administrative burden falls on the people least equipped to carry it — caregivers and care recipients — while small operators risk compliance failures, delayed reimbursements, and staff frustration.
+No modern, purpose-built solution exists for this market.
+
+Solution
+Assistansportal is a care management platform that digitizes and automates the core administrative workflows of personal assistance management.
+MVP (launching Q3 2025):
+
+Digital assistance hour logging
+Automated Försäkringskassan form generation
+Automated Skatteverket and payroll form generation
+
+Roadmap:
+
+B2B features for care companies: staff scheduling, multi-client management, compliance reporting
+European expansion: adapting the compliance layer to German, Dutch, and broader EU regulatory frameworks
+API integrations with payroll providers and public sector systems
+
+
+Market
+SegmentSizeSweden TAM~€150M annually
+Nordic TAM~€400M annually
+Europe TAM€2B+ annually
+The personal assistance market is publicly funded, highly regulated, and structurally resistant to disruption from generic software. Compliance requirements create deep switching costs and strong retention once adopted.
+
+Traction
+
+Beta cohort recruited pre-launch: families self-managing personal assistance who have committed to test the platform
+Founder has firsthand operational experience navigating the Swedish personal assistance system as a caregiver
+MVP in active development
+
+
+Business Model
+SaaS. Tiered pricing:
+
+Consumer: Individual families and self-arrangers — low monthly fee
+SMB: Small care companies — per-seat or per-client pricing
+Enterprise: Larger care operators — custom contracts
+
+High retention expected due to regulatory dependency and data lock-in.
+
+Why Now
+Sweden is accelerating digitization of public welfare administration. Försäkringskassan and Skatteverket are pushing toward digital-first reporting. Care companies face increasing compliance pressure. The window to establish a dominant platform before larger players enter is open — but not indefinitely.
 
 ---
 
