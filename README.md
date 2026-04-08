@@ -6,6 +6,7 @@
 ## Learn from my mistakes
 
 [rose.karon.se/blog](https://rose.karon.se/blog/) 
+
 MAJK, this is for you. Thank you for helping me understand my strength and resilience. 
 
 ===
