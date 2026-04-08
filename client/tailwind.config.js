@@ -1,9 +1,16 @@
 import tailwindAnimate from "tailwindcss-animate";
+import { fileURLToPath } from "url";
+import path from "path";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('tailwindcss').Config} */
 export default {
   // No darkMode — we use a light, accessible theme
-  content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  content: [
+    path.resolve(__dirname, "index.html"),
+    path.resolve(__dirname, "src/**/*.{ts,tsx}"),
+  ],
   theme: {
     extend: {
       colors: {
