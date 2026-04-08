@@ -192,14 +192,14 @@ export default function SettingsPage() {
                 <p className="text-sm font-semibold">Google Calendar</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {gcal.connected
-                    ? <span>Connected as <span className="text-blue-400">{gcal.email}</span></span>
+                    ? <span>Connected as <span className="text-primary">{gcal.email}</span></span>
                     : "Sync schedules with Google Calendar"}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               {gcal.connected && (
-                <span className="text-xs bg-emerald-950 text-emerald-400 border border-emerald-900 rounded-full px-2 py-0.5">● Connected</span>
+                <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2 py-0.5">● Connected</span>
               )}
               {gcal.connected ? (
                 <Button variant="ghost" size="sm" onClick={disconnect}>Disconnect</Button>
@@ -253,7 +253,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="flex justify-end gap-2">
-                {gcalSaved && <span className="text-xs text-emerald-400 self-center">✓ Saved</span>}
+                {gcalSaved && <span className="text-xs text-emerald-600 self-center">✓ Saved</span>}
                 <Button size="sm" variant="outline" onClick={() => saveGcal.mutate()}>Save calendar settings</Button>
               </div>
             </div>
@@ -363,7 +363,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="flex items-center justify-end gap-3 mt-5">
-        {saved && <span className="text-xs text-emerald-400">✓ Saved</span>}
+        {saved && <span className="text-xs text-emerald-600">✓ Saved</span>}
         <Button onClick={() => saveProfile.mutate()} disabled={saveProfile.isPending}>
           {saveProfile.isPending ? "Saving…" : "Save changes"}
         </Button>

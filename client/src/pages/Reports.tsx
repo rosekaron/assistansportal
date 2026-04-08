@@ -288,7 +288,7 @@ export default function ReportsPage() {
 
       {/* ── Per-assistant summary cards ── */}
       {summaries.length === 0 ? (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-700">
+        <div className="mb-6 bg-primary/10 border border-primary/20 rounded-xl px-4 py-3 text-sm text-primary">
           No shifts found for {MONTHS[month]} {year}. Navigate to a month with data using the arrows above.
         </div>
       ) : (
@@ -491,9 +491,9 @@ export default function ReportsPage() {
             <CardContent className="p-0">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border bg-secondary/30">
+                  <tr className="border-b border-border bg-muted/30">
                     {["Category","Assistant","Description","Amount (SEK)",""].map(h => (
-                      <th key={h} className="text-left text-xs font-medium uppercase tracking-wide text-muted-foreground px-4 py-3">{h}</th>
+                      <th key={h} className="text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground px-4 py-3">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -639,9 +639,9 @@ export default function ReportsPage() {
             <CardContent className="p-0">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border bg-secondary/30">
+                  <tr className="border-b border-border bg-muted/30">
                     {["Assistant","Date","Time","Activity","Type","Hours","Report status","Action"].map(h => (
-                      <th key={h} className="text-left text-xs font-medium uppercase tracking-wide text-muted-foreground px-4 py-3">{h}</th>
+                      <th key={h} className="text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground px-4 py-3">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -734,9 +734,9 @@ export default function ReportsPage() {
           </Card>
 
           {/* FK instructions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800 space-y-1">
-            <p className="font-semibold flex items-center gap-2"><FileText className="w-4 h-4" />How to submit FK 3057</p>
-            <ol className="list-decimal list-inside space-y-1 text-blue-700 text-xs mt-2">
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 text-sm text-foreground space-y-1">
+            <p className="font-semibold flex items-center gap-2 text-primary"><FileText className="w-4 h-4" />How to submit FK 3057</p>
+            <ol className="list-decimal list-inside space-y-1 text-muted-foreground text-xs mt-2">
               <li>Review and approve all pending reports above</li>
               <li>Click <strong>Download FK 3057</strong> to generate the pre-filled PDF</li>
               <li>Sign the PDF (digital signature or print and sign)</li>

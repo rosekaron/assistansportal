@@ -136,7 +136,7 @@ export default function AssistantsPage() {
               <p className="text-xs text-muted-foreground mt-0.5">{weekly}h/week granted by FK</p>
             </div>
             <div className="text-right">
-              <p className={cn("font-mono text-lg font-bold", pool < 0 ? "text-destructive" : pool === 0 ? "text-emerald-400" : "text-blue-400")}>
+              <p className={cn("font-mono text-lg font-bold", pool < 0 ? "text-destructive" : pool === 0 ? "text-emerald-600" : "text-primary")}>
                 {totalMin}h <span className="text-sm text-muted-foreground font-normal">/ {weekly}h</span>
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -146,7 +146,7 @@ export default function AssistantsPage() {
           </div>
           <div className="h-2 bg-secondary rounded-full overflow-hidden mb-3">
             <div
-              className={cn("h-full rounded-full transition-all", pool < 0 ? "bg-destructive" : pool === 0 ? "bg-emerald-500" : "bg-blue-500")}
+              className={cn("h-full rounded-full transition-all", pool < 0 ? "bg-destructive" : pool === 0 ? "bg-emerald-500" : "bg-primary")}
               style={{ width: `${Math.min(100, (totalMin / weekly) * 100)}%` }}
             />
           </div>
@@ -190,7 +190,7 @@ export default function AssistantsPage() {
                 <div className="border-t border-border pt-3 space-y-1.5">
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Min hours/week</span>
-                    <span className="font-mono font-semibold text-blue-400">{a.minWeeklyHours}h{a.isFlexible ? " +flex" : ""}</span>
+                    <span className="font-mono font-semibold text-primary">{a.minWeeklyHours}h{a.isFlexible ? " +flex" : ""}</span>
                   </div>
                   {(a.pno as string) && (
                     <div className="flex justify-between text-xs">
@@ -257,8 +257,8 @@ export default function AssistantsPage() {
       )}
 
       {/* How invitations work */}
-      <div className="bg-blue-950/30 border border-blue-900/50 rounded-xl p-4">
-        <p className="text-xs font-semibold text-blue-400 mb-2">How invitations work</p>
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+        <p className="text-xs font-semibold text-primary mb-2 uppercase tracking-wide">How invitations work</p>
         <div className="grid grid-cols-4 gap-3">
           {[
             { n: "1", t: "Enter details", s: "Name, email, hours" },
@@ -267,10 +267,10 @@ export default function AssistantsPage() {
             { n: "4", t: "They can self-book", s: "And submit reports" },
           ].map((s) => (
             <div key={s.n} className="flex gap-2">
-              <div className="w-5 h-5 rounded-full bg-blue-900 text-blue-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{s.n}</div>
+              <div className="w-5 h-5 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{s.n}</div>
               <div>
-                <p className="text-xs text-blue-300 font-medium">{s.t}</p>
-                <p className="text-[11px] text-blue-500 mt-0.5">{s.s}</p>
+                <p className="text-xs text-foreground font-medium">{s.t}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{s.s}</p>
               </div>
             </div>
           ))}
@@ -284,7 +284,7 @@ export default function AssistantsPage() {
           {inviteSent ? (
             <div className="text-center py-6 space-y-2">
               <div className="text-4xl">✉️</div>
-              <p className="font-semibold text-emerald-400">Verification email sent!</p>
+              <p className="font-semibold text-emerald-600">Verification email sent!</p>
               <p className="text-sm text-muted-foreground">{inviteForm.name} will receive an email to verify their identity and create their account.</p>
             </div>
           ) : (

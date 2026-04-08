@@ -295,7 +295,7 @@ export default function CalendarPage() {
 
       {/* ── Step 1: Connect calendar ── */}
       {!gcalConnected && (
-        <Card className="mb-6 border-2 border-primary/20 bg-blue-50/50">
+        <Card className="mb-6 border-2 border-primary/20 bg-primary/5">
           <CardContent className="pt-5">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-xl bg-white border border-border flex items-center justify-center shadow-sm shrink-0">
@@ -385,9 +385,9 @@ export default function CalendarPage() {
                     return (
                       <th key={date} className={cn(
                         "px-1 py-2 text-center border-b border-border",
-                        isToday ? "bg-blue-50" : "bg-white"
+                        isToday ? "bg-primary/10" : "bg-white"
                       )}>
-                        <div className={cn("text-xs font-medium", isToday ? "text-primary" : "text-muted-foreground")}>
+                        <div className={cn("text-xs font-semibold uppercase tracking-wide", isToday ? "text-primary" : "text-muted-foreground")}>
                           {DAY_NAMES[i]}
                         </div>
                         <div className={cn(
@@ -414,7 +414,7 @@ export default function CalendarPage() {
                       const blockHere = blockedAt(date, hour);
                       const dayEntries = entryAt(date, hour);
 
-                      let cellClass = "bg-white hover:bg-blue-50 cursor-pointer";
+                      let cellClass = "bg-white hover:bg-primary/5 cursor-pointer";
                       let cellContent = null;
 
                       if (blockHere) {
@@ -463,7 +463,7 @@ export default function CalendarPage() {
                           className={cn(
                             "border-b border-r border-border align-top transition-colors",
                             cellClass,
-                            isToday && !blockHere && dayEntries.length === 0 ? "bg-blue-50/30" : "",
+                            isToday && !blockHere && dayEntries.length === 0 ? "bg-primary/5" : "",
                           )}
                           style={{ height: 36, minWidth: 80 }}
                         >
@@ -483,7 +483,7 @@ export default function CalendarPage() {
       <div className="grid grid-cols-3 gap-3 mt-4">
         {[
           { label: "Confirmed shifts", value: (entries as Entry[]).filter(e => weekDates.includes(e.date as string) && (e.reqStatus ?? e.req_status) === "approved").length, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200" },
-          { label: "Reports pending", value: (entries as Entry[]).filter(e => weekDates.includes(e.date as string) && (e.repStatus ?? e.rep_status) === "pending").length, color: "text-blue-600", bg: "bg-blue-50 border-blue-200" },
+          { label: "Reports pending", value: (entries as Entry[]).filter(e => weekDates.includes(e.date as string) && (e.repStatus ?? e.rep_status) === "pending").length, color: "text-primary", bg: "bg-primary/10 border-primary/20" },
           { label: "Blocked periods", value: (blocked as Blocked[]).filter(b => weekDates.includes(b.date as string)).length, color: "text-red-600", bg: "bg-red-50 border-red-200" },
         ].map(k => (
           <div key={k.label} className={cn("rounded-xl border px-4 py-3", k.bg)}>
