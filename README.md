@@ -1,5 +1,14 @@
 # Assistansportal
 
+
+**Note:** This is a passion project driven by solving a personal need and a drive to solve this for people who feel the same pain. I am learning how to leverage AI across to create the product I've been burning to build, making mistakes and having fun as I go. 
+
+## Learn from my mistakes
+
+[rose.karon.se/blog](https://rose.karon.se/blog/)
+
+MAJK, this is for you. Thank you for helping me understand my strength and resilience. 
+
 Assistansportal
 Care management platform for personal assistance — Nordics & Europe
 
