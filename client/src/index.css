@@ -7,41 +7,41 @@
     /* ── Light theme — calm, warm, accessible ── */
 
     /* Backgrounds */
-    --background:        0 0% 97%;        /* warm off-white, never harsh white */
-    --foreground:        220 15% 20%;     /* dark slate, easier than pure black */
+    --background:        210 20% 98%;     /* very slightly cooler off-white */
+    --foreground:        220 20% 16%;     /* slightly deeper slate for contrast */
 
     /* Cards */
     --card:              0 0% 100%;       /* clean white cards */
-    --card-foreground:   220 15% 20%;
+    --card-foreground:   220 20% 16%;
 
     /* Popovers */
     --popover:           0 0% 100%;
-    --popover-foreground: 220 15% 20%;
+    --popover-foreground: 220 20% 16%;
 
-    /* Primary — calm teal-blue, trustworthy, Swedish healthcare feel */
-    --primary:           201 70% 42%;     /* #1a8fb0 — calm mid blue */
+    /* Primary — deeper authority blue for B2B trust (#1254a4 range) */
+    --primary:           213 62% 36%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary — soft warm grey */
-    --secondary:         210 20% 93%;     /* very light blue-grey */
-    --secondary-foreground: 220 15% 35%;
+    /* Secondary — cooler light grey, cleaner for B2B */
+    --secondary:         215 25% 91%;
+    --secondary-foreground: 220 20% 32%;
 
-    /* Muted — subtle backgrounds */
-    --muted:             210 20% 95%;
-    --muted-foreground:  220 10% 50%;     /* readable mid-grey */
+    /* Muted — slightly cooler/cleaner */
+    --muted:             215 20% 94%;
+    --muted-foreground:  220 12% 46%;
 
-    /* Accent */
-    --accent:            210 20% 93%;
-    --accent-foreground: 220 15% 25%;
+    /* Accent — aligned with secondary */
+    --accent:            215 25% 91%;
+    --accent-foreground: 220 20% 22%;
 
     /* Status */
     --destructive:       0 65% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders — gentle, not harsh */
-    --border:            210 20% 88%;
-    --input:             210 20% 88%;
-    --ring:              201 70% 42%;
+    /* Borders — slightly cooler for B2B crispness */
+    --border:            215 20% 86%;
+    --input:             215 20% 86%;
+    --ring:              213 62% 36%;     /* matches new primary */
 
     --radius: 0.75rem;
   }
