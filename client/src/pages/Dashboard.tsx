@@ -101,7 +101,7 @@ export default function Dashboard() {
             <p className="text-xs text-blue-600 mt-0.5">Add care details, FK decision number, and assistants to unlock all features</p>
           </div>
           <a href="/setup">
-            <button className="text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 transition-colors whitespace-nowrap font-medium shadow-sm">
+            <button className="text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-1.5 transition-colors whitespace-nowrap font-medium shadow-sm">
               Complete setup →
             </button>
           </a>
@@ -118,7 +118,7 @@ export default function Dashboard() {
         <CardContent className="pt-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm font-semibold">This week's coverage</p>
+              <p className="text-base font-semibold">This week's coverage</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {scheduledHours}h scheduled · {weekly}h granted by FK
               </p>
@@ -142,9 +142,10 @@ export default function Dashboard() {
                   className={cn(
                     "rounded-xl p-2.5 text-center border transition-all",
                     isToday
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-secondary/30",
-                    isEmpty && !isToday ? "opacity-50" : ""
+                      ? "border-primary/40 bg-primary/8 ring-1 ring-primary/20"
+                      : isEmpty
+                        ? "border-border bg-secondary/20 opacity-50"
+                        : "border-border bg-secondary/20 hover:bg-secondary/40 transition-colors",
                   )}
                 >
                   <p className={cn(
@@ -193,7 +194,7 @@ export default function Dashboard() {
 
           {/* Hours fill bar */}
           <div className="space-y-1.5">
-            <div className="h-2 bg-secondary rounded-full overflow-hidden">
+            <div className="h-2.5 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-blue-500 rounded-full transition-all"
                 style={{ width: `${Math.min(100, (scheduledHours / weekly) * 100)}%` }}
@@ -285,7 +286,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            <p className="text-3xl font-mono font-bold text-blue-400 mb-1 mt-2">
+            <p className="text-3xl font-mono font-bold text-primary mb-1 mt-2">
               {invoiceHours}h
               <span className="text-xs font-normal text-muted-foreground ml-1">approved for FK</span>
             </p>
@@ -342,7 +343,7 @@ export default function Dashboard() {
                   .filter(e => e.assistantId === a.id && e.reqStatus !== "rejected")
                   .reduce((s, e) => s + ((e.hours as number) ?? 0), 0);
                 return (
-                  <div key={a.id as string} className="flex items-center gap-2.5">
+                  <div key={a.id as string} className="flex items-center gap-2.5 hover:bg-muted/50 rounded-lg px-2 py-1.5 transition-colors -mx-2">
                     <AssistantAvatar
                       name={a.name     as string}
                       initials={a.initials  as string}
