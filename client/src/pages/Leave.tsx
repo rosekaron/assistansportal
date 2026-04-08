@@ -75,7 +75,7 @@ function AssistantBalanceCards({
       {/* VAB balance card */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="font-semibold text-sm flex items-center gap-2">
+          <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
             <AssistantAvatar
               name={assistant.name}
               initials={assistant.initials as string | undefined}
@@ -86,16 +86,16 @@ function AssistantBalanceCards({
           </CardTitle>
           <CardDescription>VAB kvar {year}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           {isLoading ? (
-            <p className="text-3xl font-semibold text-muted-foreground">--</p>
+            <p className="text-2xl font-bold text-muted-foreground">--</p>
           ) : (
             <>
-              <p className={cn("text-3xl font-semibold", vabColor(vabRemaining))}>
+              <p className={cn("text-2xl font-bold", vabColor(vabRemaining))}>
                 {vabRemaining}
               </p>
-              <p className="text-sm text-muted-foreground mt-1">dagar kvar av 120</p>
-              <div className="mt-3 h-1 w-full bg-secondary rounded-full overflow-hidden">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-1">dagar kvar av 120</p>
+              <div className="mt-3 h-1.5 w-full bg-muted rounded-full overflow-hidden">
                 <div
                   className="h-full bg-primary rounded-full"
                   style={{ width: `${pct}%` }}
@@ -109,7 +109,7 @@ function AssistantBalanceCards({
       {/* Sick YTD card */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="font-semibold text-sm flex items-center gap-2">
+          <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
             <AssistantAvatar
               name={assistant.name}
               initials={assistant.initials as string | undefined}
@@ -120,13 +120,13 @@ function AssistantBalanceCards({
           </CardTitle>
           <CardDescription>Sjukfrånvaro {year}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           {isLoading ? (
-            <p className="text-3xl font-semibold text-muted-foreground">--</p>
+            <p className="text-2xl font-bold text-muted-foreground">--</p>
           ) : (
             <>
-              <p className="text-3xl font-semibold text-foreground">{sickDays}</p>
-              <p className="text-sm text-muted-foreground mt-1">dagar registrerade</p>
+              <p className="text-2xl font-bold text-foreground">{sickDays}</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-1">dagar registrerade</p>
             </>
           )}
         </CardContent>
@@ -285,12 +285,12 @@ export default function LeaveAbsencePage() {
               {assistants.length === 1 && (
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="font-semibold text-sm">Totalt frånvaro</CardTitle>
+                    <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Totalt frånvaro</CardTitle>
                     <CardDescription>{year}</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-semibold text-foreground">{totalAbsencesYear}</p>
-                    <p className="text-sm text-muted-foreground mt-1">poster registrerade</p>
+                  <CardContent className="pt-0">
+                    <p className="text-2xl font-bold text-foreground">{totalAbsencesYear}</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-1">poster registrerade</p>
                   </CardContent>
                 </Card>
               )}
@@ -299,12 +299,12 @@ export default function LeaveAbsencePage() {
             /* Summary for > 3 assistants */
             <Card className="col-span-3">
               <CardHeader className="pb-2">
-                <CardTitle className="font-semibold text-sm">Frånvaro {year}</CardTitle>
+                <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Frånvaro {year}</CardTitle>
                 <CardDescription>Sammandrag för alla assistenter</CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-semibold text-foreground">{totalAbsencesYear}</p>
-                <p className="text-sm text-muted-foreground mt-1">poster registrerade totalt</p>
+              <CardContent className="pt-0">
+                <p className="text-2xl font-bold text-foreground">{totalAbsencesYear}</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-1">poster registrerade totalt</p>
               </CardContent>
             </Card>
           )}
@@ -400,9 +400,9 @@ export default function LeaveAbsencePage() {
                   return (
                     <tr
                       key={absence.id}
-                      className="border-b border-border/50 last:border-0 hover:bg-muted/50"
+                      className="border-b border-border last:border-0 hover:bg-muted/50"
                     >
-                      <td className="px-4 py-2">
+                      <td className="px-4 py-3">
                         {asst ? (
                           <div className="flex items-center gap-2">
                             <AssistantAvatar
@@ -417,19 +417,19 @@ export default function LeaveAbsencePage() {
                           <span className="text-muted-foreground">Alla assistenter</span>
                         )}
                       </td>
-                      <td className="px-4 py-2 text-muted-foreground" style={{ width: 160 }}>
+                      <td className="px-4 py-3 text-muted-foreground" style={{ width: 160 }}>
                         {formatPeriod(absence.startDate, absence.endDate)}
                       </td>
-                      <td className="px-4 py-2 font-mono" style={{ width: 80 }}>
+                      <td className="px-4 py-3 font-mono" style={{ width: 80 }}>
                         {calDays(absence.startDate, absence.endDate)}
                       </td>
-                      <td className="px-4 py-2" style={{ width: 120 }}>
+                      <td className="px-4 py-3" style={{ width: 120 }}>
                         <AbsenceTypeBadge type={absence.absenceType} />
                       </td>
-                      <td className="px-4 py-2 text-muted-foreground text-xs" style={{ width: 120 }}>
+                      <td className="px-4 py-3 text-muted-foreground text-xs" style={{ width: 120 }}>
                         {formatCreated(absence.createdAt)}
                       </td>
-                      <td className="px-4 py-2" style={{ width: 48 }}>
+                      <td className="px-4 py-3" style={{ width: 48 }}>
                         {isConfirming ? (
                           <div className="flex items-center gap-2 whitespace-nowrap">
                             {deleteError && <span className="text-xs text-destructive">{deleteError}</span>}
