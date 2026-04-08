@@ -16,6 +16,16 @@ Digital assistance hour logging
 Automated Försäkringskassan form generation
 Automated Skatteverket and payroll form generation
 
+Full platform:
+
+Care instructions: structured documentation from parents and primary caregivers, accessible to all assistants
+Knowledge base: condition-specific guidance for rare diseases, keeping care teams informed
+Hjälpmedel discovery: helping families find assistive equipment relevant to their specific diagnosis
+Therapy and exercise: logging and tracking rehabilitation, physio, and daily exercise programs
+Activities: planning and recording activities as part of the care plan
+Funding and appeals: helping families discover additional funding sources and navigate LSS decision appeals
+Events: coordinating care-related appointments, reviews, and milestones
+
 Roadmap:
 
 B2B features for care companies: staff scheduling, multi-client management, compliance reporting
@@ -24,9 +34,7 @@ API integrations with payroll providers and public sector systems
 
 
 Market
-SegmentSizeSweden TAM~€150M annually
-Nordic TAM~€400M annually
-Europe TAM€2B+ annually
+SegmentSizeSweden TAM~€150M annuallyNordic TAM~€400M annuallyEurope TAM€2B+ annually
 The personal assistance market is publicly funded, highly regulated, and structurally resistant to disruption from generic software. Compliance requirements create deep switching costs and strong retention once adopted.
 
 Traction
@@ -44,9 +52,6 @@ SMB: Small care companies — per-seat or per-client pricing
 Enterprise: Larger care operators — custom contracts
 
 High retention expected due to regulatory dependency and data lock-in.
-
-Why Now
-Sweden is accelerating digitization of public welfare administration. Försäkringskassan and Skatteverket are pushing toward digital-first reporting. Care companies face increasing compliance pressure. The window to establish a dominant platform before larger players enter is open — but not indefinitely.
 
 ---
 
