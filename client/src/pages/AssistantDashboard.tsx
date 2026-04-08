@@ -58,13 +58,20 @@ export default function AssistantDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-muted/30">
       {/* Header */}
       <header className="border-b border-border bg-card px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-primary" />
+          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
           <div>
-            <p className="text-sm font-semibold">Assistansportal</p>
+            <p className="text-sm font-bold text-foreground">Assistansportal</p>
             {me?.assistant && (
               <p className="text-xs text-muted-foreground">
                 {me.assistant.name} · Assisting {me.patientName}
@@ -74,10 +81,10 @@ export default function AssistantDashboard() {
         </div>
         <div className="flex items-center gap-4">
           {pending.length > 0 && (
-            <span className="text-xs text-amber-400 font-medium">{pending.length} proposals waiting</span>
+            <span className="text-xs text-amber-600 font-medium">{pending.length} proposals waiting</span>
           )}
           {needsReport.length > 0 && (
-            <span className="text-xs text-blue-400 font-medium">{needsReport.length} reports due</span>
+            <span className="text-xs text-primary font-medium">{needsReport.length} reports due</span>
           )}
           <button onClick={() => { logout(); navigate("/login"); }}
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
@@ -104,7 +111,7 @@ export default function AssistantDashboard() {
                 </Button>
               </div>
               <div className="text-right">
-                <p className="font-mono text-xl font-bold text-blue-400">{weekHours.toFixed(1)}h</p>
+                <p className="font-mono text-xl font-bold text-primary">{weekHours.toFixed(1)}h</p>
                 <p className="text-xs text-muted-foreground">this week</p>
               </div>
             </div>
@@ -117,7 +124,7 @@ export default function AssistantDashboard() {
                 return (
                   <div key={date} className={cn(
                     "rounded-lg p-2 text-center space-y-1",
-                    isToday ? "bg-primary/15 ring-1 ring-primary/30" : "bg-secondary/30",
+                    isToday ? "bg-primary/10 ring-1 ring-primary/30" : "bg-white border border-border",
                     dayEntries.length === 0 && "opacity-40"
                   )}>
                     <p className={cn("text-[10px] font-medium uppercase", isToday ? "text-primary" : "text-muted-foreground")}>
@@ -127,10 +134,10 @@ export default function AssistantDashboard() {
                       {new Date(date).getDate()}
                     </p>
                     {dayHours > 0
-                      ? <p className="text-[10px] font-mono text-emerald-400">{dayHours}h</p>
+                      ? <p className="text-[10px] font-mono text-emerald-600">{dayHours}h</p>
                       : <p className="text-[10px] text-muted-foreground">—</p>
                     }
-                    {hasPending && <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mx-auto" />}
+                    {hasPending && <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mx-auto" />}
                   </div>
                 );
               })}
@@ -143,25 +150,25 @@ export default function AssistantDashboard() {
           <div className="grid grid-cols-2 gap-3">
             {pending.length > 0 && (
               <button onClick={() => setTab("proposals")}
-                className="text-left border border-amber-900/50 bg-amber-950/20 rounded-xl p-3.5 hover:border-amber-700/70 transition-colors">
+                className="border border-amber-200 bg-amber-50 rounded-xl p-3.5 hover:bg-amber-100 transition-colors text-left">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-sm font-medium text-amber-300">Shift proposals</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Tap to review</p>
+                    <p className="text-sm font-semibold text-amber-800">Shift proposals</p>
+                    <p className="text-xs text-amber-600 mt-0.5">Tap to review</p>
                   </div>
-                  <span className="font-mono text-sm font-bold text-amber-400 bg-amber-950 border border-amber-900 rounded px-1.5">{pending.length}</span>
+                  <span className="font-mono text-sm font-bold text-amber-700 bg-amber-100 border border-amber-200 rounded px-1.5">{pending.length}</span>
                 </div>
               </button>
             )}
             {needsReport.length > 0 && (
               <button onClick={() => setTab("reports")}
-                className="text-left border border-blue-900/50 bg-blue-950/20 rounded-xl p-3.5 hover:border-blue-700/70 transition-colors">
+                className="border border-primary/20 bg-primary/5 rounded-xl p-3.5 hover:bg-primary/10 transition-colors text-left">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-sm font-medium text-blue-300">Reports due</p>
+                    <p className="text-sm font-semibold text-primary">Reports due</p>
                     <p className="text-xs text-muted-foreground mt-0.5">Submit your hours</p>
                   </div>
-                  <span className="font-mono text-sm font-bold text-blue-400 bg-blue-950 border border-blue-900 rounded px-1.5">{needsReport.length}</span>
+                  <span className="font-mono text-sm font-bold text-primary bg-primary/10 border border-primary/20 rounded px-1.5">{needsReport.length}</span>
                 </div>
               </button>
             )}
@@ -173,7 +180,7 @@ export default function AssistantDashboard() {
           <TabsList className="w-full">
             <TabsTrigger value="upcoming" className="flex-1">Upcoming</TabsTrigger>
             <TabsTrigger value="proposals" className="flex-1">
-              Proposals {pending.length > 0 && <span className="ml-1 text-[10px] bg-amber-900 text-amber-400 rounded-full px-1.5">{pending.length}</span>}
+              Proposals {pending.length > 0 && <span className="ml-1 text-[10px] bg-amber-100 text-amber-700 rounded-full px-1.5">{pending.length}</span>}
             </TabsTrigger>
             <TabsTrigger value="reports" className="flex-1">Reports</TabsTrigger>
             <TabsTrigger value="slots" className="flex-1">Open slots</TabsTrigger>
@@ -189,15 +196,15 @@ export default function AssistantDashboard() {
                     const isToday = e.date === todayStr;
                     const act     = activityById(e.activity_id as string);
                     return (
-                      <Card key={e.id as string} className={isToday ? "ring-1 ring-primary/40" : ""}>
+                      <Card key={e.id as string} className={isToday ? "ring-1 ring-primary/30" : ""}>
                         <CardContent className="py-4">
                           <div className="flex items-start justify-between">
                             <div className="space-y-1.5">
                               <div className="flex items-center gap-2">
                                 {isToday && <Badge variant="info" className="text-[10px]">Today</Badge>}
-                                <p className="text-sm font-medium">{formatDateLong(e.date as string)}</p>
+                                <p className="text-sm font-semibold text-foreground">{formatDateLong(e.date as string)}</p>
                               </div>
-                              <p className="font-mono text-lg font-semibold">{e.start_time} – {e.end_time}</p>
+                              <p className="font-mono text-lg font-bold text-foreground">{e.start_time} – {e.end_time}</p>
                               <div className="flex items-center gap-2">
                                 <ActivityPill activityId={e.activity_id as string} />
                                 <span className="text-xs text-muted-foreground">{e.hours}h</span>
@@ -228,7 +235,7 @@ export default function AssistantDashboard() {
                       <Card key={e.id as string}>
                         <CardContent className="py-4 space-y-3">
                           <div>
-                            <p className="text-sm font-medium">{formatDateLong(e.date as string)}</p>
+                            <p className="text-sm font-semibold text-foreground">{formatDateLong(e.date as string)}</p>
                             <p className="font-mono text-xl font-bold mt-0.5">{e.start_time} – {e.end_time}</p>
                             <div className="flex items-center gap-2 mt-1.5">
                               <ActivityPill activityId={e.activity_id as string} />
@@ -267,7 +274,7 @@ export default function AssistantDashboard() {
                     <Card key={e.id as string}>
                       <CardContent className="py-3.5 flex items-center justify-between">
                         <div className="space-y-1">
-                          <p className="text-sm font-medium">{formatDate(e.date as string)}</p>
+                          <p className="text-sm font-semibold text-foreground">{formatDate(e.date as string)}</p>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <span className="font-mono">{e.start_time} – {e.end_time}</span>
                             <span>{e.hours}h</span>
@@ -305,8 +312,8 @@ export default function AssistantDashboard() {
                         <CardContent className="py-4">
                           <div className="flex items-start justify-between">
                             <div className="space-y-1.5">
-                              <p className="text-sm font-medium">{formatDateLong(slot.date as string)}</p>
-                              <p className="font-mono text-lg font-semibold">{slot.start_time} – {slot.end_time}</p>
+                              <p className="text-sm font-semibold text-foreground">{formatDateLong(slot.date as string)}</p>
+                              <p className="font-mono text-lg font-bold text-foreground">{slot.start_time} – {slot.end_time}</p>
                               <div className="flex items-center gap-2">
                                 <ActivityPill activityId={slot.activity_id as string} />
                                 <span className="text-xs text-muted-foreground">{slot.hours}h</span>
