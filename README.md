@@ -44,8 +44,11 @@ API integrations with payroll providers and public sector systems
 
 
 Market
-SegmentSizeSweden TAM~€150M annuallyNordic TAM~€400M annuallyEurope TAM€2B+ annually
-The personal assistance market is publicly funded, highly regulated, and structurally resistant to disruption from generic software. Compliance requirements create deep switching costs and strong retention once adopted.
+SegmentSizeSweden TAM ~€150M annually
+Nordic TAM ~€400M annually
+Europe TAM €2B+ annually
+The personal assistance market is publicly funded, highly regulated, and structurally resistant to disruption from generic software. 
+Compliance requirements create deep switching costs and strong retention once adopted.
 
 Traction
 
