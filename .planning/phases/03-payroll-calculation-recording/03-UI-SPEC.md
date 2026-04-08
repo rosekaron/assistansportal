@@ -1,7 +1,7 @@
 ---
 phase: 3
 slug: payroll-calculation-recording
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-04-08
@@ -49,9 +49,10 @@ Declared values (multiples of 4 only):
 
 **Month selector row bottom margin:** `mb-6` (24px) — matches `PageHeader` pattern in `shared.tsx`.
 
-Exceptions:
+Exceptions (codebase-inherited — both are multiples of 4; review in a future design-system consistency pass):
 - Payment history row height: `py-2` (8px vertical) — matches sidebar nav item height for visual rhythm.
-- Add Payment form fields: `space-y-3` (12px) between label+input pairs — matches `Settings.tsx` form pattern.
+- Add Payment form fields: `space-y-3` (12px) between label+input pairs — matches `Settings.tsx` form pattern. ⚠ Outside standard set {4,8,16,24,32,48,64}; revisit when form spacing is standardised.
+- `p-5` (20px) card padding — inherited from `CardHeader`/`CardContent` in `card.tsx`. ⚠ Outside standard set; do not override without updating the shared primitive.
 - Stat grid cells: `gap-4` (16px) between columns — keeps numeric data scannable without crowding.
 
 ---
@@ -61,8 +62,8 @@ Exceptions:
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Body | 16px (text-base, 1rem) | 400 (regular) | 1.6 | Payment history rows, form helper text |
-| Label | 12.8px (text-xs, 0.8rem) | 500 (medium) | 1.4 | Stat cell labels (e.g., "Fakturerbara timmar"), form field labels via `Label` component |
-| Secondary | 14px (text-sm, 0.875rem) | 400–600 | 1.5 | `SectionLabel` component (font-semibold), month selector label (font-semibold), CardFooter balance line (font-mono) |
+| Label | 12.8px (text-xs, 0.8rem) | 600 (semibold) | 1.4 | Stat cell labels (e.g., "Fakturerbara timmar"), form field labels via `Label` component |
+| Secondary | 14px (text-sm, 0.875rem) | 600 (semibold) | 1.5 | `SectionLabel` component (font-semibold), month selector label (font-semibold), CardFooter balance line (font-mono) |
 | Display | 20px (text-xl, 1.25rem) | 600 (semibold) | 1.5 | Page title "Löneunderlag" via `PageHeader`; assistant name in card header (`h3`) |
 
 **Currency / numeric display:** Use `font-mono tabular-nums` for all SEK amounts and hour counts — matches `FillBar` pattern in `shared.tsx`. Prevents layout shift when numbers change.
