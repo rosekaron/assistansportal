@@ -50,7 +50,7 @@ Declared values (multiples of 4 only):
 **Month selector row bottom margin:** `mb-6` (24px) — matches `PageHeader` pattern in `shared.tsx`.
 
 Exceptions:
-- Payment history row height: `py-2.5` (10px vertical) — matches sidebar nav item height for visual rhythm.
+- Payment history row height: `py-2` (8px vertical) — matches sidebar nav item height for visual rhythm.
 - Add Payment form fields: `space-y-3` (12px) between label+input pairs — matches `Settings.tsx` form pattern.
 - Stat grid cells: `gap-4` (16px) between columns — keeps numeric data scannable without crowding.
 
@@ -61,13 +61,13 @@ Exceptions:
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Body | 16px (text-base, 1rem) | 400 (regular) | 1.6 | Payment history rows, form helper text |
-| Label | 12.8px (text-xs, 0.8rem) | 500 (medium) | 1.4 | Stat cell labels (e.g., "Billable hours"), form field labels via `Label` component |
-| Heading | 18px (text-lg, 1.125rem) | 600 (semibold) | 1.6 | Assistant name in card header (`h3`) |
-| Display | 20px (text-xl, 1.25rem) | 600 (semibold) | 1.5 | Page title "Löneunderlag" via `PageHeader` |
+| Label | 12.8px (text-xs, 0.8rem) | 500 (medium) | 1.4 | Stat cell labels (e.g., "Fakturerbara timmar"), form field labels via `Label` component |
+| Secondary | 14px (text-sm, 0.875rem) | 400–600 | 1.5 | `SectionLabel` component (font-semibold), month selector label (font-semibold), CardFooter balance line (font-mono) |
+| Display | 20px (text-xl, 1.25rem) | 600 (semibold) | 1.5 | Page title "Löneunderlag" via `PageHeader`; assistant name in card header (`h3`) |
 
 **Currency / numeric display:** Use `font-mono tabular-nums` for all SEK amounts and hour counts — matches `FillBar` pattern in `shared.tsx`. Prevents layout shift when numbers change.
 
-**Section label pattern:** Reuse `SectionLabel` from `shared.tsx` — `text-sm font-semibold uppercase tracking-widest text-muted-foreground` — for "Frånvaro per typ" and "Betalningar" subsections within a card.
+**Section label pattern:** Reuse `SectionLabel` from `shared.tsx` — `text-sm font-semibold uppercase tracking-widest text-muted-foreground` — for "Frånvaro per typ" and "Betalningar" subsections within a card. This uses the declared Secondary (14px) size.
 
 **Source:** `client/src/index.css` (base typography rules), `client/tailwind.config.js` (fontSize scale), `client/src/components/shared.tsx` (PageHeader, SectionLabel patterns).
 
@@ -143,7 +143,7 @@ PageHeader title="Löneunderlag" description="Månatlig lönekalkyl per assisten
 **Assistant payroll card (collapsed — default state):**
 ```
 CardHeader:
-  left:  AssistantAvatar + assistant name (text-lg semibold) + status badge (draft | Godkänd)
+  left:  AssistantAvatar + assistant name (text-xl semibold) + status badge (draft | Godkänd)
   right: "Godkänn" Button (variant=default) OR "Godkänd ✓" Button (variant=approve, disabled)
 
 CardContent:
