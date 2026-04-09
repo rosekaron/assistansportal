@@ -57,7 +57,7 @@ contribution rates, printable payslips.
 - **D-12:** Two new route files following the one-domain-per-file pattern:
   - `server/src/routes/payroll.ts` — `GET /api/payroll?month=YYYY-MM`, `POST /api/payroll/generate`,
     `POST /api/payroll/:id/approve`
-  - `server/src/routes/payments.ts` — `GET /api/payments?payrollId=`, `POST /api/payments`,
+  - `server/src/routes/payments.ts` — `GET /api/payments?payrollRecordId=`, `POST /api/payments`,
     `DELETE /api/payments/:id`
 
 ### Approval / Locking
