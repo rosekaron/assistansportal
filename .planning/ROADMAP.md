@@ -5,7 +5,7 @@
 **Phases:** 6
 **Granularity:** Standard (5-8 phases)
 **Coverage:** 15/15 v1 requirements mapped
-**Last Updated:** 2026-04-07
+**Last Updated:** 2026-04-10
 
 ---
 
@@ -13,7 +13,7 @@
 
 - [x] **Phase 1: Stability & Correctness** — Fix critical security, data isolation, and calculation bugs before adding features (completed 2026-04-06)
 - [x] **Phase 2: Leave & Absence Foundation** — Implement absence tracking so billable hours can be calculated correctly downstream (completed 2026-04-06)
-- [ ] **Phase 2.5: UI Overhaul & Design System** — Fix Tailwind CSS rendering, rebuild visual design to B2B-ready care.com-inspired standard for both guardian and assistant views
+- [x] **Phase 2.5: UI Overhaul & Design System** — Fix Tailwind CSS rendering, rebuild visual design to B2B-ready care.com-inspired standard for both guardian and assistant views (completed 2026-04-08)
 - [ ] **Phase 3: Payroll Calculation & Recording** — Monthly payroll per assistant with 2026 Swedish tax rates and employer contributions
 - [ ] **Phase 4: Tax Reporting (AGI)** — Generate Skatteverket-ready AGI declarations per month
 - [ ] **Phase 5: Scheduling & Compliance Workflow** — Multi-assistant schedule grid, monthly compliance checklist, and deadline reminders
@@ -84,14 +84,14 @@ Plans:
 4. All pages use consistent typography, spacing, and color tokens
 5. The design system is ready to support Phase 3 payroll UI without visual debt
 
-**Plans:** 5 plans
+**Plans:** 5/5 plans complete
 
 Plans:
-- [ ] 02.5-01-PLAN.md — Wave 1: Fix Tailwind ESM/CJS bug (tailwind.config.js require() → import) — unblocks all visual work
-- [ ] 02.5-02-PLAN.md — Wave 2: Update index.css colour tokens to B2B professional palette
-- [ ] 02.5-03-PLAN.md — Wave 3: Redesign guardian Layout.tsx sidebar + Dashboard.tsx card layout (parallel with 02.5-04)
-- [ ] 02.5-04-PLAN.md — Wave 3: Redesign AssistantDashboard.tsx — eliminate dark-mode artefacts, apply light theme (parallel with 02.5-03)
-- [ ] 02.5-05-PLAN.md — Wave 4: Consistency pass across Leave, Login, Calendar, Reports, Assistants, Settings
+- [x] 02.5-01-PLAN.md — Wave 1: Fix Tailwind ESM/CJS bug (tailwind.config.js require() → import) — unblocks all visual work
+- [x] 02.5-02-PLAN.md — Wave 2: Update index.css colour tokens to B2B professional palette
+- [x] 02.5-03-PLAN.md — Wave 3: Redesign guardian Layout.tsx sidebar + Dashboard.tsx card layout (parallel with 02.5-04)
+- [x] 02.5-04-PLAN.md — Wave 3: Redesign AssistantDashboard.tsx — eliminate dark-mode artefacts, apply light theme (parallel with 02.5-03)
+- [x] 02.5-05-PLAN.md — Wave 4: Consistency pass across Leave, Login, Calendar, Reports, Assistants, Settings
 
 ---
 
@@ -108,9 +108,13 @@ Plans:
 2. Guardian can approve payroll records; once approved, records are locked and changes tracked as separate adjustments for audit trail
 3. Guardian can record payments made to an assistant (date, amount, method) and the system shows outstanding balance vs. calculated gross pay
 
-**Plans:** TBD
+**Plans:** 4 plans
 
-**UI hint**: yes
+Plans:
+- [ ] 03-01-PLAN.md — Wave 0: failing test stubs for PAY-01, PAY-02, PAY-03 (3 test files, RED state)
+- [ ] 03-02-PLAN.md — Wave 1: payroll-utils.ts pure functions + schema.ts payrollRecords/payments tables + drizzle-kit push (PAY-01)
+- [ ] 03-03-PLAN.md — Wave 2: payroll.ts + payments.ts Express routes + index.ts registration (PAY-01, PAY-02, PAY-03)
+- [ ] 03-04-PLAN.md — Wave 3: Payroll.tsx page + api.ts types/helpers + App.tsx + Layout.tsx nav (PAY-02, PAY-03)
 
 ---
 
@@ -155,8 +159,8 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Stability & Correctness | 4/4 | Complete | 2026-04-06 |
 | 2. Leave & Absence Foundation | 4/4 | Complete | 2026-04-06 |
-| 2.5. UI Overhaul & Design System | 0/5 | In progress | — |
-| 3. Payroll Calculation & Recording | 0/TBD | Not started | — |
+| 2.5. UI Overhaul & Design System | 5/5 | Complete   | 2026-04-08 |
+| 3. Payroll Calculation & Recording | 0/4 | Not started | — |
 | 4. Tax Reporting (AGI) | 0/TBD | Not started | — |
 | 5. Scheduling & Compliance Workflow | 0/TBD | Not started | — |
 
@@ -213,3 +217,4 @@ Phase 5: Scheduling & Compliance (can proceed in parallel with Phase 4, depends 
 *Phase 1 planned: 2026-04-06 — 4 plans, 3 waves*
 *Phase 2 planned: 2026-04-06 — 4 plans, 4 waves*
 *Phase 2.5 planned: 2026-04-07 — 5 plans, 4 waves*
+*Phase 3 planned: 2026-04-10 — 4 plans, 4 waves*
