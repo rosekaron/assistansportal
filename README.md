@@ -81,25 +81,6 @@ High retention expected due to regulatory dependency and data lock-in.
 
 ---
 
-## Project structure
+## Roadmap 
 
-```
-assistansportal/
-├── client/                  # React frontend
-│   ├── src/
-│   │   ├── pages/           # Dashboard, Hours, Assistants, Settings, Login, SetupWizard
-│   │   ├── components/      # Layout, shared components, shadcn UI
-│   │   ├── lib/             # API client, utilities, activity types
-│   │   └── store/           # Zustand auth store
-│   └── ...
-├── server/                  # Express backend
-│   └── src/
-│       ├── db/              # Drizzle schema + connection
-│       ├── routes/          # auth, profile, assistants, entries, misc, pdf
-│       ├── middleware/       # JWT auth
-│       └── lib/             # ID generator
-├── forms/                   # Drop FK PDF forms here
-├── uploads/                 # File uploads
-├── docker-compose.yml       # PostgreSQL
-└── package.json             # Workspace root
-```
+https://github.com/rosekaron/assistansportal/blob/main/ROADMAP.md 
