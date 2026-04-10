@@ -12,6 +12,8 @@ export const inviteStatusEnum = pgEnum("invite_status", ["pending","accepted","d
 export const roleEnum         = pgEnum("role",          ["guardian","assistant"]);
 export const entryTypeEnum    = pgEnum("entry_type",    ["active","waiting","standby","sick"]);
 export const absenceTypeEnum  = pgEnum("absence_type",  ["sjukfrånvaro","vab","semester","other"]);
+export const payrollStatusEnum  = pgEnum("payroll_status",   ["draft", "approved"]);
+export const paymentMethodEnum  = pgEnum("payment_method",   ["bankgiro", "swish", "kontant"]);
 
 // ── Profile ───────────────────────────────────────────────────
 export const profile = pgTable("profile", {
@@ -166,6 +168,38 @@ export const absences = pgTable("absences", {
   createdAt:   timestamp("created_at").defaultNow(),
 });
 
+// ── Payroll records ───────────────────────────────────────────
+// One row per assistant per month. Rates are snapshotted at generation time (D-02).
+// No guardianId column — single-tenant; isolation via requireGuardian middleware (D-03).
+export const payrollRecords = pgTable("payroll_records", {
+  id:                    text("id").primaryKey(),
+  assistantId:           text("assistant_id").notNull().references(() => assistants.id, { onDelete: "cascade" }),
+  month:                 text("month").notNull(),           // YYYY-MM
+  billableHours:         real("billable_hours").notNull(),
+  hourlyRateSnapshot:    real("hourly_rate_snapshot").notNull(),  // snapshotted from FK_HOURLY_RATE at generation (D-02)
+  taxRateSnapshot:       real("tax_rate_snapshot").notNull(),     // snapshotted from EMPLOYER_TAX_RATE at generation (D-02)
+  grossPay:              real("gross_pay").notNull(),
+  employerContributions: real("employer_contributions").notNull(),
+  totalEmployerCost:     real("total_employer_cost").notNull(),
+  absenceBreakdownJson:  text("absence_breakdown_json"),          // JSON: {"sjukfrånvaro":h,"vab":h,"semester":h,"other":h} — per-type absence hours snapshotted at generate time (PAY-02)
+  status:                payrollStatusEnum("status").default("draft"),
+  approvedAt:            timestamp("approved_at"),
+  createdAt:             timestamp("created_at").defaultNow(),
+  updatedAt:             timestamp("updated_at").defaultNow(),
+});
+
+// ── Payments ──────────────────────────────────────────────────
+// One row per payment recorded against a payroll record.
+export const payments = pgTable("payments", {
+  id:              text("id").primaryKey(),
+  payrollRecordId: text("payroll_record_id").notNull().references(() => payrollRecords.id, { onDelete: "cascade" }),
+  assistantId:     text("assistant_id").notNull(),  // denormalised from payrollRecord for query convenience
+  date:            text("date").notNull(),           // YYYY-MM-DD
+  amountSek:       real("amount_sek").notNull(),
+  method:          paymentMethodEnum("method").notNull(),
+  createdAt:       timestamp("created_at").defaultNow(),
+});
+
 // ── Types ─────────────────────────────────────────────────────
 export type Profile           = typeof profile.$inferSelect;
 export type Auth              = typeof auth.$inferSelect;
@@ -177,3 +211,5 @@ export type Invite            = typeof invites.$inferSelect;
 export type EmailVerification = typeof emailVerifications.$inferSelect;
 export type PasswordReset     = typeof passwordResets.$inferSelect;
 export type Absence           = typeof absences.$inferSelect;
+export type PayrollRecord     = typeof payrollRecords.$inferSelect;
+export type Payment           = typeof payments.$inferSelect;
