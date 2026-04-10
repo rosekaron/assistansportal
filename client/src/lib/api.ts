@@ -151,6 +151,56 @@ export const absenceApi = {
     api.get<AbsenceBalance>(`/absences/balance/${assistantId}`),
 };
 
+// Payroll
+export type PayrollRecord = {
+  id: string;
+  assistantId: string;
+  month: string;                 // YYYY-MM
+  billableHours: number;
+  hourlyRateSnapshot: number;
+  taxRateSnapshot: number;
+  grossPay: number;
+  employerContributions: number;
+  totalEmployerCost: number;
+  absenceBreakdownJson: string | null;  // JSON: {"sjukfrånvaro":h,"vab":h,"semester":h,"other":h} (PAY-02)
+  status: "draft" | "approved";
+  approvedAt: string | null;
+  createdAt: string;
+};
+
+export type Payment = {
+  id: string;
+  payrollRecordId: string;
+  assistantId: string;
+  date: string;                  // YYYY-MM-DD
+  amountSek: number;
+  method: "bankgiro" | "swish" | "kontant";
+  createdAt: string;
+};
+
+export const payrollApi = {
+  list:     (month: string) =>
+    api.get<PayrollRecord[]>("/payroll", { params: { month } }),
+  generate: (month: string) =>
+    api.post<PayrollRecord[]>("/payroll/generate", { month }),
+  approve:  (id: string) =>
+    api.post<PayrollRecord>(`/payroll/${id}/approve`),
+};
+
+export const paymentsApi = {
+  list: (payrollRecordId: string) =>
+    api.get<Payment[]>("/payments", { params: { payrollRecordId } }),
+  create: (data: {
+    payrollRecordId: string;
+    assistantId: string;
+    date: string;
+    amountSek: number;
+    method: "bankgiro" | "swish" | "kontant";
+  }) => api.post<Payment>("/payments", data),
+  delete: (id: string) =>
+    api.delete<{ ok: boolean }>(`/payments/${id}`),
+};
+
 // Assistant self-service
 export const assistantSelfApi = {
   me:           () => api.get("/assistant/me"),
