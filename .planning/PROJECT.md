@@ -93,3 +93,13 @@ The guardian can complete the full monthly cycle — approve hours, generate all
 
 ---
 *Last updated: 2026-04-06 — initial PROJECT.md after brownfield questioning*
+
+## Core Value Proposition (Clarified 2026-04-10)
+
+This platform exists because families managing personal assistance (assistansersättning) cannot keep up with the administrative burden — so they hire care companies instead. Care companies have a documented problem with hour inflation (reporting more hours than assistants actually worked), which is fraudulent billing against FK reimbursements.
+
+**The platform's real differentiator is trust and fraud prevention:**
+- Assistants log their own hours from their own accounts — the guardian doesn't enter hours on their behalf
+- Guardian approves before submission — guardian is the authorizing party, not the care company
+- Clean audit trail means families can defend their FK claims in disputes or audits
+- Clock-in/out with identity verification would be the strongest differentiator (see backlog seed)
