@@ -16,8 +16,8 @@ describe("PAY-01: calculatePayroll", () => {
   it("standard 87h × 334 SEK × 31.42%: returns correct grossPay, employerContributions, totalEmployerCost", () => {
     const result = calculatePayroll({ billableHours: 87, hourlyRate: 334, taxRate: 0.3142 });
     expect(result.grossPay).toBe(29058);
-    expect(result.employerContributions).toBeCloseTo(9130.0836, 2);
-    expect(result.totalEmployerCost).toBeCloseTo(38188.0836, 2);
+    expect(result.employerContributions).toBeCloseTo(9130.0236, 2);
+    expect(result.totalEmployerCost).toBeCloseTo(38188.0236, 2);
   });
 
   it("zero hours: all output fields are 0", () => {
