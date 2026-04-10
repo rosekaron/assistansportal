@@ -23,8 +23,8 @@
 ### Payroll
 
 - [ ] **PAY-01**: System calculates gross pay per assistant for a given month (approved billable hours × configured hourly rate) and employer social security contributions (arbetsgivaravgifter, 31.42% standard rate)
-- [ ] **PAY-02**: Guardian can view a payroll summary per assistant per month showing: billable hours, absence hours by type, gross pay, employer contributions, and total employer cost
-- [ ] **PAY-03**: Guardian can record a payment made to an assistant (date, amount, method) and the system shows outstanding balance versus calculated gross
+- [x] **PAY-02**: Guardian can view a payroll summary per assistant per month showing: billable hours, absence hours by type, gross pay, employer contributions, and total employer cost
+- [x] **PAY-03**: Guardian can record a payment made to an assistant (date, amount, method) and the system shows outstanding balance versus calculated gross
 
 ### Tax Reporting (AGI)
 
@@ -105,8 +105,8 @@ These are part of the roadmap but deferred after v1.
 | LEAV-02 | 2 | Pending |
 | LEAV-03 | 2 | Pending |
 | PAY-01 | 3 | Pending |
-| PAY-02 | 3 | Pending |
-| PAY-03 | 3 | Pending |
+| PAY-02 | 3 | Complete |
+| PAY-03 | 3 | Complete |
 | TAX-01 | 4 | Pending |
 | TAX-02 | 4 | Pending |
 | SCHED-01 | 5 | Pending |

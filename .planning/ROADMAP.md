@@ -111,10 +111,10 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Wave 0: failing test stubs for PAY-01, PAY-02, PAY-03 (3 test files, RED state)
-- [ ] 03-02-PLAN.md — Wave 1: payroll-utils.ts pure functions + schema.ts payrollRecords/payments tables + drizzle-kit push (PAY-01)
-- [ ] 03-03-PLAN.md — Wave 2: payroll.ts + payments.ts Express routes + index.ts registration (PAY-01, PAY-02, PAY-03)
-- [ ] 03-04-PLAN.md — Wave 3: Payroll.tsx page + api.ts types/helpers + App.tsx + Layout.tsx nav (PAY-02, PAY-03)
+- [x] 03-01-PLAN.md — Wave 0: failing test stubs for PAY-01, PAY-02, PAY-03 (3 test files, RED state)
+- [x] 03-02-PLAN.md — Wave 1: payroll-utils.ts pure functions + schema.ts payrollRecords/payments tables + drizzle-kit push (PAY-01)
+- [x] 03-03-PLAN.md — Wave 2: payroll.ts + payments.ts Express routes + index.ts registration (PAY-01, PAY-02, PAY-03)
+- [x] 03-04-PLAN.md — Wave 3: Payroll.tsx page + api.ts types/helpers + App.tsx + Layout.tsx nav (PAY-02, PAY-03)
 
 ---
 
