@@ -137,8 +137,8 @@ Plans:
 **Plans:** 10 plans
 
 Plans:
-- [ ] 03.5-01-PLAN.md — Wave 1: DB schema additions — clockEvents + assistantGuardianLinks tables + drizzle-kit push
-- [ ] 03.5-02-PLAN.md — Wave 2: Clock API routes (POST /api/clock/in, /out, GET /status)
+- [x] 03.5-01-PLAN.md — Wave 1: DB schema additions — clockEvents + assistantGuardianLinks tables + drizzle-kit push
+- [x] 03.5-02-PLAN.md — Wave 2: Clock API routes (POST /api/clock/in, /out, GET /status)
 - [ ] 03.5-03-PLAN.md — Wave 2: Multi-family link API routes (GET /api/guardian-links, POST create + accept)
 - [ ] 03.5-04-PLAN.md — Wave 3: Route restructure — App.tsx 4-route IA + Layout.tsx 4-item nav + legacy redirects
 - [ ] 03.5-05-PLAN.md — Wave 4: New Home.tsx (schedule grid + pending actions + mark absent dialog)
