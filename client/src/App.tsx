@@ -10,14 +10,8 @@ import VerifySuccess      from "@/pages/VerifySuccess";
 import AcceptInvite       from "@/pages/AcceptInvite";
 import ResetPassword      from "@/pages/ResetPassword";
 import Dashboard          from "@/pages/Dashboard";
-import CalendarPage       from "@/pages/Calendar";
-import HoursPage          from "@/pages/Hours";
-import ReportsPage        from "@/pages/Reports";
-import AssistantsPage     from "@/pages/Assistants";
 import SettingsPage       from "@/pages/Settings";
 import AssistantDashboard from "@/pages/AssistantDashboard";
-import LeaveAbsencePage   from "@/pages/Leave";
-import PayrollPage        from "@/pages/Payroll";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const token    = useAuthStore((s) => s.token);
@@ -34,7 +28,7 @@ function RequireGuardian({ children }: { children: React.ReactNode }) {
 
 function RequireAssistant({ children }: { children: React.ReactNode }) {
   const role = useAuthStore((s) => s.role);
-  if (role === "guardian") return <Navigate to="/dashboard" replace />;
+  if (role === "guardian") return <Navigate to="/home" replace />;
   return <>{children}</>;
 }
 
@@ -77,15 +71,23 @@ export default function App() {
       <Route element={
         <RequireAuth><RequireGuardian><RequireSetup><Layout /></RequireSetup></RequireGuardian></RequireAuth>
       }>
-        <Route index             element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/calendar"  element={<CalendarPage />} />
-        <Route path="/hours"     element={<HoursPage />} />
-        <Route path="/leave"     element={<LeaveAbsencePage />} />
-        <Route path="/payroll"   element={<PayrollPage />} />
-        <Route path="/reports"   element={<ReportsPage />} />
-        <Route path="/assistants"element={<AssistantsPage />} />
-        <Route path="/settings"  element={<SettingsPage />} />
+        {/* ── New IA routes (Plans 05-08 wire the real components) ── */}
+        <Route index              element={<Navigate to="/home" replace />} />
+        <Route path="/home"       element={<Dashboard />} />       {/* stub → Plan 05 replaces with Home.tsx */}
+        <Route path="/monthly"    element={<Dashboard />} />       {/* stub → Plan 06 replaces with Monthly.tsx */}
+        <Route path="/records"    element={<Dashboard />} />       {/* stub → Plan 07 replaces with Records.tsx */}
+        <Route path="/settings"   element={<SettingsPage />} />    {/* Plan 08 updates Settings.tsx in place */}
+
+        {/* ── Legacy redirects — keep all old bookmarks working ── */}
+        <Route path="/dashboard"  element={<Navigate to="/home"     replace />} />
+        <Route path="/calendar"   element={<Navigate to="/home"     replace />} />
+        <Route path="/schedule"   element={<Navigate to="/home"     replace />} />
+        <Route path="/reports"    element={<Navigate to="/monthly"  replace />} />
+        <Route path="/compliance" element={<Navigate to="/monthly"  replace />} />
+        <Route path="/payroll"    element={<Navigate to="/monthly"  replace />} />
+        <Route path="/assistants" element={<Navigate to="/settings" replace />} />
+        <Route path="/leave"      element={<Navigate to="/records"  replace />} />
+        <Route path="/hours"      element={<Navigate to="/home"     replace />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
