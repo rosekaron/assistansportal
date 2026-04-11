@@ -10,6 +10,7 @@ import VerifySuccess      from "@/pages/VerifySuccess";
 import AcceptInvite       from "@/pages/AcceptInvite";
 import ResetPassword      from "@/pages/ResetPassword";
 import Dashboard          from "@/pages/Dashboard";
+import HomePage           from "@/pages/Home";
 import SettingsPage       from "@/pages/Settings";
 import AssistantDashboard from "@/pages/AssistantDashboard";
 
@@ -73,7 +74,7 @@ export default function App() {
       }>
         {/* ── New IA routes (Plans 05-08 wire the real components) ── */}
         <Route index              element={<Navigate to="/home" replace />} />
-        <Route path="/home"       element={<Dashboard />} />       {/* stub → Plan 05 replaces with Home.tsx */}
+        <Route path="/home"       element={<HomePage />} />
         <Route path="/monthly"    element={<Dashboard />} />       {/* stub → Plan 06 replaces with Monthly.tsx */}
         <Route path="/records"    element={<Dashboard />} />       {/* stub → Plan 07 replaces with Records.tsx */}
         <Route path="/settings"   element={<SettingsPage />} />    {/* Plan 08 updates Settings.tsx in place */}
