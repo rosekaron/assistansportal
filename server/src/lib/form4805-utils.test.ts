@@ -145,7 +145,7 @@ describe("buildForm4805Fields", () => {
     ];
     for (const key of monetaryFields) {
       if (fields[key] !== undefined) {
-        expect(fields[key]).toMatch(/^\d+$/, `Expected ${key} to be an integer string, got: ${fields[key]}`);
+        expect(fields[key], `Expected ${key} to be an integer string, got: ${fields[key]}`).toMatch(/^\d+$/);
       }
     }
   });

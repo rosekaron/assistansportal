@@ -115,6 +115,8 @@ export const pdfApi = {
     api.post("/pdf/fk3057", { year, month }, { responseType: "blob" }),
   fk3059: (year: string, month: string, assistantId: string) =>
     api.post("/pdf/fk3059", { year, month, assistantId }, { responseType: "blob" }),
+  form4805: (year: string, month: string, assistantId: string) =>
+    api.post("/pdf/4805", { year, month, assistantId }, { responseType: "blob" }),
 };
 
 // Costs
@@ -159,6 +161,7 @@ export type PayrollRecord = {
   billableHours: number;
   hourlyRateSnapshot: number;
   taxRateSnapshot: number;
+  prelimTaxRateSnapshot: number;   // snapshotted preliminary tax rate (D-05)
   grossPay: number;
   employerContributions: number;
   totalEmployerCost: number;

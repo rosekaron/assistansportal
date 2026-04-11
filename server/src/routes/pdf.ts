@@ -2,8 +2,9 @@ import { Router } from "express";
 import { PDFDocument } from "pdf-lib";
 import { spawnSync } from "child_process";
 import { db } from "../db";
-import { entries, assistants, profile, absences } from "../db/schema";
+import { entries, assistants, profile, absences, payrollRecords } from "../db/schema";
 import { eq, and, gte, lte, or, isNull } from "drizzle-orm";
+import { buildForm4805Fields, Form4805Input } from "../lib/form4805-utils";
 import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 import { filterBillableEntries } from "../lib/absence-utils";
 import path from "path";
@@ -304,6 +305,112 @@ router.get("/forms", requireAuth, requireGuardian, (_req: AuthRequest, res) => {
     exists: fs.existsSync(path.join(FORMS_DIR, name)),
   }));
   res.json(available);
+});
+
+// ── Blankett 4805 Förenklad arbetsgivardeklaration ───────────────────────
+router.post("/4805", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
+  try {
+    const { year, month, assistantId } = req.body as {
+      year: string; month: string; assistantId: string;
+    };
+
+    // SECURITY: validate assistantId is a non-empty string containing only
+    // alphanumeric chars and hyphens to prevent path traversal / injection
+    if (!assistantId || !/^[a-zA-Z0-9_-]+$/.test(assistantId)) {
+      return res.status(400).json({ error: "Invalid assistantId" });
+    }
+
+    const mm        = month.padStart(2, "0");
+    const yearMonth = `${year}-${mm}`;
+
+    const formPath = path.join(FORMS_DIR, "skv4805.pdf");
+    if (!fs.existsSync(formPath)) {
+      return res.status(404).json({ error: "skv4805.pdf not found in forms/ directory" });
+    }
+
+    // Fetch assistant
+    const [asst] = await db.select().from(assistants).where(eq(assistants.id, assistantId));
+    if (!asst) return res.status(404).json({ error: "Assistant not found" });
+
+    // Fetch approved payroll record for this assistant + month (D-07: only approved)
+    const [pr] = await db.select().from(payrollRecords).where(
+      and(
+        eq(payrollRecords.assistantId, assistantId),
+        eq(payrollRecords.month, yearMonth),
+        eq(payrollRecords.status, "approved"),
+      )
+    );
+    if (!pr) {
+      return res.status(409).json({
+        error: "Payroll record not found or not approved for this assistant and month. Approve payroll before generating 4805.",
+      });
+    }
+
+    // Fetch guardian profile
+    const [prof] = await db.select().from(profile).limit(1);
+
+    // Build field map
+    const input: Form4805Input = {
+      yearMonth,
+      profile: {
+        guardianName:  prof?.guardianName  ?? "",
+        guardianPno:   prof?.guardianPno   ?? "",
+        guardianPhone: prof?.guardianPhone ?? "",
+        address:       prof?.address       ?? "",
+        city:          prof?.city          ?? "",
+        zip:           prof?.zip           ?? "",
+      },
+      assistant: {
+        name:    asst.name,
+        pno:     asst.pno     ?? "",
+        address: asst.address ?? "",
+      },
+      payrollRecord: {
+        grossPay:              pr.grossPay,
+        employerContributions: pr.employerContributions,
+        prelimTaxRateSnapshot: pr.prelimTaxRateSnapshot ?? 0,
+      },
+    };
+    const fieldMap = buildForm4805Fields(input);
+
+    // Load and fill the 4805 PDF (unencrypted AcroForm — no qpdf needed)
+    const formBytes = fs.readFileSync(formPath);
+    const pdfDoc    = await PDFDocument.load(formBytes, { ignoreEncryption: true });
+    const form      = pdfDoc.getForm();
+    const allFields = form.getFields();
+
+    // Handle regular unique fields
+    for (const [name, value] of Object.entries(fieldMap)) {
+      if (name.startsWith("__employer__") || name.startsWith("__recipient__")) continue;
+      try { form.getTextField(name).setText(value); } catch { /* skip unknown */ }
+    }
+
+    // Handle duplicate-named fields (employer = index 0, recipient = index 1)
+    const dupNames = ["txtNamn[0]", "txtPersNr[0]", "txtAdress[0]"] as const;
+    for (const leafName of dupNames) {
+      const matches = allFields.filter(f => f.getName().endsWith(leafName));
+      const empKey  = `__employer__${leafName}`;
+      const recKey  = `__recipient__${leafName}`;
+      if (matches[0] && fieldMap[empKey] !== undefined) {
+        try { (matches[0] as ReturnType<typeof form.getTextField>).setText(fieldMap[empKey]!); } catch {}
+      }
+      if (matches[1] && fieldMap[recKey] !== undefined) {
+        try { (matches[1] as ReturnType<typeof form.getTextField>).setText(fieldMap[recKey]!); } catch {}
+      }
+    }
+
+    form.flatten();
+    const filledBytes = await pdfDoc.save();
+    const filename    = `4805-${yearMonth}-${asst.name.replace(/\s+/g, "-")}.pdf`;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(Buffer.from(filledBytes));
+
+  } catch (e) {
+    console.error("[pdf] 4805 error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 export default router;
