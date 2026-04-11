@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db";
-import { payrollRecords, assistants, entries, absences } from "../db/schema";
+import { payrollRecords, assistants, entries, absences, costs, settings } from "../db/schema";
 import { eq, and, gte, lte, or, isNull } from "drizzle-orm";
 import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 import { newId } from "../lib/id";
@@ -44,6 +44,11 @@ router.post("/generate", requireAuth, requireGuardian, async (req: AuthRequest, 
 
     const hourlyRate = parseFloat(process.env.FK_HOURLY_RATE ?? "334");
     const taxRate    = parseFloat(process.env.EMPLOYER_TAX_RATE ?? "0.3142");
+
+    // Read preliminary tax rate from settings (D-04, D-05)
+    const settingsRows = await db.select().from(settings);
+    const settingsMap = Object.fromEntries(settingsRows.map(r => [r.key, r.value]));
+    const prelimTaxRate = parseFloat(settingsMap["preliminary_tax_rate"] ?? "0");
 
     const allAssistants = await db.select().from(assistants);
 
@@ -111,11 +116,18 @@ router.post("/generate", requireAuth, requireGuardian, async (req: AuthRequest, 
       const billableEntries = filterBillableEntries(entryRows, absenceRows);
       const billableHours = billableEntries.reduce((sum, e) => sum + e.hours, 0);
 
+      // Query costs scoped to this assistant + month (D-02)
+      const costsRows = await db.select().from(costs).where(
+        and(eq(costs.assistantId, asst.id), eq(costs.month, month))
+      );
+      const costsSum = costsRows.reduce((s, c) => s + c.amountSek, 0);
+
       // Calculate payroll figures (D-04)
       const { grossPay, employerContributions, totalEmployerCost } = calculatePayroll({
         billableHours,
         hourlyRate,
         taxRate,
+        costsSum,   // NEW — D-02
       });
 
       // Compute per-type absence breakdown (PAY-02 — RESEARCH.md Pattern 9)
@@ -144,7 +156,7 @@ router.post("/generate", requireAuth, requireGuardian, async (req: AuthRequest, 
       }
       const absenceBreakdownJson = JSON.stringify(absenceBreakdown);
 
-      // Insert new payroll record with snapshotted rate values (D-02)
+      // Insert new payroll record with snapshotted rate values (D-02, D-05)
       const [newRow] = await db.insert(payrollRecords).values({
         id:                    newId(),
         assistantId:           asst.id,
@@ -152,6 +164,7 @@ router.post("/generate", requireAuth, requireGuardian, async (req: AuthRequest, 
         billableHours,
         hourlyRateSnapshot:    hourlyRate,
         taxRateSnapshot:       taxRate,
+        prelimTaxRateSnapshot: prelimTaxRate,   // NEW — D-05
         grossPay,
         employerContributions,
         totalEmployerCost,
@@ -164,6 +177,41 @@ router.post("/generate", requireAuth, requireGuardian, async (req: AuthRequest, 
     res.status(201).json(result);
   } catch (e) {
     console.error("[payroll] generate error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/payroll/recalculate-drafts — one-time admin recalculation of all draft records
+// IMPORTANT: Placed BEFORE /:id routes to avoid Express matching "recalculate-drafts" as an id
+router.post("/recalculate-drafts", requireAuth, requireGuardian, async (_req: AuthRequest, res) => {
+  try {
+    const draftRecords = await db.select().from(payrollRecords).where(
+      eq(payrollRecords.status, "draft")
+    );
+    const settingsRows = await db.select().from(settings);
+    const settingsMap = Object.fromEntries(settingsRows.map(r => [r.key, r.value]));
+    const prelimTaxRate = parseFloat(settingsMap["preliminary_tax_rate"] ?? "0");
+
+    let updated = 0;
+    for (const record of draftRecords) {
+      const costsRows = await db.select().from(costs).where(
+        and(eq(costs.assistantId, record.assistantId), eq(costs.month, record.month))
+      );
+      const costsSum = costsRows.reduce((s, c) => s + c.amountSek, 0);
+      const { grossPay, employerContributions, totalEmployerCost } = calculatePayroll({
+        billableHours: record.billableHours,
+        hourlyRate:    record.hourlyRateSnapshot,
+        taxRate:       record.taxRateSnapshot,
+        costsSum,
+      });
+      await db.update(payrollRecords)
+        .set({ grossPay, employerContributions, totalEmployerCost, prelimTaxRateSnapshot: prelimTaxRate, updatedAt: new Date() })
+        .where(eq(payrollRecords.id, record.id));
+      updated++;
+    }
+    res.json({ ok: true, updated });
+  } catch (e) {
+    console.error("[payroll] recalculate-drafts error:", e);
     res.status(500).json({ error: "Internal server error" });
   }
 });
