@@ -9,9 +9,9 @@ import SetupWizard        from "@/pages/SetupWizard";
 import VerifySuccess      from "@/pages/VerifySuccess";
 import AcceptInvite       from "@/pages/AcceptInvite";
 import ResetPassword      from "@/pages/ResetPassword";
-import Dashboard          from "@/pages/Dashboard";
 import HomePage           from "@/pages/Home";
 import MonthlyPage        from "@/pages/Monthly";
+import RecordsPage        from "@/pages/Records";
 import SettingsPage       from "@/pages/Settings";
 import AssistantDashboard from "@/pages/AssistantDashboard";
 
@@ -77,7 +77,7 @@ export default function App() {
         <Route index              element={<Navigate to="/home" replace />} />
         <Route path="/home"       element={<HomePage />} />
         <Route path="/monthly"    element={<MonthlyPage />} />
-        <Route path="/records"    element={<Dashboard />} />       {/* stub → Plan 07 replaces with Records.tsx */}
+        <Route path="/records"    element={<RecordsPage />} />
         <Route path="/settings"   element={<SettingsPage />} />    {/* Plan 08 updates Settings.tsx in place */}
 
         {/* ── Legacy redirects — keep all old bookmarks working ── */}
