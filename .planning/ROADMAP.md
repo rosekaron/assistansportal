@@ -16,7 +16,7 @@
 - [x] **Phase 2.5: UI Overhaul & Design System** — Fix Tailwind CSS rendering, rebuild visual design to B2B-ready care.com-inspired standard for both guardian and assistant views (completed 2026-04-08)
 - [x] **Phase 3: Payroll Calculation & Recording** — Monthly payroll per assistant with 2026 Swedish tax rates and employer contributions (completed 2026-04-10)
 - [ ] **Phase 3.5: UX Consolidation & IA Redesign** — Audit all pages, consolidate features by user goal, produce formal UI-SPEC with one-page-one-purpose information architecture
-- [ ] **Phase 4: Tax Reporting (AGI)** — Generate Skatteverket-ready AGI declarations per month
+- [x] **Phase 4: Tax Reporting (AGI)** — Generate Skatteverket-ready AGI declarations per month (completed 2026-04-11)
 - [ ] **Phase 5: Scheduling & Compliance Workflow** — Multi-assistant schedule grid, monthly compliance checklist, and deadline reminders
 
 ---
@@ -139,30 +139,37 @@ Plans:
 Plans:
 - [x] 03.5-01-PLAN.md — Wave 1: DB schema additions — clockEvents + assistantGuardianLinks tables + drizzle-kit push
 - [x] 03.5-02-PLAN.md — Wave 2: Clock API routes (POST /api/clock/in, /out, GET /status)
-- [ ] 03.5-03-PLAN.md — Wave 2: Multi-family link API routes (GET /api/guardian-links, POST create + accept)
-- [ ] 03.5-04-PLAN.md — Wave 3: Route restructure — App.tsx 4-route IA + Layout.tsx 4-item nav + legacy redirects
-- [ ] 03.5-05-PLAN.md — Wave 4: New Home.tsx (schedule grid + pending actions + mark absent dialog)
-- [ ] 03.5-06-PLAN.md — Wave 4: New Monthly.tsx (3-step stepper: reports + payroll + FK; Verified badge)
-- [ ] 03.5-07-PLAN.md — Wave 4: New Records.tsx (read-only history: Payroll | FK Submissions | Leave tabs)
-- [ ] 03.5-08-PLAN.md — Wave 4: Update Settings.tsx (embed Assistants section + GCal setup guide card)
-- [ ] 03.5-09-PLAN.md — Wave 5: Redesign AssistantDashboard.tsx (clock-in hero + family selector + tabs)
-- [ ] 03.5-10-PLAN.md — Wave 6: Phase verification checkpoint (TypeScript + server tests + human walkthrough)
+- [x] 03.5-03-PLAN.md — Wave 2: Multi-family link API routes (GET /api/guardian-links, POST create + accept)
+- [x] 03.5-04-PLAN.md — Wave 3: Route restructure — App.tsx 4-route IA + Layout.tsx 4-item nav + legacy redirects
+- [x] 03.5-05-PLAN.md — Wave 4: New Home.tsx (schedule grid + pending actions + mark absent dialog)
+- [x] 03.5-06-PLAN.md — Wave 4: New Monthly.tsx (3-step stepper: reports + payroll + FK; Verified badge)
+- [x] 03.5-07-PLAN.md — Wave 4: New Records.tsx (read-only history: Payroll | FK Submissions | Leave tabs)
+- [x] 03.5-08-PLAN.md — Wave 4: Update Settings.tsx (embed Assistants section + GCal setup guide card)
+- [x] 03.5-09-PLAN.md — Wave 5: Redesign AssistantDashboard.tsx (clock-in hero + family selector + tabs)
+- [x] 03.5-10-PLAN.md — Wave 6: Phase verification checkpoint (TypeScript + server tests + human walkthrough)
 
 ---
 
 ### Phase 4: Tax Reporting (AGI)
 
-**Goal:** Guardian can generate and download Skatteverket-ready AGI (arbetsgivardeklaration på individnivå) tax declarations for monthly submission.
+**Goal:** Guardian can generate and download pre-filled Skatteverket blankett 4805 (Förenklad arbetsgivardeklaration) PDFs per assistant per month, with corrected payroll formula and preliminary tax rate configured in Settings.
 
 **Depends on:** Phase 3
 
 **Requirements:** TAX-01, TAX-02
 
 **Success Criteria** (what must be TRUE):
-1. System generates AGI line item per assistant with: personnummer, gross salary, employer contributions, preliminary tax (preliminärskatt), and VAB days used (2026 format compliance)
-2. Guardian can download AGI data in Skatteverket-ready format (structured export) with correct field lengths, decimal places, and date formats ready for submission
+1. System generates a filled blankett 4805 PDF per assistant for a given month, including: personnummer, gross salary, employer contributions, and withheld preliminary tax (preliminärskatt) — all figures derived from approved payroll_records
+2. Guardian can download the filled 4805 PDF per assistant from Monthly.tsx Step 4, gated on all payroll being approved
+3. Payroll formula is corrected: gross = (billableHours × hourlyRate − costs) / (1 + taxRate)
+4. Guardian can configure preliminary tax rate in Settings; rate is snapshotted into payroll_records at generation time
 
-**Plans:** TBD
+**Plans:** 3/3 plans complete
+
+Plans:
+- [x] 04-01-PLAN.md — Wave 1: Schema columns (prelim_tax_rate_snapshot + assistants.address) + corrected payroll-utils.ts formula + payroll.ts route update + db:push + recalculate drafts (TAX-01)
+- [x] 04-02-PLAN.md — Wave 2: form4805-utils.ts pure field mapping + POST /api/pdf/4805 endpoint + pdfApi.form4805 helper (TAX-01, TAX-02)
+- [x] 04-03-PLAN.md — Wave 3: Monthly.tsx Step 4 per-assistant download buttons + Settings.tsx prelim tax rate field + assistant address edit dialog + human verification checkpoint (TAX-01, TAX-02)
 
 ---
 
@@ -194,7 +201,7 @@ Plans:
 | 2.5. UI Overhaul & Design System | 5/5 | Complete   | 2026-04-08 |
 | 3. Payroll Calculation & Recording | 4/4 | Complete | 2026-04-10 |
 | 3.5. UX Consolidation & IA Redesign | 0/10 | Not started | — |
-| 4. Tax Reporting (AGI) | 0/TBD | Not started | — |
+| 4. Tax Reporting (AGI) | 3/3 | Complete   | 2026-04-11 |
 | 5. Scheduling & Compliance Workflow | 0/TBD | Not started | — |
 
 ---
@@ -254,3 +261,4 @@ Phase 5: Scheduling & Compliance (can proceed in parallel with Phase 4, depends 
 *Phase 2.5 planned: 2026-04-07 — 5 plans, 4 waves*
 *Phase 3 planned: 2026-04-10 — 4 plans, 4 waves*
 *Phase 3.5 planned: 2026-04-11 — 10 plans, 6 waves*
+*Phase 4 planned: 2026-04-11 — 3 plans, 3 waves*

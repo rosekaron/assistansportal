@@ -28,8 +28,8 @@
 
 ### Tax Reporting (AGI)
 
-- [ ] **TAX-01**: System generates AGI (arbetsgivardeklaration på individnivå) data per assistant for a given month, including: personnummer, gross salary, employer contributions, and withheld preliminary tax (preliminärskatt) if configured
-- [ ] **TAX-02**: Guardian can download the AGI report in Skatteverket-compatible format (XML or structured export) ready for submission via the Skatteverket e-service
+- [x] **TAX-01**: System generates AGI (arbetsgivardeklaration på individnivå) data per assistant for a given month, including: personnummer, gross salary, employer contributions, and withheld preliminary tax (preliminärskatt) if configured
+- [x] **TAX-02**: Guardian can download the AGI report in Skatteverket-compatible format (XML or structured export) ready for submission via the Skatteverket e-service
 
 ### Scheduling
 
@@ -107,8 +107,8 @@ These are part of the roadmap but deferred after v1.
 | PAY-01 | 3 | Pending |
 | PAY-02 | 3 | Complete |
 | PAY-03 | 3 | Complete |
-| TAX-01 | 4 | Pending |
-| TAX-02 | 4 | Pending |
+| TAX-01 | 4 | Complete |
+| TAX-02 | 4 | Complete |
 | SCHED-01 | 5 | Pending |
 | COMP-01 | 5 | Pending |
 | COMP-02 | 5 | Pending |
