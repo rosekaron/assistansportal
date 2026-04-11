@@ -1,11 +1,12 @@
 // payroll-utils.ts — pure payroll calculation functions.
 // No DB imports — all inputs are plain objects.
-// Mirrors absence-utils.ts module structure (D-04).
+// Formula corrected in Phase 4 (D-01): grossPay = (fkAllocation − costs) / (1 + taxRate)
 
 export type PayrollInput = {
   billableHours: number;
   hourlyRate:    number;
-  taxRate:       number; // e.g. 0.3142 for 31.42% (D-06: flat rate for all assistants in Phase 3)
+  taxRate:       number;   // employer contribution rate e.g. 0.3142
+  costsSum:      number;   // sum of costs.amount_sek scoped to this assistant+month (D-02)
 };
 
 export type PayrollResult = {
@@ -16,15 +17,23 @@ export type PayrollResult = {
 
 /**
  * Calculates gross pay and employer contributions for a given month.
- * grossPay = billableHours × hourlyRate
- * employerContributions = grossPay × taxRate  (31.42% standard rate per D-06)
- * totalEmployerCost = grossPay + employerContributions
  *
- * Both hourlyRate and taxRate are passed in (snapshotted at generation time per D-02).
- * This function does NOT read from env vars — callers supply the snapshotted values.
+ * Correct formula (D-01):
+ *   fkAllocation     = billableHours × hourlyRate
+ *   netAfterCosts    = fkAllocation − costsSum
+ *   grossPay         = netAfterCosts / (1 + taxRate)
+ *   employerContribs = grossPay × taxRate
+ *   totalEmployerCost ≈ netAfterCosts  (check: grossPay + employerContribs = netAfterCosts)
+ *
+ * If netAfterCosts ≤ 0, all values return 0 (costs exceed allocation).
  */
 export function calculatePayroll(input: PayrollInput): PayrollResult {
-  const grossPay              = input.billableHours * input.hourlyRate;
+  const fkAllocation          = input.billableHours * input.hourlyRate;
+  const netAfterCosts         = fkAllocation - input.costsSum;
+  if (netAfterCosts <= 0) {
+    return { grossPay: 0, employerContributions: 0, totalEmployerCost: 0 };
+  }
+  const grossPay              = netAfterCosts / (1 + input.taxRate);
   const employerContributions = grossPay * input.taxRate;
   const totalEmployerCost     = grossPay + employerContributions;
   return { grossPay, employerContributions, totalEmployerCost };

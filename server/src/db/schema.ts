@@ -78,6 +78,7 @@ export const assistants = pgTable("assistants", {
   isFlexible:     boolean("is_flexible").default(false),
   inviteStatus:   inviteStatusEnum("invite_status").default("pending"),
   authId:         integer("auth_id"),
+  address:        text("address").default(""),
   createdAt:      timestamp("created_at").defaultNow(),
 });
 
@@ -183,6 +184,7 @@ export const payrollRecords = pgTable("payroll_records", {
   billableHours:         real("billable_hours").notNull(),
   hourlyRateSnapshot:    real("hourly_rate_snapshot").notNull(),  // snapshotted from FK_HOURLY_RATE at generation (D-02)
   taxRateSnapshot:       real("tax_rate_snapshot").notNull(),     // snapshotted from EMPLOYER_TAX_RATE at generation (D-02)
+  prelimTaxRateSnapshot: real("prelim_tax_rate_snapshot").default(0),  // snapshotted preliminary tax rate at generation (D-05)
   grossPay:              real("gross_pay").notNull(),
   employerContributions: real("employer_contributions").notNull(),
   totalEmployerCost:     real("total_employer_cost").notNull(),
