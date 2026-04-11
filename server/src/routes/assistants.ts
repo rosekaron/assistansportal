@@ -43,6 +43,7 @@ router.put("/:id", requireAuth, requireGuardian, async (req: AuthRequest, res) =
     minWeeklyHours: data.minWeeklyHours,
     isFlexible:     data.isFlexible,
     color:          data.color,
+    address:        data.address ?? "",
   }).where(eq(assistants.id, id)).returning();
   res.json(row);
 });

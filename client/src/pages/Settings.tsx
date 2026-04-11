@@ -77,7 +77,7 @@ export default function SettingsPage() {
   const [inviteOpen,  setInviteOpen]  = useState(false);
   const [removeId,    setRemoveId]    = useState<string | null>(null);
   const [editTarget,  setEditTarget]  = useState<Assistant | null>(null);
-  const [editForm,    setEditForm]    = useState({ name: "", pno: "", phone: "", minWeeklyHours: "", isFlexible: false });
+  const [editForm,    setEditForm]    = useState({ name: "", pno: "", phone: "", minWeeklyHours: "", isFlexible: false, address: "" });
   const [inviteForm,  setInviteForm]  = useState({ name: "", email: "", minWeeklyHours: "", isFlexible: false, message: "" });
   const [inviteSent,  setInviteSent]  = useState(false);
 
@@ -108,6 +108,9 @@ export default function SettingsPage() {
   const [sched, setSched] = useState({
     allowSelfBook: true, selfBookApproval: "require-approval", bookingWindowDays: "14",
   });
+
+  const [prelimTaxRate, setPrelimTaxRate] = useState("30");
+  // Stored as percentage integer string in UI (e.g. "30"), saved as decimal string "0.30" to settings
 
   function setField(field: keyof FormState, val: string) {
     setForm((f) => ({ ...f, [field]: val }));
@@ -147,6 +150,12 @@ export default function SettingsPage() {
         selfBookApproval:  settings.self_book_approval  ?? "require-approval",
         bookingWindowDays: settings.booking_window_days ?? "14",
       });
+      // Read preliminary_tax_rate from settings (stored as "0.30" → display as "30")
+      const rawPrelim = settings["preliminary_tax_rate"];
+      if (rawPrelim) {
+        const asPct = Math.round(parseFloat(rawPrelim) * 100);
+        setPrelimTaxRate(String(asPct));
+      }
     }
   }, [settings]);
 
@@ -178,6 +187,13 @@ export default function SettingsPage() {
       allow_self_book:     String(sched.allowSelfBook),
       self_book_approval:  sched.selfBookApproval,
       booking_window_days: sched.bookingWindowDays,
+    }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings"] }),
+  });
+
+  const savePrelimTax = useMutation({
+    mutationFn: () => settingsApi.update({
+      preliminary_tax_rate: String(parseFloat(prelimTaxRate) / 100),
     }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["settings"] }),
   });
@@ -215,6 +231,7 @@ export default function SettingsPage() {
       phone:          (a.phone as string) ?? "",
       minWeeklyHours: String(a.minWeeklyHours ?? 0),
       isFlexible:     (a.isFlexible as boolean) ?? false,
+      address:        (a.address as string) ?? "",
     });
     setEditTarget(a);
   }
@@ -598,7 +615,41 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* ── 4. ACCOUNT ─────────────────────────────────────────────────────── */}
+      {/* ── 4. PAYROLL RATES ───────────────────────────────────────────────── */}
+      <div className="mt-8 mb-3"><SectionLabel>Payroll rates</SectionLabel></div>
+      <Card className="mb-6">
+        <CardContent className="pt-5 space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="prelim-tax-rate">Preliminary tax rate (preliminärskatt)</Label>
+            <p className="text-xs text-muted-foreground">
+              Tax withheld from each assistant's gross salary and remitted to Skatteverket.
+              Used when generating blankett 4805. Enter as a percentage (e.g. 30 for 30%).
+            </p>
+            <div className="flex items-center gap-2 max-w-[180px]">
+              <Input
+                id="prelim-tax-rate"
+                type="number"
+                min="0"
+                max="60"
+                step="1"
+                placeholder="30"
+                value={prelimTaxRate}
+                onChange={(e) => setPrelimTaxRate(e.target.value)}
+              />
+              <span className="text-sm text-muted-foreground shrink-0">%</span>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => savePrelimTax.mutate()}
+            disabled={savePrelimTax.isPending}
+          >
+            {savePrelimTax.isPending ? "Saving..." : "Save rate"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* ── 5. ACCOUNT ─────────────────────────────────────────────────────── */}
       <SectionLabel>Account & care details</SectionLabel>
       <div className="grid grid-cols-2 gap-5">
         <Card>
@@ -729,6 +780,14 @@ export default function SettingsPage() {
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">h</span>
               </div>
             </div>
+            <div className="space-y-1.5">
+              <Label>Address</Label>
+              <Input
+                placeholder="Storgatan 1, 123 45 Stad"
+                value={editForm.address}
+                onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
+              />
+            </div>
             <label className="flex items-center gap-2 cursor-pointer text-sm">
               <input type="checkbox" checked={editForm.isFlexible} onChange={(e) => setEditForm((f) => ({ ...f, isFlexible: e.target.checked }))} className="rounded" />
               <span>Flexible — can take hours from the shared pool</span>
@@ -736,7 +795,7 @@ export default function SettingsPage() {
             <div className="flex justify-end gap-2 mt-2">
               <Button variant="ghost" onClick={() => setEditTarget(null)}>Cancel</Button>
               <Button disabled={!editForm.name || updateAssistant.isPending}
-                onClick={() => updateAssistant.mutate({ id: editTarget!.id as string, data: { name: editForm.name, pno: editForm.pno, phone: editForm.phone, minWeeklyHours: parseInt(editForm.minWeeklyHours), isFlexible: editForm.isFlexible } })}>
+                onClick={() => updateAssistant.mutate({ id: editTarget!.id as string, data: { name: editForm.name, pno: editForm.pno, phone: editForm.phone, minWeeklyHours: parseInt(editForm.minWeeklyHours), isFlexible: editForm.isFlexible, address: editForm.address } })}>
                 Save changes
               </Button>
             </div>
