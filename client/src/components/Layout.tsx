@@ -3,17 +3,13 @@ import { useAuthStore } from "@/store/auth";
 import { useQuery } from "@tanstack/react-query";
 import { profileApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, CalendarDays, Users, Settings, LogOut, FileText, CalendarOff, Banknote } from "lucide-react";
+import { LayoutDashboard, CheckSquare, FolderOpen, Settings, LogOut } from "lucide-react";
 
 const nav = [
-  { to: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
-  { to: "/calendar",   label: "Schedule",    icon: CalendarDays },
-  { to: "/leave",      label: "Frånvaro",   icon: CalendarOff },
-  { to: "/payroll",    label: "Löner",       icon: Banknote },
-  { to: "/reports",    label: "Reports",     icon: FileText },
-  { to: "/assistants", label: "Assistants",  icon: Users },
-  { to: "/settings",   label: "Settings",    icon: Settings },
-  // { to: "/hours", label: "Hours", icon: Clock }, // kept for easy revert
+  { to: "/home",     label: "Home",     icon: LayoutDashboard },
+  { to: "/monthly",  label: "Monthly",  icon: CheckSquare },
+  { to: "/records",  label: "Records",  icon: FolderOpen },
+  { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 export default function Layout() {
