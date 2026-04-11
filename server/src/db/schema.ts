@@ -14,6 +14,7 @@ export const entryTypeEnum    = pgEnum("entry_type",    ["active","waiting","sta
 export const absenceTypeEnum  = pgEnum("absence_type",  ["sjukfrånvaro","vab","semester","other"]);
 export const payrollStatusEnum  = pgEnum("payroll_status",   ["draft", "approved"]);
 export const paymentMethodEnum  = pgEnum("payment_method",   ["bankgiro", "swish", "kontant"]);
+export const clockTypeEnum      = pgEnum("clock_type",       ["in", "out"]);
 
 // ── Profile ───────────────────────────────────────────────────
 export const profile = pgTable("profile", {
@@ -200,6 +201,24 @@ export const payments = pgTable("payments", {
   createdAt:       timestamp("created_at").defaultNow(),
 });
 
+// ── Clock events ──────────────────────────────────────────────
+// One row per clock-in or clock-out action by an assistant.
+// guardian_id is the specific family the assistant is clocking in/out for.
+// This is the trust anchor: server records IP + user-agent at submission time.
+export const clockEvents = pgTable("clock_events", {
+  id:          text("id").primaryKey(),
+  assistantId: text("assistant_id").notNull().references(() => assistants.id, { onDelete: "cascade" }),
+  guardianId:  integer("guardian_id").notNull(),  // auth.id of the guardian (same pattern as absences)
+  clockType:   clockTypeEnum("clock_type").notNull(),
+  timestamp:   timestamp("timestamp").defaultNow().notNull(),
+  ip:          text("ip").default(""),
+  userAgent:   text("user_agent").default(""),
+  // Set to true when this clock-out event auto-created a shift report entry.
+  // Allows the system to distinguish verified (clock-based) from manual entries.
+  verified:    boolean("verified").default(false),
+  createdAt:   timestamp("created_at").defaultNow(),
+});
+
 // ── Types ─────────────────────────────────────────────────────
 export type Profile           = typeof profile.$inferSelect;
 export type Auth              = typeof auth.$inferSelect;
@@ -213,3 +232,4 @@ export type PasswordReset     = typeof passwordResets.$inferSelect;
 export type Absence           = typeof absences.$inferSelect;
 export type PayrollRecord     = typeof payrollRecords.$inferSelect;
 export type Payment           = typeof payments.$inferSelect;
+export type ClockEvent        = typeof clockEvents.$inferSelect;
