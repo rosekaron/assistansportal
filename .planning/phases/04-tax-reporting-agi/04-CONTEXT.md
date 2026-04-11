@@ -1,18 +1,21 @@
-# Phase 4: Tax Reporting (AGI) - Context
+# Phase 4: Tax Reporting (Form 4805) - Context
 
 **Gathered:** 2026-04-11
+**Updated:** 2026-04-11 (format pivot: AGI XML → pre-filled blankett 4805 PDF)
 **Status:** Ready for planning
 
 <domain>
 ## Phase Boundary
 
-Guardian can generate and download a Skatteverket-ready AGI (arbetsgivardeklaration på individnivå)
-XML file for a given month, covering all assistants. Phase 4 also fixes the Phase 3 payroll
-calculation formula which was incorrect.
+Guardian can generate and download pre-filled Skatteverket blankett 4805 (förenklad
+arbetsgivardeklaration) PDFs — one per assistant per month. Phase 4 also fixes the Phase 3
+payroll calculation formula which was incorrect.
 
 Requirements in scope: TAX-01, TAX-02
-Not in scope: Direct e-filing with Skatteverket API, printable payslips, age-based contribution
-rates (deferred from Phase 3), karensdag deduction.
+Not in scope: Direct e-filing with Skatteverket API, AGI XML format, printable payslips,
+karensdag deduction, per-assistant tax codes / jämkningsbeslut.
+Age-based contribution rates: all three age paths implemented in Phase 4 (pure function,
+no schema impact): 1959+ at 31.42%, 1938–1958 at 10.21%, 1937– no contributions.
 
 </domain>
 
@@ -34,18 +37,18 @@ rates (deferred from Phase 3), karensdag deduction.
   ```
 
   Phase 4 must correct `payroll-utils.ts` and re-derive the stored `payroll_records` figures
-  before generating AGI. The AGI XML figures must match what's in `payroll_records`.
+  before generating form 4805 PDFs. The form field values must match what's in `payroll_records`.
 
 - **D-02:** Costs (from the `costs` table, scoped to the same `assistant_id` and `month`) are
   deducted from the FK allocation before calculating gross. Costs represent admin overhead,
   materials, or other expenses paid from the FK envelope. Any remaining surplus after salary
-  + contributions + costs is returned to FK — not relevant to the AGI XML itself.
+  + contributions + costs is returned to FK — not relevant to the form 4805 itself.
 
 ### Preliminary Tax (Preliminärskatt)
 
-- **D-03:** Preliminärskatt IS required in the AGI XML (`AvdragenSkatt` field). It is NOT zero.
-  The guardian withholds tax from each assistant's gross salary and remits it to Skatteverket
-  alongside the AGI declaration.
+- **D-03:** Preliminärskatt IS required on form 4805 (field `txtKod09` — Avdragen skatt). It is
+  NOT zero. The guardian withholds tax from each assistant's gross salary and remits it to
+  Skatteverket alongside the form 4805 declaration.
 
 - **D-04:** A single guardian-level default preliminary tax rate, stored in the `settings` table
   under key `preliminary_tax_rate` (e.g. value `"0.30"` for 30%). This mirrors the existing
@@ -53,64 +56,93 @@ rates (deferred from Phase 3), karensdag deduction.
   All assistants use the same rate — no per-assistant override in Phase 4.
 
 - **D-05:** Add a "Preliminary tax rate" field to the Settings page (alongside the existing
-  FK hourly rate and employer tax rate fields). Guardian sets this once; it applies to all AGI
-  exports going forward. Snapshot the rate into `payroll_records` at generation time (same
+  FK hourly rate and employer tax rate fields). Guardian sets this once; it applies to all form
+  4805 exports going forward. Snapshot the rate into `payroll_records` at generation time (same
   pattern as `hourly_rate_snapshot` and `tax_rate_snapshot`).
 
-### Data Source for AGI
+### Data Source for Form 4805
 
-- **D-06:** AGI reads from `payroll_records` for gross salary and employer contributions
-  (these are the approved, locked figures). VAB days are derived separately from the `absences`
-  table using calendar day counts (clipped to the reporting month boundary) — not from
-  `absence_breakdown_json` which stores hours, not days.
+- **D-06:** Form 4805 reads from `payroll_records` for gross salary and employer contributions
+  (these are the approved, locked figures). VAB days: **dropped from Phase 4** (form 4805 has
+  no VAB field). VAB derivation deferred to a future phase.
 
-- **D-07:** AGI is only generated for months where `payroll_records.status = 'approved'`
-  for all assistants. If any assistant's payroll is still `draft`, the download button is
-  disabled with a tooltip explaining why.
+- **D-07:** Form 4805 is only generated for months where `payroll_records.status = 'approved'`
+  for the specific assistant. If an assistant's payroll is still `draft`, that assistant's
+  download button is disabled with a tooltip explaining why.
 
-### XML Generation
+### PDF Generation
 
-- **D-08:** Add `xmlbuilder2` as a new server dependency for XML serialisation. Do not use
-  string templating — Swedish names contain Å, Ö, Ä which require proper encoding.
+- **D-08:** Use `pdf-lib` (already installed at v1.17.1) to fill AcroForm fields in the
+  Skatteverket blankett 4805 PDF template stored at `forms/skv4805.pdf`. Do NOT use
+  `xmlbuilder2` or string templating. Swedish characters (Å, Ö, Ä) are handled by pdf-lib
+  natively.
 
-- **D-09:** New route file `server/src/routes/agi.ts`, mounted at `POST /api/agi/generate`.
-  Request body: `{ year: string, month: string }`. Returns an XML file download
-  (`Content-Type: application/xml`, `Content-Disposition: attachment; filename="AGI-YYYY-MM.xml"`).
-  One file per month covering all assistants.
+- **D-09:** Route `POST /api/pdf/4805` in `server/src/routes/pdf.ts` (extend existing file,
+  do not create a separate agi.ts). Request body: `{ year: string, month: string, assistantId: string }`.
+  Returns `application/pdf` with `Content-Disposition: attachment; filename="4805-YYYY-MM-{name}.pdf"`.
+  One PDF per assistant per request.
 
-- **D-10:** New pure utility file `server/src/lib/agi-utils.ts` — builds the XML document
-  from payroll and absence data. No DB imports. Follows the `payroll-utils.ts` / `absence-utils.ts`
-  pure-function pattern.
+- **D-10:** New pure utility file `server/src/lib/form4805-utils.ts` — builds the AcroForm
+  field map from payroll and profile data. No DB imports. Returns
+  `Record<string, string>` mapping confirmed field names to values. Follows the
+  `payroll-utils.ts` / `absence-utils.ts` pure-function pattern.
+
+### Confirmed AcroForm Field Names (from direct PDF inspection)
+
+Duplicate field names (txtNamn[0], txtPersNr[0], txtAdress[0]) appear twice — use
+`form.getFields().filter(f => f.getName() === name)` and access by index: [0]=employer, [1]=recipient.
+
+```
+txtManad[0]           ← Swedish month name, first letter capitalised
+                        (new Intl.DateTimeFormat('sv-SE',{month:'long'}).format(date)
+                         then .charAt(0).toUpperCase() + slice(1))
+txtNamn[0]   [0]      ← profile.guardianName          (employer)
+txtPersNr[0] [0]      ← profile.guardianPno            (employer)
+txtAdress[0] [0]      ← `${profile.address}, ${profile.zip} ${profile.city}`.trim()
+txtNamn[0]   [1]      ← assistant.name                (recipient)
+txtPersNr[0] [1]      ← assistant.pno                 (recipient)
+txtAdress[0] [1]      ← assistant.address             (recipient — NEW field)
+txtKod04[0]           ← String(Math.round(grossPay))   (born 1959+ — Phase 4 only)
+txtKod07[0]           ← String(Math.round(employerContributions))
+txtKod06[0]           ← String(Math.round(grossPay))   (underlag för skatteavdrag = gross)
+txtKod09[0]           ← String(Math.round(grossPay * prelimTaxRateSnapshot))
+txtKod10[0]           ← String(Math.round(employerContributions + grossPay * prelimTaxRateSnapshot))
+txtNamnfortydl[0]     ← profile.guardianName
+txtNTelefon[0]        ← profile.guardianPhone
+```
+
+All monetary values are whole integers (no decimals). Confirmed from sample form
+(4805-202503-Rose.pdf): 50046, 15733, 15014, 30747.
+
+Age-based fields `txtKod18[0]` / `txtKod24[0]` (born 1938–1958) are left empty in Phase 4.
 
 ### Employer Identifier
 
-- **D-11:** Use `profile.guardianPno` as the employer identifier in the AGI XML
-  (`AgRegistreradId`). The guardian is a private person, not a company — Swedish personal
-  number is accepted by Skatteverket for private employers. Use the stored value as-is
-  (format: `YYYYMMDDNNNN` 12-digit, already stored this way in the `profile` table).
+- **D-11:** Use `profile.guardianPno` as the employer personnummer in the form 4805
+  (`txtPersNr[0]` employer field). The guardian is a private person — stored as 12-digit
+  YYYYMMDDNNNN in the `profile` table, used as-is.
 
 ### UI Placement
 
-- **D-12:** AGI download is added to `Monthly.tsx` as **Step 4** in the compliance stepper
-  (after FK forms). Gated: Step 4 only unlocks when Steps 1–3 are complete (reports approved,
-  payroll approved, FK forms available). Download button triggers `POST /api/agi/generate`.
+- **D-12:** Form 4805 download is added to `Monthly.tsx` as **Step 4** in the compliance
+  stepper (after FK forms). Per-assistant download buttons — one button per assistant row.
+  Each button is gated on that assistant's payroll being `status = 'approved'` (D-07).
+  Button triggers `POST /api/pdf/4805` with `{ year, month, assistantId }`.
 
 - **D-13:** The preliminary tax rate setting is added to the existing Settings page
   (`client/src/pages/Settings.tsx`) alongside FK hourly rate and employer tax rate.
 
-### VAB Days
+### Assistant Address (New)
 
-- **D-14:** VAB days field in AGI XML = calendar days of `absenceType = 'vab'` absences
-  for the assistant within the reporting month, derived from the `absences` table using
-  `clippedDays()` from `absence-utils.ts`. If no VAB absences, field = 0.
+- **D-15:** Add `address text default ''` column to the `assistants` table. Form 4805
+  requires recipient address (`txtAdress[0]` recipient field). Add address input to the
+  existing assistant profile/edit UI. Guardian fills this in for each assistant.
 
 ### Claude's Discretion
 
-- Exact AGI XML namespace/DOCTYPE (research item — confirm against 2026 Skatteverket spec)
-- Income code (inkomstkod) value for personlig assistent (likely 11 — confirm via research)
-- Exact element names in 2026 LONA format (confirm via research)
-- Error handling when payroll_records are missing for some assistants in a month
-- Empty state design on Monthly page Step 4
+- Error handling when an assistant's payroll record is missing for a requested month
+- Empty state design on Monthly page Step 4 when no payroll records exist yet
+- Exact assistant edit UI component to extend for address field
 
 </decisions>
 
@@ -125,26 +157,22 @@ rates (deferred from Phase 3), karensdag deduction.
 
 ### Payroll foundation (formula must be corrected here)
 - `server/src/lib/payroll-utils.ts` — current (incorrect) formula; Phase 4 fixes this
-- `server/src/routes/payroll.ts` — payroll generation route; may need updating after formula fix
-- `server/src/db/schema.ts` — `payroll_records` table columns (gross_pay, employer_contributions,
-  hourly_rate_snapshot, tax_rate_snapshot, absence_breakdown_json, status)
+- `server/src/routes/payroll.ts` — payroll generation route; needs updating after formula fix
+- `server/src/db/schema.ts` — `payroll_records` table columns
 
 ### Costs deduction
 - `server/src/db/schema.ts` — `costs` table (id, month, category, assistant_id, amount_sek)
 
-### VAB days derivation
-- `server/src/lib/absence-utils.ts` — `clippedDays()` function for calendar day counting
-- `server/src/db/schema.ts` — `absences` table (assistant_id, start_date, end_date, absence_type)
-
 ### Settings pattern (for preliminary_tax_rate key)
-- `server/src/routes/misc.ts` — existing `/api/settings` GET/POST endpoints; add new key here
+- `server/src/routes/misc.ts` — existing `/api/settings` GET/POST endpoints
 - `server/src/db/schema.ts` — `settings` table (key text, value text)
 
-### Existing file generation pattern to follow
+### PDF generation pattern to follow
 - `server/src/routes/pdf.ts` — file download route pattern (Content-Disposition, error handling)
+  Phase 4 extends this file with the 4805 endpoint (D-09)
 
 ### UI integration points
-- `client/src/pages/Monthly.tsx` — Step 4 AGI download goes here
+- `client/src/pages/Monthly.tsx` — Step 4 form 4805 download goes here
 - `client/src/pages/Settings.tsx` — preliminary tax rate field goes here
 
 ### Phase 3 context (decisions that constrain this phase)
@@ -157,23 +185,22 @@ rates (deferred from Phase 3), karensdag deduction.
 ## Existing Code Insights
 
 ### Reusable Assets
-- `server/src/lib/absence-utils.ts` — `clippedDays(startDate, endDate, monthStart, monthEnd)` for VAB day count
-- `server/src/lib/payroll-utils.ts` — will be corrected; `calculatePayroll()` signature can stay, formula changes
-- `server/src/routes/pdf.ts` — file download pattern (set headers, send buffer) to replicate in `agi.ts`
+- `server/src/lib/payroll-utils.ts` — will be corrected; `calculatePayroll()` signature updated to include `costsSum`
+- `server/src/routes/pdf.ts` — file download pattern (set headers, send buffer); extend for 4805 endpoint
 - `server/src/middleware/auth.ts` — `requireAuth` + `requireGuardian` middleware for new route
 
 ### Established Patterns
-- Pure utility in `server/src/lib/` with no DB imports — follow for `agi-utils.ts`
-- One route file per domain — `agi.ts` for `POST /api/agi/generate`
+- Pure utility in `server/src/lib/` with no DB imports — follow for `form4805-utils.ts`
 - Settings key/value store — add `preliminary_tax_rate` key, read via existing `/api/settings`
 - Snapshot rates at generation time (not re-read from settings on each fetch)
 
 ### Integration Points
-- `server/src/index.ts` — register `agi.ts` routes at `/api/agi`
-- `server/src/db/schema.ts` — add `prelim_tax_rate_snapshot` column to `payroll_records`
-- `client/src/lib/api.ts` — add `agiApi.generate(year, month)` typed helper
+- `server/src/routes/pdf.ts` — add `POST /api/pdf/4805` endpoint here (D-09)
+- `server/src/db/schema.ts` — add `prelim_tax_rate_snapshot` to `payroll_records`, `address` to `assistants`
+- `client/src/lib/api.ts` — add `pdfApi.form4805(year, month, assistantId)` typed helper
 - `client/src/pages/Monthly.tsx` — add Step 4 after existing Step 3 (FK forms)
 - `client/src/pages/Settings.tsx` — add preliminary tax rate input field
+- Assistant edit UI — add address field (locate the assistant edit component)
 
 </code_context>
 
@@ -182,19 +209,20 @@ rates (deferred from Phase 3), karensdag deduction.
 
 - 334 kr/h is the total FK allocation envelope — NOT just gross salary. The correct derivation is:
   `gross = (hours × 334 − costs) / 1.3142`. Phase 3 stored the wrong figure; Phase 4 corrects it.
-- Surplus after salary + contributions + costs is returned to FK — no AGI relevance.
+- Surplus after salary + contributions + costs is returned to FK — no form 4805 relevance.
 - Guardian remits both arbetsgivaravgifter AND preliminärskatt to Skatteverket directly.
 - Preliminary tax rate is a blanket guardian setting — one rate for all assistants.
+- Sample form values confirmed: gross 50046, employer contrib 15733, prelim tax 15014 (≈30%), sum 30747.
 
 </specifics>
 
 <deferred>
 ## Deferred Ideas
 
+- **VAB days** — form 4805 has no VAB field. Deferred from Phase 4; revisit before v1 complete.
+- **Age-based contribution rates** — ✓ Implemented in Phase 4 (1959+ at 31.42%, 1938–1958 at 10.21%, 1937– no contributions).
 - **Per-assistant tax codes / jämkningsbeslut** — some assistants may have a tax adjustment
   decision reducing their withholding rate. Deferred to a future compliance pass.
-- **Age-based employer contribution rates** — 10.21% for born before 1959, 17.77% for born
-  2003–2006. Deferred from Phase 3; still deferred from Phase 4.
 - **Karensdag deduction** — first unpaid sick day. Still deferred.
 - **Direct e-filing via Skatteverket API** — out of scope per REQUIREMENTS.md.
 - **Printable payslip** — noted in Phase 3 deferred ideas; not in Phase 4.
@@ -204,4 +232,4 @@ rates (deferred from Phase 3), karensdag deduction.
 ---
 
 *Phase: 04-tax-reporting-agi*
-*Context gathered: 2026-04-11*
+*Context gathered: 2026-04-11 | Updated: 2026-04-11*
