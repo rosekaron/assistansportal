@@ -211,3 +211,28 @@ export const assistantSelfApi = {
   openSlots:    () => api.get("/assistant/open-slots"),
   selfBook:     (slotId: string) => api.post(`/assistant/self-book/${slotId}`),
 };
+
+// ── Clock API (assistant-only) ────────────────────────────────
+export const clockApi = {
+  clockIn:  (guardianId: number) =>
+    api.post<{ event: Record<string, unknown> }>("/clock/in", { guardianId }),
+  clockOut: (guardianId: number) =>
+    api.post<{ event: Record<string, unknown>; entry: Record<string, unknown> }>("/clock/out", { guardianId }),
+  status:   (guardianId: number) =>
+    api.get<{ state: "clocked_in" | "clocked_out"; activeEvent: Record<string, unknown> | null }>(
+      `/clock/status?guardianId=${guardianId}`
+    ),
+};
+
+// ── Guardian Links API (assistant-only) ───────────────────────
+export type GuardianLink = {
+  id: string;
+  assistantId: string;
+  guardianId: number;
+  active: boolean;
+  createdAt: string;
+};
+
+export const guardianLinksApi = {
+  myFamilies: () => api.get<GuardianLink[]>("/guardian-links/my-families"),
+};
