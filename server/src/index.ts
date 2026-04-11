@@ -27,6 +27,7 @@ import absencesRoutes        from "./routes/absences";
 import payrollRoutes         from "./routes/payroll";
 import paymentsRoutes        from "./routes/payments";
 import clockRoutes           from "./routes/clock";
+import guardianLinksRoutes   from "./routes/guardian-links";
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -48,7 +49,8 @@ app.use("/api/costs",       costsRoutes);
 app.use("/api/absences",    absencesRoutes);
 app.use("/api/payroll",    payrollRoutes);
 app.use("/api/payments",   paymentsRoutes);
-app.use("/api/clock",     clockRoutes);
+app.use("/api/clock",          clockRoutes);
+app.use("/api/guardian-links", guardianLinksRoutes);
 
 app.get("/api/health", (_req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
 
