@@ -466,6 +466,9 @@ export default function MonthlyPage() {
       .sort((a, b) => (a.date as string).localeCompare(b.date as string));
   }, [entries]);
 
+  // D-07: Step 4 unlocks when all payroll is approved (same condition as step2Complete)
+  const agiUnlocked = step2Complete;
+
   // ── Stepper state ─────────────────────────────────────────────────────────
   const stepperSteps: StepProps[] = [
     {
@@ -485,7 +488,27 @@ export default function MonthlyPage() {
       label: "FK forms",
       state: fkUnlocked ? "complete" : "locked",
     },
+    {
+      number: 4,
+      label: "AGI (4805)",
+      state: agiUnlocked ? "active" : "locked",
+    },
   ];
+
+  // ── 4805 download handler ─────────────────────────────────────────────────
+  async function download4805(assistantId: string, assistantName: string) {
+    try {
+      const res = await pdfApi.form4805(String(year), pad(month + 1), assistantId);
+      const url = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `4805-${year}-${pad(month + 1)}-${assistantName.replace(/\s+/g, "-")}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Could not download form 4805. Ensure payroll is approved and the template PDF (skv4805.pdf) is in the forms/ directory.");
+    }
+  }
 
   // ── Month navigation ──────────────────────────────────────────────────────
   function goToPrevMonth() {
@@ -865,6 +888,71 @@ export default function MonthlyPage() {
             </p>
           )}
         </div>
+      </div>
+
+      {/* ════════════════════════════════════════════════════════════
+          SECTION 4 — AGI (blankett 4805)
+      ════════════════════════════════════════════════════════════ */}
+      <div className="mb-10 mt-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className={cn(
+            "w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0",
+            agiUnlocked ? "bg-primary" : "bg-muted"
+          )}>
+            <span className={cn("text-xs font-bold", agiUnlocked ? "text-primary-foreground" : "text-muted-foreground")}>4</span>
+          </div>
+          <h2 className="text-base font-semibold text-foreground">AGI (blankett 4805)</h2>
+        </div>
+
+        {!agiUnlocked ? (
+          <div className="py-10 text-center bg-secondary/10 rounded-xl border border-dashed border-border">
+            <p className="text-sm text-muted-foreground">
+              Approve all payroll records to unlock AGI download.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Download a pre-filled blankett 4805 (Förenklad arbetsgivardeklaration) for each assistant.
+              Submit to Skatteverket by the 12th of the following month.
+            </p>
+            <div className="grid lg:grid-cols-2 gap-3">
+              {(assistants as Assistant[]).map((a) => {
+                const record = payrollRecords.find(r => r.assistantId === (a.id as string));
+                const isApproved = record?.status === "approved";
+                return (
+                  <Card key={a.id as string}>
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <AssistantAvatar name={a.name as string} initials={a.initials as string} color={a.color as string} size={36} />
+                          <div>
+                            <p className="font-semibold text-sm">{a.name as string}</p>
+                            {record && (
+                              <p className="text-xs text-muted-foreground">
+                                Gross: {formatSek(record.grossPay)} · Tax withheld: {formatSek(record.grossPay * (record.prelimTaxRateSnapshot ?? 0))}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant={isApproved ? "default" : "ghost"}
+                          disabled={!isApproved}
+                          title={isApproved ? "Download blankett 4805" : "Approve payroll first"}
+                          onClick={() => isApproved && download4805(a.id as string, a.name as string)}
+                        >
+                          <FileDown className="w-4 h-4" />
+                          {isApproved ? "Download 4805" : "Payroll pending"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
