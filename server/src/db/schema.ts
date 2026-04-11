@@ -98,6 +98,10 @@ export const entries = pgTable("entries", {
   gcalEventId: text("gcal_event_id"),
   createdAt:   timestamp("created_at").defaultNow(),
   updatedAt:   timestamp("updated_at").defaultNow(),
+  // Set to true when this entry was auto-created by a clock-out event (Plan 02).
+  // Plan 06 reads this flag to show the "Verified" badge on the Monthly page.
+  // Manual entries (proposals, guardian-created) remain verified=false.
+  verified:    boolean("verified").default(false),
 });
 
 // ── Open slots ────────────────────────────────────────────────
@@ -219,6 +223,19 @@ export const clockEvents = pgTable("clock_events", {
   createdAt:   timestamp("created_at").defaultNow(),
 });
 
+// ── Assistant–Guardian links ───────────────────────────────────
+// One row per (assistant, guardian) working relationship.
+// active=false means the link was created (invite sent) but not yet accepted.
+// active=true means the assistant accepted and can clock in/out for this family.
+// This is the multi-family support table: one assistant can have N active links.
+export const assistantGuardianLinks = pgTable("assistant_guardian_links", {
+  id:          text("id").primaryKey(),
+  assistantId: text("assistant_id").notNull().references(() => assistants.id, { onDelete: "cascade" }),
+  guardianId:  integer("guardian_id").notNull(),  // auth.id of the guardian
+  active:      boolean("active").default(false).notNull(),
+  createdAt:   timestamp("created_at").defaultNow(),
+});
+
 // ── Types ─────────────────────────────────────────────────────
 export type Profile           = typeof profile.$inferSelect;
 export type Auth              = typeof auth.$inferSelect;
@@ -232,4 +249,5 @@ export type PasswordReset     = typeof passwordResets.$inferSelect;
 export type Absence           = typeof absences.$inferSelect;
 export type PayrollRecord     = typeof payrollRecords.$inferSelect;
 export type Payment           = typeof payments.$inferSelect;
-export type ClockEvent        = typeof clockEvents.$inferSelect;
+export type ClockEvent              = typeof clockEvents.$inferSelect;
+export type AssistantGuardianLink   = typeof assistantGuardianLinks.$inferSelect;
