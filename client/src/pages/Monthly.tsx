@@ -874,7 +874,22 @@ export default function MonthlyPage() {
           </div>
         ) : (
           <>
-            {/* 3 stat chips */}
+            {/* 3 stat chips + recalculate button if any draft records */}
+            <div className="flex items-center justify-between mb-4">
+              <div />
+              {payrollRecords.some(r => r.status === "draft") && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-xs"
+                  disabled={generatePayroll.isPending}
+                  onClick={() => generatePayroll.mutate()}
+                  title="Recalculate payroll from current approved entries"
+                >
+                  ↻ {generatePayroll.isPending ? "Recalculating…" : "Recalculate"}
+                </Button>
+              )}
+            </div>
             <div className="grid grid-cols-3 gap-4 mb-6">
               {[
                 { label: "Total gross pay",     value: formatSek(totalGross) },

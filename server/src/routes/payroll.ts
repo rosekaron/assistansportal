@@ -61,7 +61,7 @@ router.post("/generate", requireAuth, requireGuardian, async (req: AuthRequest, 
     const result: typeof payrollRecords.$inferSelect[] = [];
 
     for (const asst of allAssistants) {
-      // Check for existing record — idempotent: return existing if already generated (T-03-08)
+      // Check for existing record
       const existing = await db.select().from(payrollRecords).where(
         and(
           eq(payrollRecords.assistantId, asst.id),
@@ -69,8 +69,13 @@ router.post("/generate", requireAuth, requireGuardian, async (req: AuthRequest, 
         )
       );
       if (existing.length > 0) {
-        result.push(existing[0]);
-        continue;
+        if (existing[0].status === "approved") {
+          // Approved records are locked — never overwrite
+          result.push(existing[0]);
+          continue;
+        }
+        // Draft record exists — delete it and recalculate from current entries
+        await db.delete(payrollRecords).where(eq(payrollRecords.id, existing[0].id));
       }
 
       // Fetch approved entries for this assistant in the month
