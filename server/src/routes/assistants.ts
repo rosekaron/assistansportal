@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../db";
-import { assistants } from "../db/schema";
+import { assistants, assistantGuardianLinks, auth } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 import { newId } from "../lib/id";
@@ -29,6 +29,16 @@ router.post("/", requireAuth, requireGuardian, async (req: AuthRequest, res) => 
     minWeeklyHours: minWeeklyHours ?? 0,
     isFlexible: isFlexible ?? false,
   }).returning();
+
+  // Auto-create an active guardian link so the assistant can clock in immediately
+  // after accepting their invite. Single-tenant: req.userId is always the one guardian.
+  await db.insert(assistantGuardianLinks).values({
+    id:          newId("gl"),
+    assistantId: row.id,
+    guardianId:  req.userId!,
+    active:      true,
+  }).onConflictDoNothing();
+
   res.status(201).json(row);
 });
 
@@ -51,6 +61,45 @@ router.put("/:id", requireAuth, requireGuardian, async (req: AuthRequest, res) =
 router.delete("/:id", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   await db.delete(assistants).where(eq(assistants.id, req.params.id));
   res.json({ ok: true });
+});
+
+// POST /api/assistants/:id/link-self
+// Lets a guardian link their own auth account to an assistant record so they
+// can clock in/out for themselves. Sets assistants.authId, auth.assistantId,
+// and creates an active assistantGuardianLinks row.
+router.post("/:id/link-self", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const [asst] = await db.select().from(assistants).where(eq(assistants.id, id)).limit(1);
+    if (!asst) return res.status(404).json({ error: "Assistant not found" });
+
+    // Link assistant record → auth account
+    await db.update(assistants)
+      .set({ authId: req.userId!, inviteStatus: "accepted" })
+      .where(eq(assistants.id, id));
+
+    // Link auth account → assistant record
+    await db.update(auth)
+      .set({ assistantId: id })
+      .where(eq(auth.id, req.userId!));
+
+    // Create active guardian link so clock-in works
+    await db.insert(assistantGuardianLinks).values({
+      id:          newId("gl"),
+      assistantId: id,
+      guardianId:  req.userId!,
+      active:      true,
+    }).onConflictDoNothing();
+
+    await db.update(assistantGuardianLinks)
+      .set({ active: true })
+      .where(eq(assistantGuardianLinks.assistantId, id));
+
+    res.json({ ok: true, assistantId: id });
+  } catch (e) {
+    console.error("[assistants] link-self error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 export default router;

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { profileApi, settingsApi, assistantsApi, invitesApi, gcalApi } from "@/lib/api";
+import { useAuthStore } from "@/store/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Badge, Textarea } from "@/components/ui/inputs";
@@ -64,8 +65,10 @@ type Assistant = Record<string, string | number | boolean | null>;
 type Invite    = Record<string, string | number | boolean | null>;
 
 export default function SettingsPage() {
-  const qc       = useQueryClient();
-  const navigate = useNavigate();
+  const qc             = useQueryClient();
+  const navigate       = useNavigate();
+  const setAssistantId = useAuthStore((s) => s.setAssistantId);
+  const authAssistantId = useAuthStore((s) => s.assistantId);
   const [searchParams, setSearchParams] = useSearchParams();
 
   // ── Account / profile state ────────────────────────────────────────────────
@@ -232,6 +235,14 @@ export default function SettingsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["assistants"] }); setEditTarget(null); },
   });
 
+  const linkSelfMutation = useMutation({
+    mutationFn: (id: string) => assistantsApi.linkSelf(id),
+    onSuccess: (_res, id) => {
+      setAssistantId(id);
+      qc.invalidateQueries({ queryKey: ["assistants"] });
+    },
+  });
+
   function openEdit(a: Assistant) {
     setEditForm({
       name:           (a.name as string) ?? "",
@@ -367,15 +378,33 @@ export default function SettingsPage() {
                       <span className="text-xs">{a.phone as string}</span>
                     </div>
                   )}
-                  <Badge variant="success" className="text-[10px]">● Active</Badge>
+                  {authAssistantId === (a.id as string)
+                    ? <Badge variant="success" className="text-[10px]">● Active · Linked to your account</Badge>
+                    : <Badge variant="success" className="text-[10px]">● Active</Badge>
+                  }
                   {/* View leave link — replaces AssistantAbsenceSummary */}
-                  <div className="pt-2 border-t border-border mt-2">
+                  <div className="pt-2 border-t border-border mt-2 flex items-center justify-between">
                     <button
                       onClick={() => navigate("/records")}
                       className="text-xs text-primary hover:underline flex items-center gap-1"
                     >
                       View leave <ChevronRight className="w-3 h-3" />
                     </button>
+                    {/* Guardian-as-assistant: link this record to the guardian's own account */}
+                    {!authAssistantId && (
+                      <button
+                        onClick={() => {
+                          if (confirm(`Link your guardian account to ${a.name as string}? You'll be able to clock in/out as this assistant.`)) {
+                            linkSelfMutation.mutate(a.id as string);
+                          }
+                        }}
+                        disabled={linkSelfMutation.isPending}
+                        className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+                        title="Link your account so you can clock in as this assistant"
+                      >
+                        Link my account
+                      </button>
+                    )}
                   </div>
                 </div>
               </CardContent>

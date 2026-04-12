@@ -3,7 +3,7 @@ import { useAuthStore } from "@/store/auth";
 import { useQuery } from "@tanstack/react-query";
 import { profileApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, CheckSquare, FolderOpen, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, CheckSquare, FolderOpen, Settings, LogOut, UserCog } from "lucide-react";
 
 const nav = [
   { to: "/home",     label: "Home",     icon: LayoutDashboard },
@@ -13,8 +13,10 @@ const nav = [
 ];
 
 export default function Layout() {
-  const logout   = useAuthStore((s) => s.logout);
-  const navigate = useNavigate();
+  const logout        = useAuthStore((s) => s.logout);
+  const isDualRole    = useAuthStore((s) => s.isDualRole);
+  const setActiveView = useAuthStore((s) => s.setActiveView);
+  const navigate      = useNavigate();
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn:  () => profileApi.get().then((r) => r.data),
@@ -82,6 +84,15 @@ export default function Layout() {
                 <span className="text-xs font-normal text-muted-foreground"> / week</span>
               </p>
             </div>
+          )}
+          {isDualRole() && (
+            <button
+              onClick={() => { setActiveView("assistant"); navigate("/assistant"); }}
+              className="flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+            >
+              <UserCog className="shrink-0" style={{ width: 18, height: 18 }} />
+              Switch to assistant view
+            </button>
           )}
           <button
             onClick={handleLogout}

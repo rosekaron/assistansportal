@@ -16,8 +16,10 @@ import { LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 type Entry = Record<string, string | number | null | undefined>;
 
 export default function AssistantDashboard() {
-  const logout   = useAuthStore((s) => s.logout);
-  const navigate = useNavigate();
+  const logout        = useAuthStore((s) => s.logout);
+  const isDualRole    = useAuthStore((s) => s.isDualRole);
+  const setActiveView = useAuthStore((s) => s.setActiveView);
+  const navigate      = useNavigate();
   const qc       = useQueryClient();
 
   const [tab, setTab]           = useState("upcoming");
@@ -198,6 +200,14 @@ export default function AssistantDashboard() {
             </select>
           )}
 
+          {isDualRole() && (
+            <button
+              onClick={() => { setActiveView("guardian"); navigate("/home"); }}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              ← Guardian view
+            </button>
+          )}
           <button
             onClick={() => { logout(); navigate("/login"); }}
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"

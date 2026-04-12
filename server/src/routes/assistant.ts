@@ -2,12 +2,12 @@ import { Router } from "express";
 import { db } from "../db";
 import { entries, assistants, profile, openSlots, absences } from "../db/schema";
 import { eq, and, gte, lte, or, isNull } from "drizzle-orm";
-import { requireAuth, requireAssistant, AuthRequest } from "../middleware/auth";
+import { requireAuth, requireAssistantAccess, AuthRequest } from "../middleware/auth";
 import { newId } from "../lib/id";
 import { getCalendarClient } from "./gcal";
 
 const router = Router();
-router.use(requireAuth, requireAssistant);
+router.use(requireAuth, requireAssistantAccess);
 
 router.get("/me", async (req: AuthRequest, res) => {
   try {

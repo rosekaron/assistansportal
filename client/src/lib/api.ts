@@ -65,10 +65,11 @@ export const profileApi = {
 
 // Assistants
 export const assistantsApi = {
-  list:   () => api.get("/assistants"),
-  create: (data: Record<string, unknown>) => api.post("/assistants", data),
-  update: (id: string, data: Record<string, unknown>) => api.put(`/assistants/${id}`, data),
-  delete: (id: string) => api.delete(`/assistants/${id}`),
+  list:     () => api.get("/assistants"),
+  create:   (data: Record<string, unknown>) => api.post("/assistants", data),
+  update:   (id: string, data: Record<string, unknown>) => api.put(`/assistants/${id}`, data),
+  delete:   (id: string) => api.delete(`/assistants/${id}`),
+  linkSelf: (id: string) => api.post(`/assistants/${id}/link-self`),
 };
 
 // Entries

@@ -23,14 +23,23 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 function RequireGuardian({ children }: { children: React.ReactNode }) {
-  const role = useAuthStore((s) => s.role);
+  const role       = useAuthStore((s) => s.role);
+  const activeView = useAuthStore((s) => s.activeView);
+  // Pure assistant → redirect to assistant dashboard
   if (role === "assistant") return <Navigate to="/assistant" replace />;
+  // Guardian who switched to assistant view → redirect
+  if (role === "guardian" && activeView === "assistant") return <Navigate to="/assistant" replace />;
   return <>{children}</>;
 }
 
 function RequireAssistant({ children }: { children: React.ReactNode }) {
-  const role = useAuthStore((s) => s.role);
-  if (role === "guardian") return <Navigate to="/home" replace />;
+  const role       = useAuthStore((s) => s.role);
+  const activeView = useAuthStore((s) => s.activeView);
+  const isDualRole = useAuthStore((s) => s.isDualRole);
+  // Pure guardian with no assistant link → back to home
+  if (role === "guardian" && !isDualRole()) return <Navigate to="/home" replace />;
+  // Guardian in guardian view → back to home
+  if (role === "guardian" && activeView === "guardian") return <Navigate to="/home" replace />;
   return <>{children}</>;
 }
 

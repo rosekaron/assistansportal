@@ -2,13 +2,13 @@ import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db } from "../db";
 import { clockEvents, assistantGuardianLinks, assistants, entries } from "../db/schema";
-import { requireAuth, requireAssistant, AuthRequest } from "../middleware/auth";
+import { requireAuth, requireAssistantAccess, AuthRequest } from "../middleware/auth";
 import { newId } from "../lib/id";
 
 const router = Router();
 
-// All clock routes require authenticated assistant
-router.use(requireAuth, requireAssistant);
+// All clock routes require authenticated assistant OR guardian-as-assistant
+router.use(requireAuth, requireAssistantAccess);
 
 // Helper: resolve assistantId from JWT userId
 async function getAssistantId(userId: number): Promise<string | null> {
