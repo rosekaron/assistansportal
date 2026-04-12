@@ -89,7 +89,7 @@ router.get("/callback", async (req, res) => {
 });
 
 // ── Helper: get authenticated calendar client ─────────────────
-async function getCalendarClient() {
+export async function getCalendarClient() {
   const rows = await db.select().from(settings);
   const s = Object.fromEntries(rows.map(r => [r.key, r.value]));
 

@@ -12,8 +12,12 @@ import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import {
   FileDown, ChevronLeft, ChevronRight, CheckCircle2, Clock,
-  FileText, AlertCircle, Trash2
+  FileText, AlertCircle, Trash2, Pencil, Plus
 } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import { ACTIVITY_TYPES } from "@/lib/activities";
 
 // ── Utility functions ──────────────────────────────────────────────────────
 
@@ -347,6 +351,18 @@ function AssistantPayrollCard({
   );
 }
 
+// ── Time helpers ───────────────────────────────────────────────────────────
+
+/** Given "HH:MM" start and end strings, return decimal hours (quarter-hour precision). */
+function hoursFromRange(start: string, end: string): number {
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  if (isNaN(sh) || isNaN(eh)) return 0;
+  const diff = eh * 60 + em - (sh * 60 + sm);
+  if (diff <= 0) return 0;
+  return Math.round((diff / 60) * 4) / 4;
+}
+
 // ── Main Monthly page ──────────────────────────────────────────────────────
 
 export default function MonthlyPage() {
@@ -354,6 +370,21 @@ export default function MonthlyPage() {
   const now = new Date();
   const [year,  setYear]  = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth()); // 0-indexed
+
+  // ── Edit entry modal state ────────────────────────────────────────────────
+  const [editEntry, setEditEntry] = useState<Entry | null>(null);
+  const [editStart, setEditStart] = useState("");
+  const [editEnd,   setEditEnd]   = useState("");
+  const [editHours, setEditHours] = useState("");
+
+  // ── Add entry modal state ─────────────────────────────────────────────────
+  const [addOpen,          setAddOpen]          = useState(false);
+  const [addAssistantId,   setAddAssistantId]   = useState("");
+  const [addDate,          setAddDate]          = useState("");
+  const [addStart,         setAddStart]         = useState("");
+  const [addEnd,           setAddEnd]           = useState("");
+  const [addHours,         setAddHours]         = useState("");
+  const [addActivity,      setAddActivity]      = useState("personal_care");
 
   // Single shared month key across both reports and payroll sections
   const monthKey = `${year}-${pad(month + 1)}`;
@@ -403,6 +434,25 @@ export default function MonthlyPage() {
   const generatePayroll = useMutation({
     mutationFn: () => payrollApi.generate(monthKey),
     onSuccess:  () => qc.invalidateQueries({ queryKey: ["payroll", monthKey] }),
+  });
+
+  const editEntryMutation = useMutation({
+    mutationFn: ({ id, startTime, endTime, hours }: { id: string; startTime: string; endTime: string; hours: number }) =>
+      entriesApi.update(id, { startTime, endTime, hours }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["entries", year, month] });
+      setEditEntry(null);
+    },
+  });
+
+  const createEntryMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) => entriesApi.create(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["entries", year, month] });
+      setAddOpen(false);
+      setAddAssistantId(""); setAddDate(""); setAddStart("");
+      setAddEnd(""); setAddHours(""); setAddActivity("personal_care");
+    },
   });
 
   const fk3057Download = useMutation({
@@ -578,11 +628,25 @@ export default function MonthlyPage() {
           SECTION 1 — Daily reports
       ════════════════════════════════════════════════════════════ */}
       <div className="mb-10">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-            <span className="text-xs font-bold text-primary-foreground">1</span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+              <span className="text-xs font-bold text-primary-foreground">1</span>
+            </div>
+            <h2 className="text-base font-semibold text-foreground">Daily reports</h2>
           </div>
-          <h2 className="text-base font-semibold text-foreground">Daily reports</h2>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 text-xs"
+            onClick={() => {
+              setAddDate(`${year}-${pad(month + 1)}-01`);
+              setAddOpen(true);
+            }}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add entry
+          </Button>
         </div>
 
         {summaries.length === 0 ? (
@@ -713,26 +777,44 @@ export default function MonthlyPage() {
                               </span>
                             </td>
                             <td className="px-4 py-3">
-                              {isPending && (
-                                <div className="flex gap-1.5">
+                              <div className="flex gap-1.5 items-center flex-wrap">
+                                {isPending && (
+                                  <>
+                                    <Button
+                                      size="sm" variant="approve"
+                                      disabled={approveEntry.isPending}
+                                      onClick={() => approveEntry.mutate({ id: e.id as string })}
+                                    >
+                                      ✓ Approve
+                                    </Button>
+                                    <Button
+                                      size="sm" variant="reject"
+                                      disabled={rejectEntry.isPending}
+                                      onClick={() => rejectEntry.mutate({ id: e.id as string })}
+                                    >
+                                      ✕
+                                    </Button>
+                                  </>
+                                )}
+                                {isApproved && <span className="text-xs text-emerald-600 font-medium">✓ Done</span>}
+                                {isDraft    && <span className="text-xs text-muted-foreground">Awaiting submission</span>}
+                                {/* Edit button always visible for pending/approved entries */}
+                                {(isPending || isApproved) && (
                                   <Button
-                                    size="sm" variant="approve"
-                                    disabled={approveEntry.isPending}
-                                    onClick={() => approveEntry.mutate({ id: e.id as string })}
+                                    size="sm" variant="ghost"
+                                    className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                    title="Edit times"
+                                    onClick={() => {
+                                      setEditEntry(e as Entry);
+                                      setEditStart((e.startTime as string) ?? "");
+                                      setEditEnd((e.endTime as string) ?? "");
+                                      setEditHours(String(e.hours ?? ""));
+                                    }}
                                   >
-                                    ✓ Approve
+                                    <Pencil className="w-3.5 h-3.5" />
                                   </Button>
-                                  <Button
-                                    size="sm" variant="reject"
-                                    disabled={rejectEntry.isPending}
-                                    onClick={() => rejectEntry.mutate({ id: e.id as string })}
-                                  >
-                                    ✕
-                                  </Button>
-                                </div>
-                              )}
-                              {isApproved && <span className="text-xs text-emerald-600 font-medium">✓ Done</span>}
-                              {isDraft    && <span className="text-xs text-muted-foreground">Awaiting submission</span>}
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -954,6 +1036,192 @@ export default function MonthlyPage() {
           </div>
         )}
       </div>
+
+      {/* ── Edit entry modal ────────────────────────────────────────────────── */}
+      <Dialog open={!!editEntry} onOpenChange={(open) => { if (!open) setEditEntry(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit report times</DialogTitle>
+            <DialogDescription>
+              Correct the start time, end time, or hours for this entry.
+              Hours auto-calculate when you change the times.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 mt-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-start">Start time</Label>
+                <Input
+                  id="edit-start"
+                  type="time"
+                  value={editStart}
+                  onChange={e => {
+                    setEditStart(e.target.value);
+                    if (editEnd) setEditHours(String(hoursFromRange(e.target.value, editEnd)));
+                  }}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-end">End time</Label>
+                <Input
+                  id="edit-end"
+                  type="time"
+                  value={editEnd}
+                  onChange={e => {
+                    setEditEnd(e.target.value);
+                    if (editStart) setEditHours(String(hoursFromRange(editStart, e.target.value)));
+                  }}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-hours">Hours</Label>
+              <Input
+                id="edit-hours"
+                type="number"
+                step="0.25"
+                min="0"
+                max="24"
+                value={editHours}
+                onChange={e => setEditHours(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">Auto-calculated from times, or enter manually.</p>
+            </div>
+            <div className="flex gap-2 justify-end pt-1">
+              <Button variant="outline" onClick={() => setEditEntry(null)}>Cancel</Button>
+              <Button
+                disabled={editEntryMutation.isPending || !editStart || !editEnd || !editHours}
+                onClick={() => {
+                  if (!editEntry) return;
+                  editEntryMutation.mutate({
+                    id:        editEntry.id as string,
+                    startTime: editStart,
+                    endTime:   editEnd,
+                    hours:     parseFloat(editHours),
+                  });
+                }}
+              >
+                {editEntryMutation.isPending ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Add entry modal ──────────────────────────────────────────────────── */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add entry manually</DialogTitle>
+            <DialogDescription>
+              Add hours that were not clock-logged. Entry will be pre-approved and
+              count toward FK reports and payroll.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 mt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="add-assistant">Assistant</Label>
+              <select
+                id="add-assistant"
+                value={addAssistantId}
+                onChange={e => setAddAssistantId(e.target.value)}
+                className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-primary"
+              >
+                <option value="">Select assistant…</option>
+                {(assistants as Assistant[]).map(a => (
+                  <option key={a.id as string} value={a.id as string}>{a.name as string}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="add-date">Date</Label>
+              <Input
+                id="add-date"
+                type="date"
+                value={addDate}
+                onChange={e => setAddDate(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="add-start">Start time</Label>
+                <Input
+                  id="add-start"
+                  type="time"
+                  value={addStart}
+                  onChange={e => {
+                    setAddStart(e.target.value);
+                    if (addEnd) setAddHours(String(hoursFromRange(e.target.value, addEnd)));
+                  }}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-end">End time</Label>
+                <Input
+                  id="add-end"
+                  type="time"
+                  value={addEnd}
+                  onChange={e => {
+                    setAddEnd(e.target.value);
+                    if (addStart) setAddHours(String(hoursFromRange(addStart, e.target.value)));
+                  }}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="add-hours">Hours</Label>
+              <Input
+                id="add-hours"
+                type="number"
+                step="0.25"
+                min="0"
+                max="24"
+                value={addHours}
+                placeholder="Auto-calculated"
+                onChange={e => setAddHours(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="add-activity">Activity</Label>
+              <select
+                id="add-activity"
+                value={addActivity}
+                onChange={e => setAddActivity(e.target.value)}
+                className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-primary"
+              >
+                {ACTIVITY_TYPES.map(a => (
+                  <option key={a.id} value={a.id}>{a.icon} {a.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-2 justify-end pt-1">
+              <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+              <Button
+                disabled={
+                  createEntryMutation.isPending ||
+                  !addAssistantId || !addDate || !addStart || !addEnd || !addHours
+                }
+                onClick={() => {
+                  createEntryMutation.mutate({
+                    assistantId: addAssistantId,
+                    date:        addDate,
+                    startTime:   addStart,
+                    endTime:     addEnd,
+                    hours:       parseFloat(addHours),
+                    activityId:  addActivity,
+                    entryType:   "active",
+                    reqStatus:   "approved",
+                    repStatus:   "approved",
+                    source:      "manual",
+                  });
+                }}
+              >
+                {createEntryMutation.isPending ? "Adding…" : "Add entry"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

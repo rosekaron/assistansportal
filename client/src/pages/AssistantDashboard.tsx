@@ -46,6 +46,34 @@ export default function AssistantDashboard() {
     queryFn: () => assistantSelfApi.entries().then((r) => r.data),
   });
 
+  // GCal schedule: fetch a 4-week window centred on current weekOffset
+  const scheduleStart = (() => {
+    const d = new Date(); d.setDate(d.getDate() + weekOffset * 7 - 7); return d.toISOString().split("T")[0];
+  })();
+  const scheduleEnd = (() => {
+    const d = new Date(); d.setDate(d.getDate() + weekOffset * 7 + 21); return d.toISOString().split("T")[0];
+  })();
+  type GCalEvent = Record<string, unknown>;
+  const { data: gcalEvents = [] } = useQuery<GCalEvent[]>({
+    queryKey: ["assistant-schedule", scheduleStart, scheduleEnd],
+    queryFn:  () => assistantSelfApi.schedule(scheduleStart, scheduleEnd).then((r) => r.data as GCalEvent[]),
+    staleTime: 2 * 60 * 1000,
+  });
+
+  function parseGcalEvent(ev: GCalEvent) {
+    const startDT = ((ev.start as Record<string, string>)?.dateTime ?? (ev.start as Record<string, string>)?.date ?? "");
+    const endDT   = ((ev.end   as Record<string, string>)?.dateTime ?? (ev.end   as Record<string, string>)?.date ?? "");
+    if (!startDT) return null;
+    const date      = startDT.substring(0, 10);
+    const startTime = startDT.length > 10 ? startDT.substring(11, 16) : "00:00";
+    const endTime   = endDT.length  > 10 ? endDT.substring(11, 16)   : "00:00";
+    const [sh, sm]  = startTime.split(":").map(Number);
+    const [eh, em]  = endTime.split(":").map(Number);
+    const hours     = Math.max(0, Math.round(((eh * 60 + em) - (sh * 60 + sm)) / 60 * 4) / 4);
+    return { date, startTime, endTime, hours, summary: (ev.summary as string) ?? "Shift" };
+  }
+  const parsedSchedule = gcalEvents.map(parseGcalEvent).filter(Boolean) as NonNullable<ReturnType<typeof parseGcalEvent>>[];
+
   const { data: clockStatus, refetch: refetchClockStatus } = useQuery({
     queryKey: ["clock-status", selectedGuardianId],
     queryFn: () => clockApi.status(selectedGuardianId!).then((r) => r.data),
@@ -111,21 +139,19 @@ export default function AssistantDashboard() {
   const todayStr  = new Date().toISOString().split("T")[0];
   const weekDates = getWeekDates(weekOffset);
 
-  const upcoming = (entries as Entry[])
-    .filter((e) => (e.date as string) >= todayStr && e.req_status !== "rejected")
-    .sort((a, b) => (a.date as string).localeCompare(b.date as string));
-
-  const thisWeek = (entries as Entry[]).filter(
-    (e) => weekDates.includes(e.date as string) && e.req_status !== "rejected"
-  );
-  const weekHours = thisWeek.reduce((s, e) => s + ((e.hours as number) ?? 0), 0);
-
-  const next7Days = upcoming.filter((e) => {
-    const d = new Date(e.date as string);
-    const limit = new Date(todayStr);
-    limit.setDate(limit.getDate() + 7);
-    return d <= limit;
-  });
+  // Schedule (from GCal) — used for Today's shift, week strip, Upcoming tab
+  const todayShift    = parsedSchedule.find((e) => e.date === todayStr) ?? null;
+  const thisWeekShifts = parsedSchedule.filter((e) => weekDates.includes(e.date));
+  const weekHours      = thisWeekShifts.reduce((s, e) => s + e.hours, 0);
+  const next7Days      = parsedSchedule
+    .filter((e) => {
+      const d     = new Date(e.date);
+      const start = new Date(todayStr);
+      const limit = new Date(todayStr);
+      limit.setDate(limit.getDate() + 7);
+      return d >= start && d <= limit;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   // ── Render ───────────────────────────────────────────────────
   return (
@@ -249,25 +275,24 @@ export default function AssistantDashboard() {
         </Card>
 
         {/* Today's scheduled shift */}
-        {(() => {
-          const todayEntry = (entries as Entry[]).find((e) => e.date === todayStr);
-          return (
-            <Card>
-              <CardContent className="py-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                  Today's shift
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+              Today's shift
+            </p>
+            {todayShift ? (
+              <div className="space-y-0.5">
+                <p className="text-sm font-semibold">{todayShift.summary}</p>
+                <p className="font-mono text-sm text-foreground">
+                  {todayShift.startTime} – {todayShift.endTime}
+                  <span className="text-muted-foreground ml-2">{todayShift.hours}h</span>
                 </p>
-                {todayEntry ? (
-                  <p className="text-sm font-medium">
-                    {todayEntry.start_time as string} – {todayEntry.end_time as string}
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No shift scheduled today</p>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })()}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No shift scheduled today</p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Week strip */}
         <Card>
@@ -297,16 +322,16 @@ export default function AssistantDashboard() {
             </div>
             <div className="grid grid-cols-7 gap-1">
               {weekDates.map((date) => {
-                const dayEntries = thisWeek.filter((e) => e.date === date);
-                const isToday    = date === todayStr;
-                const dayHours   = dayEntries.reduce((s, e) => s + ((e.hours as number) ?? 0), 0);
+                const dayShifts = thisWeekShifts.filter((e) => e.date === date);
+                const isToday   = date === todayStr;
+                const dayHours  = dayShifts.reduce((s, e) => s + e.hours, 0);
                 return (
                   <div
                     key={date}
                     className={cn(
                       "rounded-lg p-2 text-center space-y-1",
                       isToday ? "bg-primary/10 ring-1 ring-primary/30" : "bg-white border border-border",
-                      dayEntries.length === 0 && "opacity-40"
+                      dayShifts.length === 0 && "opacity-40"
                     )}
                   >
                     <p className={cn("text-[10px] font-medium uppercase", isToday ? "text-primary" : "text-muted-foreground")}>
@@ -334,35 +359,32 @@ export default function AssistantDashboard() {
             <TabsTrigger value="reports" className="flex-1">Reports</TabsTrigger>
           </TabsList>
 
-          {/* Upcoming — next 7 days */}
+          {/* Upcoming — next 7 days from GCal schedule */}
           <TabsContent value="upcoming">
             {next7Days.length === 0 ? (
               <EmptyState message="No shifts in the next 7 days" />
             ) : (
               <div className="space-y-2 mt-2">
-                {next7Days.map((e) => {
-                  const isToday = e.date === todayStr;
+                {next7Days.map((shift, idx) => {
+                  const isToday = shift.date === todayStr;
                   return (
-                    <Card key={e.id as string} className={isToday ? "ring-1 ring-primary/30" : ""}>
+                    <Card key={`${shift.date}-${idx}`} className={isToday ? "ring-1 ring-primary/30" : ""}>
                       <CardContent className="py-4">
                         <div className="flex items-start justify-between">
                           <div className="space-y-1.5">
                             <div className="flex items-center gap-2">
                               {isToday && <Badge variant="info" className="text-[10px]">Today</Badge>}
-                              <p className="text-sm font-semibold text-foreground">{formatDateLong(e.date as string)}</p>
+                              <p className="text-sm font-semibold text-foreground">{formatDateLong(shift.date)}</p>
                             </div>
                             <p className="font-mono text-lg font-bold text-foreground">
-                              {e.start_time as string} – {e.end_time as string}
+                              {shift.startTime} – {shift.endTime}
                             </p>
                             <div className="flex items-center gap-2">
-                              <ActivityPill activityId={e.activity_id as string} />
-                              <span className="text-xs text-muted-foreground">{e.hours as number}h</span>
+                              <span className="text-sm text-muted-foreground">{shift.summary}</span>
+                              <span className="text-xs text-muted-foreground">{shift.hours}h</span>
                             </div>
                           </div>
-                          <div>
-                            {e.req_status === "pending"  && <Badge variant="warning">Pending</Badge>}
-                            {e.req_status === "approved" && <Badge variant="success">✓ Confirmed</Badge>}
-                          </div>
+                          <Badge variant="success">✓ Scheduled</Badge>
                         </div>
                       </CardContent>
                     </Card>
@@ -390,13 +412,13 @@ export default function AssistantDashboard() {
                         <div>
                           <p className="text-sm font-semibold">{formatDate(e.date as string)}</p>
                           <p className="text-xs text-muted-foreground font-mono">
-                            {e.start_time as string} – {e.end_time as string} · {e.hours as number}h
+                            {(e.startTime ?? e.start_time) as string} – {(e.endTime ?? e.end_time) as string} · {e.hours as number}h
                           </p>
                         </div>
                         <div>
-                          {e.rep_status === "approved" && <Badge variant="success">Approved</Badge>}
-                          {e.rep_status === "pending"  && <Badge variant="warning">Pending</Badge>}
-                          {e.rep_status === "draft"    && <Badge variant="secondary">Draft</Badge>}
+                          {(e.repStatus ?? e.rep_status) === "approved" && <Badge variant="success">Approved</Badge>}
+                          {(e.repStatus ?? e.rep_status) === "pending"  && <Badge variant="warning">Pending</Badge>}
+                          {(e.repStatus ?? e.rep_status) === "draft"    && <Badge variant="secondary">Draft</Badge>}
                         </div>
                       </CardContent>
                     </Card>

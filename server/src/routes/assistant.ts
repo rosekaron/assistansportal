@@ -4,6 +4,7 @@ import { entries, assistants, profile, openSlots, absences } from "../db/schema"
 import { eq, and, gte, lte, or, isNull } from "drizzle-orm";
 import { requireAuth, requireAssistant, AuthRequest } from "../middleware/auth";
 import { newId } from "../lib/id";
+import { getCalendarClient } from "./gcal";
 
 const router = Router();
 router.use(requireAuth, requireAssistant);
@@ -35,6 +36,27 @@ router.get("/entries", async (req: AuthRequest, res) => {
   } catch (e) {
     console.error("[assistant] error:", e);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── Schedule: read guardian's GCal events (assistant read-only view) ─────
+router.get("/schedule", async (req: AuthRequest, res) => {
+  try {
+    const { start, end } = req.query as Record<string, string>;
+    const { calendar, calendarId } = await getCalendarClient();
+    const { data } = await calendar.events.list({
+      calendarId,
+      timeMin: start ? new Date(start).toISOString() : new Date().toISOString(),
+      timeMax: end   ? new Date(end).toISOString()   : undefined,
+      singleEvents: true,
+      orderBy: "startTime",
+      maxResults: 100,
+    });
+    res.json(data.items ?? []);
+  } catch (e) {
+    console.error("[assistant] schedule error:", e);
+    // If GCal isn't connected yet, return empty list rather than crashing
+    res.json([]);
   }
 });
 

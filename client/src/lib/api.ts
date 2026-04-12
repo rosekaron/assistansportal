@@ -209,6 +209,7 @@ export const paymentsApi = {
 export const assistantSelfApi = {
   me:           () => api.get("/assistant/me"),
   entries:      (params?: Record<string, string>) => api.get("/assistant/entries", { params }),
+  schedule:     (start: string, end: string) => api.get("/assistant/schedule", { params: { start, end } }),
   accept:       (id: string) => api.put(`/assistant/entries/${id}/accept`),
   reject:       (id: string) => api.put(`/assistant/entries/${id}/reject`),
   submitReport: (id: string) => api.put(`/assistant/entries/${id}/submit-report`),
