@@ -160,21 +160,25 @@ router.post("/fk3059", requireAuth, requireGuardian, async (req: AuthRequest, re
         dag: `form1[0].#subform[10].raderVanster[0].rad[${i}].flt_txtDag1[0]`,
         kl1: `form1[0].#subform[10].raderVanster[0].rad[${i}].flt_txtKlocka1[0]`,
         kl2: `form1[0].#subform[10].raderVanster[0].rad[${i}].flt_txtKlocka2[0]`,
+        cb:  `form1[0].#subform[10].raderVanster[0].rad[${i}].ksr_aktivTid[0]`,
       })),
       ...Array.from({ length: 20 }, (_, i) => ({
         dag: `form1[0].#subform[10].raderHoger[0].rad[${i}].flt_txtDag1[0]`,
         kl1: `form1[0].#subform[10].raderHoger[0].rad[${i}].flt_txtKlocka1[0]`,
         kl2: `form1[0].#subform[10].raderHoger[0].rad[${i}].flt_txtKlocka2[0]`,
+        cb:  `form1[0].#subform[10].raderHoger[0].rad[${i}].ksr_aktivTid[0]`,
       })),
       ...Array.from({ length: 20 }, (_, i) => ({
         dag: `form1[0].#subform[16].raderVanster[1].rad[${i}].flt_txtDag1[0]`,
         kl1: `form1[0].#subform[16].raderVanster[1].rad[${i}].flt_txtKlocka1[0]`,
         kl2: `form1[0].#subform[16].raderVanster[1].rad[${i}].flt_txtKlocka2[0]`,
+        cb:  `form1[0].#subform[16].raderVanster[1].rad[${i}].ksr_aktivTid[0]`,
       })),
       ...Array.from({ length: 20 }, (_, i) => ({
         dag: `form1[0].#subform[16].raderHoger[1].rad[${i}].flt_txtDag1[0]`,
         kl1: `form1[0].#subform[16].raderHoger[1].rad[${i}].flt_txtKlocka1[0]`,
         kl2: `form1[0].#subform[16].raderHoger[1].rad[${i}].flt_txtKlocka2[0]`,
+        cb:  `form1[0].#subform[16].raderHoger[1].rad[${i}].ksr_aktivTid[0]`,
       })),
     ];
 
@@ -189,6 +193,8 @@ router.post("/fk3059", requireAuth, requireGuardian, async (req: AuthRequest, re
       fields[slot.dag] = day;
       fields[slot.kl1] = e.startTime;
       fields[slot.kl2] = e.endTime;
+      // All hours are aktiv tid — check the per-row checkbox
+      fields[slot.cb]  = "Yes";
 
       const type = (e.entryType ?? "active") as keyof typeof totMins;
       totMins[type] += Math.round((e.hours ?? 0) * 60);
@@ -209,8 +215,6 @@ router.post("/fk3059", requireAuth, requireGuardian, async (req: AuthRequest, re
     fields["form1[0].#subform[16].flt_numSummaTimmar3[0]"]  = String(h3);
     fields["form1[0].#subform[16].flt_numSummaMinuter3[0]"] = String(m3).padStart(2, "0");
 
-    // All hours are logged as aktiv tid — always mark the aktiv tid checkbox
-    fields["form1[0].#subform[16].ksr_aktivTid[0]"] = "Yes";
 
     // Section 8: assistant signs — leave date blank, pre-fill phone
     fields["form1[0].#subform[16].flt_txtTelefon2[0]"] = asst.phone ?? "";
