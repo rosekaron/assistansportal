@@ -2,7 +2,7 @@
 
 **Project:** Swedish personal assistance (assistansersättning) self-management platform with compliance and payroll integration
 **Version:** v1 — Stability, Compliance, and Core Payroll
-**Phases:** 6
+**Phases:** 7
 **Granularity:** Standard (5-8 phases)
 **Coverage:** 15/15 v1 requirements mapped
 **Last Updated:** 2026-04-11
@@ -18,6 +18,7 @@
 - [ ] **Phase 3.5: UX Consolidation & IA Redesign** — Audit all pages, consolidate features by user goal, produce formal UI-SPEC with one-page-one-purpose information architecture
 - [x] **Phase 4: Tax Reporting (AGI)** — Generate Skatteverket-ready AGI declarations per month (completed 2026-04-11)
 - [ ] **Phase 5: Scheduling & Compliance Workflow** — Multi-assistant schedule grid, monthly compliance checklist, and deadline reminders
+- [ ] **Phase 6: Google Calendar Integration** — Real OAuth2 connection to Google Calendar with calendar picker, replacing the simulated connect flow
 
 ---
 
@@ -192,6 +193,27 @@ Plans:
 
 ---
 
+### Phase 6: Google Calendar Integration
+
+**Goal:** Guardian can connect their real Google Calendar via OAuth2, choose which calendar to sync, and have shift entries automatically reflected as calendar events.
+
+**Depends on:** Phase 5
+
+**Requirements:** GCAL-01
+
+**Success Criteria** (what must be TRUE):
+1. Clicking "Connect" in Settings redirects to Google OAuth consent screen (not a simulation)
+2. After approving, guardian is returned to Settings and shown a dropdown of their actual Google calendars to choose from
+3. Selected calendar ID is saved and used for all subsequent event operations
+4. Disconnect clears all tokens and calendar linkage
+
+**Plans:** 1 plan
+
+Plans:
+- [ ] 06-01-PLAN.md — Fix OAuth redirect, add /calendars endpoint, wire real connect/disconnect/picker in Settings (Wave 1)
+
+---
+
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
@@ -203,6 +225,7 @@ Plans:
 | 3.5. UX Consolidation & IA Redesign | 0/10 | Not started | — |
 | 4. Tax Reporting (AGI) | 3/3 | Complete   | 2026-04-11 |
 | 5. Scheduling & Compliance Workflow | 0/TBD | Not started | — |
+| 6. Google Calendar Integration | 0/1 | Not started | — |
 
 ---
 
@@ -262,3 +285,4 @@ Phase 5: Scheduling & Compliance (can proceed in parallel with Phase 4, depends 
 *Phase 3 planned: 2026-04-10 — 4 plans, 4 waves*
 *Phase 3.5 planned: 2026-04-11 — 10 plans, 6 waves*
 *Phase 4 planned: 2026-04-11 — 3 plans, 3 waves*
+*Phase 6 planned: 2026-04-12 — 1 plan, 1 wave*
