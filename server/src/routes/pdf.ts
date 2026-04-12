@@ -199,6 +199,9 @@ router.post("/fk3059", requireAuth, requireGuardian, async (req: AuthRequest, re
     fields["form1[0].#subform[16].flt_numSummaTimmar3[0]"]  = String(h3);
     fields["form1[0].#subform[16].flt_numSummaMinuter3[0]"] = String(m3).padStart(2, "0");
 
+    // All hours are logged as aktiv tid — always mark the aktiv tid checkbox
+    fields["form1[0].#subform[16].ksr_aktivTid[0]"] = "Yes";
+
     // Section 8: assistant signs — leave date blank, pre-fill phone
     fields["form1[0].#subform[16].flt_txtTelefon2[0]"] = asst.phone ?? "";
 
