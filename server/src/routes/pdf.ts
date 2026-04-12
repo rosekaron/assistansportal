@@ -43,7 +43,17 @@ async function decryptAndFill(formPath: string, fields: Record<string, string>):
     const form      = pdfDoc.getForm();
 
     for (const [name, value] of Object.entries(fields)) {
-      try { form.getTextField(name).setText(value); } catch { /* skip unknown field */ }
+      try {
+        // Try checkbox first, then fall back to text field
+        if (value === "Yes" || value === "Off") {
+          try {
+            const cb = form.getCheckBox(name);
+            if (value === "Yes") cb.check(); else cb.uncheck();
+            continue;
+          } catch { /* not a checkbox, fall through to text field */ }
+        }
+        form.getTextField(name).setText(value);
+      } catch { /* skip unknown field */ }
     }
 
     form.flatten();

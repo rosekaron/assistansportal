@@ -481,6 +481,17 @@ export default function MonthlyPage() {
       a.click();
       URL.revokeObjectURL(url);
     },
+    onError: (err: unknown) => {
+      const axErr = err as { response?: { data?: ArrayBuffer | { error?: string } } };
+      let msg = "Unknown error";
+      if (axErr?.response?.data instanceof ArrayBuffer) {
+        const text = new TextDecoder().decode(axErr.response.data);
+        try { msg = JSON.parse(text).error ?? text; } catch { msg = text; }
+      } else {
+        msg = (axErr?.response?.data as { error?: string })?.error ?? String(err);
+      }
+      alert(`FK 3057 error: ${msg}`);
+    },
   });
 
   // ── Computed values ───────────────────────────────────────────────────────
@@ -510,7 +521,8 @@ export default function MonthlyPage() {
   // Step completion
   const step1Complete = monthPendingCount === 0 && (entries as Entry[]).length > 0;
   const step2Complete = payrollRecords.length > 0 && payrollRecords.every(r => r.status === "approved");
-  const fkUnlocked = step1Complete && step2Complete;
+  // FK forms only need approved entries (step 1) — payroll approval is not required
+  const fkUnlocked = step1Complete;
 
   // Stepper sub-labels
   const approvedReportsCount = (entries as Entry[]).filter(e => e.repStatus === "approved").length;
@@ -935,7 +947,7 @@ export default function MonthlyPage() {
           <h2 className={cn("text-base font-semibold", fkUnlocked ? "text-foreground" : "text-muted-foreground")}>FK forms</h2>
           {!fkUnlocked && (
             <span className="text-xs text-muted-foreground bg-muted border border-border rounded-full px-2 py-0.5">
-              Complete steps 1 and 2 first
+              Approve all reports first
             </span>
           )}
         </div>
@@ -950,7 +962,7 @@ export default function MonthlyPage() {
                 variant="outline"
                 size="sm"
                 disabled={!fkUnlocked}
-                title={!fkUnlocked ? "Approve all reports and payroll first" : undefined}
+                title={!fkUnlocked ? "Approve all reports first" : undefined}
                 className="gap-2 mr-2"
                 onClick={async () => {
                   if (!fkUnlocked) return;
@@ -988,7 +1000,7 @@ export default function MonthlyPage() {
           <Button
             variant="default"
             disabled={!fkUnlocked || fk3057Download.isPending}
-            title={!fkUnlocked ? "Approve all reports and payroll first" : undefined}
+            title={!fkUnlocked ? "Approve all reports first" : undefined}
             className="gap-2"
             onClick={() => fk3057Download.mutate()}
           >
