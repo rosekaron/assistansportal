@@ -24,23 +24,28 @@ router.get("/", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
 });
 
 router.post("/", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
-  const d = req.body;
-  const [row] = await db.insert(entries).values({
-    id:          newId("e"),
-    assistantId: d.assistantId  ?? d.assistant_id,
-    date:        d.date,
-    startTime:   d.startTime   ?? d.start_time,
-    endTime:     d.endTime     ?? d.end_time,
-    hours:       d.hours,
-    entryType:   d.entryType   ?? d.entry_type   ?? "active",
-    reqStatus:   d.reqStatus   ?? d.req_status   ?? "pending",
-    repStatus:   d.repStatus   ?? d.rep_status   ?? "draft",
-    source:      d.source      ?? "proposal",
-    calStatus:   d.calStatus   ?? d.cal_status   ?? null,
-    activityId:  d.activityId  ?? d.activity_id  ?? null,
-    gcalEventId: d.gcalEventId ?? null,
-  }).returning();
-  res.status(201).json(row);
+  try {
+    const d = req.body;
+    const [row] = await db.insert(entries).values({
+      id:          newId("e"),
+      assistantId: d.assistantId  ?? d.assistant_id,
+      date:        d.date,
+      startTime:   d.startTime   ?? d.start_time,
+      endTime:     d.endTime     ?? d.end_time,
+      hours:       d.hours,
+      entryType:   d.entryType   ?? d.entry_type   ?? "active",
+      reqStatus:   d.reqStatus   ?? d.req_status   ?? "pending",
+      repStatus:   d.repStatus   ?? d.rep_status   ?? "draft",
+      source:      d.source      ?? "proposal",
+      calStatus:   d.calStatus   ?? d.cal_status   ?? null,
+      activityId:  d.activityId  ?? d.activity_id  ?? null,
+      gcalEventId: d.gcalEventId ?? null,
+    }).returning();
+    res.status(201).json(row);
+  } catch (e) {
+    console.error("[entries] POST error:", e);
+    res.status(500).json({ error: e instanceof Error ? e.message : "Internal server error" });
+  }
 });
 
 // Bulk create (for week proposals)

@@ -1230,7 +1230,7 @@ export default function MonthlyPage() {
                     entryType:   "active",
                     reqStatus:   "approved",
                     repStatus:   "approved",
-                    source:      "manual",
+                    source:      "proposal",
                   });
                 }}
               >
