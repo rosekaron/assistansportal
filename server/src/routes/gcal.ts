@@ -1,5 +1,6 @@
-import { Router } from "express";
+import { Router, Response, NextFunction } from "express";
 import { google } from "googleapis";
+import jwt from "jsonwebtoken";
 import { db } from "../db";
 import { settings } from "../db/schema";
 import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
@@ -16,8 +17,28 @@ function getOAuthClient() {
   );
 }
 
+// ── Auth helper: accepts JWT from header OR ?token= query param ──
+function requireGuardianOrQueryToken(req: AuthRequest, res: Response, next: NextFunction) {
+  const header = req.headers.authorization;
+  if (header?.startsWith("Bearer ")) {
+    try {
+      const payload = jwt.verify(header.slice(7), process.env.JWT_SECRET || "dev_secret") as { userId: number; role?: string };
+      req.userId = payload.userId; req.role = payload.role;
+    } catch { return res.status(401).json({ error: "Invalid token" }); }
+  } else if (req.query.token) {
+    try {
+      const payload = jwt.verify(req.query.token as string, process.env.JWT_SECRET || "dev_secret") as { userId: number; role?: string };
+      req.userId = payload.userId; req.role = payload.role;
+    } catch { return res.status(401).json({ error: "Invalid token" }); }
+  } else {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (req.role !== "guardian") return res.status(403).json({ error: "Guardian access required" });
+  next();
+}
+
 // ── Step 1: Redirect user to Google consent screen ────────────
-router.get("/connect", (_req, res) => {
+router.get("/connect", requireGuardianOrQueryToken as Parameters<typeof router.get>[1], (_req, res) => {
   const oauth2Client = getOAuthClient();
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
@@ -60,10 +81,10 @@ router.get("/callback", async (req, res) => {
     await upsert("gcal_calendar_id",   "primary");
 
     // Redirect back to app
-    res.redirect(`${process.env.CLIENT_URL}/calendar?gcal_connected=true`);
+    res.redirect(`${process.env.CLIENT_URL}/settings?gcal_connected=true`);
   } catch (e) {
     console.error("GCal callback error:", e);
-    res.redirect(`${process.env.CLIENT_URL}/calendar?gcal_error=auth_failed`);
+    res.redirect(`${process.env.CLIENT_URL}/settings?gcal_error=auth_failed`);
   }
 });
 
@@ -103,6 +124,23 @@ router.get("/status", requireAuth, requireGuardian, async (_req: AuthRequest, re
   } catch (e) {
     console.error("[gcal] error:", e);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── List user's Google calendars ─────────────────────────────
+router.get("/calendars", requireAuth, requireGuardian, async (_req: AuthRequest, res) => {
+  try {
+    const { calendar } = await getCalendarClient();
+    const { data } = await calendar.calendarList.list({ maxResults: 50 });
+    const list = (data.items ?? []).map((cal) => ({
+      id:      cal.id,
+      summary: cal.summary,
+      primary: cal.primary ?? false,
+    }));
+    res.json(list);
+  } catch (e) {
+    console.error("[gcal] calendars error:", e);
+    res.status(500).json({ error: "Failed to fetch calendars" });
   }
 });
 

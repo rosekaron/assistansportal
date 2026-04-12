@@ -134,6 +134,7 @@ export const gcalApi = {
   events:      (start: string, end: string) => api.get("/gcal/events", { params: { start, end } }),
   createEvent: (data: Record<string, unknown>) => api.post("/gcal/events", data),
   deleteEvent: (eventId: string) => api.delete(`/gcal/events/${eventId}`),
+  calendars:   () => api.get<{ id: string; summary: string; primary: boolean }[]>("/gcal/calendars"),
 };
 
 // Rates (env-var sourced from server)

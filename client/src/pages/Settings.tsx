@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { profileApi, settingsApi, assistantsApi, invitesApi } from "@/lib/api";
+import { profileApi, settingsApi, assistantsApi, invitesApi, gcalApi } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Badge, Textarea } from "@/components/ui/inputs";
@@ -66,11 +66,11 @@ type Invite    = Record<string, string | number | boolean | null>;
 export default function SettingsPage() {
   const qc       = useQueryClient();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // ── Account / profile state ────────────────────────────────────────────────
   const [saved,      setSaved]      = useState(false);
   const [gcalSaved,  setGcalSaved]  = useState(false);
-  const [connecting, setConnecting] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
 
   // ── Assistants section state ───────────────────────────────────────────────
@@ -104,6 +104,8 @@ export default function SettingsPage() {
     connected: false, email: "", calendarId: "",
     syncEnabled: true, reminders: true, reminderHours: "24",
   });
+
+  const { data: calendarList = [] } = useQuery({ queryKey: ["gcal-calendars"], queryFn: () => gcalApi.calendars().then((r) => r.data), enabled: gcal.connected });
 
   const [sched, setSched] = useState({
     allowSelfBook: true, selfBookApproval: "require-approval", bookingWindowDays: "14",
@@ -198,20 +200,26 @@ export default function SettingsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["settings"] }),
   });
 
-  function simulateConnect() {
-    setConnecting(true);
-    setTimeout(() => {
-      setConnecting(false);
-      const email = form.guardianEmail || "guardian@gmail.com";
-      setGcal((g) => ({ ...g, connected: true, email, calendarId: "primary" }));
-      settingsApi.update({ gcal_connected: "true", gcal_email: email });
-    }, 1800);
+  function connectGcal() {
+    const token = localStorage.getItem("token");
+    window.location.href = `${window.location.origin}/api/gcal/connect?token=${token}`;
   }
 
-  function disconnect() {
-    setGcal((g) => ({ ...g, connected: false, email: "", calendarId: "" }));
-    settingsApi.update({ gcal_connected: "false", gcal_email: "" });
-  }
+  useEffect(() => {
+    if (searchParams.get("gcal_connected") === "true") {
+      qc.invalidateQueries({ queryKey: ["settings"] });
+      setSearchParams({}, { replace: true });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const disconnectGcal = useMutation({
+    mutationFn: () => gcalApi.disconnect(),
+    onSuccess: () => {
+      setGcal((g) => ({ ...g, connected: false, email: "", calendarId: "" }));
+      qc.invalidateQueries({ queryKey: ["settings"] });
+      qc.invalidateQueries({ queryKey: ["gcal-calendars"] });
+    },
+  });
 
   // ── Assistant mutations ───────────────────────────────────────────────────
   const deleteAssistant = useMutation({
@@ -470,13 +478,11 @@ export default function SettingsPage() {
                 <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2 py-0.5">● Connected</span>
               )}
               {gcal.connected ? (
-                <Button variant="ghost" size="sm" onClick={disconnect}>Disconnect</Button>
-              ) : (
-                <Button size="sm" onClick={simulateConnect} disabled={connecting}>
-                  {connecting
-                    ? <><span className="w-3 h-3 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />Connecting…</>
-                    : "Connect Google Calendar"}
+                <Button variant="ghost" size="sm" onClick={() => disconnectGcal.mutate()} disabled={disconnectGcal.isPending}>
+                  {disconnectGcal.isPending ? "Disconnecting…" : "Disconnect"}
                 </Button>
+              ) : (
+                <Button size="sm" onClick={connectGcal}>Connect Google Calendar</Button>
               )}
             </div>
           </div>
@@ -486,11 +492,14 @@ export default function SettingsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Calendar</Label>
-                  <Select value={gcal.calendarId} onValueChange={(v) => setGcal((g) => ({ ...g, calendarId: v }))}>
+                  <Select value={gcal.calendarId} onValueChange={(v) => { setGcal((g) => ({ ...g, calendarId: v })); settingsApi.update({ gcal_calendar_id: v }); }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="primary">{gcal.email} (primary)</SelectItem>
-                      <SelectItem value="assistance">Assistance Schedule (shared)</SelectItem>
+                      {calendarList.map((cal) => (
+                        <SelectItem key={cal.id!} value={cal.id!}>
+                          {cal.summary}{cal.primary ? " (primary)" : ""}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -655,10 +664,10 @@ export default function SettingsPage() {
         <Card>
           <CardContent className="pt-5 space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Guardian / Legal representative</p>
-            <SettingsField label="Full name"            field="guardianName"  placeholder="Anna Johansson"  value={form.guardianName}  onChange={setField} />
-            <SettingsField label="Personal ID (12 dig)" field="guardianPno"   placeholder="197506021234"    value={form.guardianPno}   onChange={setField} />
-            <SettingsField label="Email"                field="guardianEmail" type="email"                  value={form.guardianEmail} onChange={setField} />
-            <SettingsField label="Phone"                field="guardianPhone" placeholder="070-123 45 67"   value={form.guardianPhone} onChange={setField} />
+            <SettingsField label="Full name"            field="guardianName"  placeholder=""  value={form.guardianName}  onChange={setField} />
+            <SettingsField label="Personal ID (12 dig)" field="guardianPno"   placeholder=""  value={form.guardianPno}   onChange={setField} />
+            <SettingsField label="Email"                field="guardianEmail" type="email"    value={form.guardianEmail} onChange={setField} />
+            <SettingsField label="Phone"                field="guardianPhone" placeholder=""  value={form.guardianPhone} onChange={setField} />
           </CardContent>
         </Card>
 
@@ -666,14 +675,14 @@ export default function SettingsPage() {
           <Card>
             <CardContent className="pt-5 space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">The insured person</p>
-              <SettingsField label="Full name"            field="patientName" placeholder="Lucas Johansson" value={form.patientName} onChange={setField} />
-              <SettingsField label="Personal ID (12 dig)" field="patientPno"  placeholder="202001011234"   value={form.patientPno}  onChange={setField} />
-              <SettingsField label="Street address"       field="address"     placeholder="Storgatan 12"   value={form.address}     onChange={setField} />
+              <SettingsField label="Full name"            field="patientName" placeholder="" value={form.patientName} onChange={setField} />
+              <SettingsField label="Personal ID (12 dig)" field="patientPno"  placeholder="" value={form.patientPno}  onChange={setField} />
+              <SettingsField label="Street address"       field="address"     placeholder="" value={form.address}     onChange={setField} />
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2">
-                  <SettingsField label="City" field="city" placeholder="Stockholm" value={form.city} onChange={setField} />
+                  <SettingsField label="City" field="city" placeholder="" value={form.city} onChange={setField} />
                 </div>
-                <SettingsField label="Zip" field="zip" placeholder="112 34" value={form.zip} onChange={setField} />
+                <SettingsField label="Zip" field="zip" placeholder="" value={form.zip} onChange={setField} />
               </div>
             </CardContent>
           </Card>
@@ -681,7 +690,7 @@ export default function SettingsPage() {
           <Card>
             <CardContent className="pt-5 space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Försäkringskassan</p>
-              <SettingsField label="Decision number" field="fkDecisionNo" placeholder="2024-FK-001234" value={form.fkDecisionNo} onChange={setField} />
+              <SettingsField label="Decision number" field="fkDecisionNo" placeholder="" value={form.fkDecisionNo} onChange={setField} />
               <div className="space-y-1.5">
                 <Label>Weekly hours granted</Label>
                 <div className="relative">
