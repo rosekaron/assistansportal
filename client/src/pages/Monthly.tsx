@@ -17,7 +17,6 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { ACTIVITY_TYPES } from "@/lib/activities";
 
 // ── Utility functions ──────────────────────────────────────────────────────
 
@@ -353,14 +352,24 @@ function AssistantPayrollCard({
 
 // ── Time helpers ───────────────────────────────────────────────────────────
 
-/** Given "HH:MM" start and end strings, return decimal hours (quarter-hour precision). */
+/**
+ * Compute decimal hours between startDate+startTime and endDate+endTime.
+ * Handles cross-midnight shifts (e.g. 22:00 → next day 06:00 = 8h).
+ * Quarter-hour precision.
+ */
+function hoursFromDateRange(startDate: string, startTime: string, endDate: string, endTime: string): number {
+  if (!startDate || !startTime || !endDate || !endTime) return 0;
+  const start = new Date(`${startDate}T${startTime}`);
+  const end   = new Date(`${endDate}T${endTime}`);
+  const diffMs = end.getTime() - start.getTime();
+  if (diffMs <= 0) return 0;
+  return Math.round((diffMs / 3_600_000) * 4) / 4;
+}
+
+/** Single-day variant (backward compat for edit modal). */
 function hoursFromRange(start: string, end: string): number {
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  if (isNaN(sh) || isNaN(eh)) return 0;
-  const diff = eh * 60 + em - (sh * 60 + sm);
-  if (diff <= 0) return 0;
-  return Math.round((diff / 60) * 4) / 4;
+  const today = new Date().toISOString().split("T")[0];
+  return hoursFromDateRange(today, start, today, end);
 }
 
 // ── Main Monthly page ──────────────────────────────────────────────────────
@@ -378,13 +387,12 @@ export default function MonthlyPage() {
   const [editHours, setEditHours] = useState("");
 
   // ── Add entry modal state ─────────────────────────────────────────────────
-  const [addOpen,          setAddOpen]          = useState(false);
-  const [addAssistantId,   setAddAssistantId]   = useState("");
-  const [addDate,          setAddDate]          = useState("");
-  const [addStart,         setAddStart]         = useState("");
-  const [addEnd,           setAddEnd]           = useState("");
-  const [addHours,         setAddHours]         = useState("");
-  const [addActivity,      setAddActivity]      = useState("personal_care");
+  const [addOpen,        setAddOpen]        = useState(false);
+  const [addAssistantId, setAddAssistantId] = useState("");
+  const [addStartDate,   setAddStartDate]   = useState("");
+  const [addEndDate,     setAddEndDate]     = useState("");
+  const [addStart,       setAddStart]       = useState("");
+  const [addEnd,         setAddEnd]         = useState("");
 
   // Single shared month key across both reports and payroll sections
   const monthKey = `${year}-${pad(month + 1)}`;
@@ -450,8 +458,8 @@ export default function MonthlyPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["entries", year, month] });
       setAddOpen(false);
-      setAddAssistantId(""); setAddDate(""); setAddStart("");
-      setAddEnd(""); setAddHours(""); setAddActivity("personal_care");
+      setAddAssistantId(""); setAddStartDate(""); setAddEndDate("");
+      setAddStart(""); setAddEnd("");
     },
   });
 
@@ -640,7 +648,8 @@ export default function MonthlyPage() {
             variant="outline"
             className="gap-1.5 text-xs"
             onClick={() => {
-              setAddDate(`${year}-${pad(month + 1)}-01`);
+              setAddStartDate(`${year}-${pad(month + 1)}-01`);
+              setAddEndDate(`${year}-${pad(month + 1)}-01`);
               setAddOpen(true);
             }}
           >
@@ -1114,11 +1123,11 @@ export default function MonthlyPage() {
           <DialogHeader>
             <DialogTitle>Add entry manually</DialogTitle>
             <DialogDescription>
-              Add hours that were not clock-logged. Entry will be pre-approved and
-              count toward FK reports and payroll.
+              Add hours that were not clock-logged. Entry counts immediately toward FK reports and payroll.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 mt-2">
+            {/* Assistant */}
             <div className="space-y-1.5">
               <Label htmlFor="add-assistant">Assistant</Label>
               <select
@@ -1133,82 +1142,78 @@ export default function MonthlyPage() {
                 ))}
               </select>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="add-date">Date</Label>
-              <Input
-                id="add-date"
-                type="date"
-                value={addDate}
-                onChange={e => setAddDate(e.target.value)}
-              />
-            </div>
+
+            {/* Start date + time */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="add-start">Start time</Label>
+                <Label htmlFor="add-start-date">Start date</Label>
                 <Input
-                  id="add-start"
-                  type="time"
-                  value={addStart}
-                  onChange={e => {
-                    setAddStart(e.target.value);
-                    if (addEnd) setAddHours(String(hoursFromRange(e.target.value, addEnd)));
-                  }}
+                  id="add-start-date"
+                  type="date"
+                  value={addStartDate}
+                  onChange={e => setAddStartDate(e.target.value)}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="add-end">End time</Label>
+                <Label htmlFor="add-start-time">Start time</Label>
                 <Input
-                  id="add-end"
+                  id="add-start-time"
                   type="time"
-                  value={addEnd}
-                  onChange={e => {
-                    setAddEnd(e.target.value);
-                    if (addStart) setAddHours(String(hoursFromRange(addStart, e.target.value)));
-                  }}
+                  value={addStart}
+                  onChange={e => setAddStart(e.target.value)}
                 />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="add-hours">Hours</Label>
-              <Input
-                id="add-hours"
-                type="number"
-                step="0.25"
-                min="0"
-                max="24"
-                value={addHours}
-                placeholder="Auto-calculated"
-                onChange={e => setAddHours(e.target.value)}
-              />
+
+            {/* End date + time */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="add-end-date">End date</Label>
+                <Input
+                  id="add-end-date"
+                  type="date"
+                  value={addEndDate}
+                  onChange={e => setAddEndDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-end-time">End time</Label>
+                <Input
+                  id="add-end-time"
+                  type="time"
+                  value={addEnd}
+                  onChange={e => setAddEnd(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="add-activity">Activity</Label>
-              <select
-                id="add-activity"
-                value={addActivity}
-                onChange={e => setAddActivity(e.target.value)}
-                className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-primary"
-              >
-                {ACTIVITY_TYPES.map(a => (
-                  <option key={a.id} value={a.id}>{a.icon} {a.label}</option>
-                ))}
-              </select>
-            </div>
+
+            {/* Hours — read-only, auto-calculated */}
+            {(() => {
+              const computed = hoursFromDateRange(addStartDate, addStart, addEndDate, addEnd);
+              return computed > 0 ? (
+                <div className="bg-muted/50 border border-border rounded-lg px-3 py-2 flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Hours</span>
+                  <span className="font-mono font-semibold text-foreground">{computed}h</span>
+                </div>
+              ) : null;
+            })()}
+
             <div className="flex gap-2 justify-end pt-1">
               <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
               <Button
                 disabled={
                   createEntryMutation.isPending ||
-                  !addAssistantId || !addDate || !addStart || !addEnd || !addHours
+                  !addAssistantId || !addStartDate || !addEndDate || !addStart || !addEnd ||
+                  hoursFromDateRange(addStartDate, addStart, addEndDate, addEnd) <= 0
                 }
                 onClick={() => {
+                  const hours = hoursFromDateRange(addStartDate, addStart, addEndDate, addEnd);
                   createEntryMutation.mutate({
                     assistantId: addAssistantId,
-                    date:        addDate,
+                    date:        addStartDate,
                     startTime:   addStart,
                     endTime:     addEnd,
-                    hours:       parseFloat(addHours),
-                    activityId:  addActivity,
+                    hours,
                     entryType:   "active",
                     reqStatus:   "approved",
                     repStatus:   "approved",
