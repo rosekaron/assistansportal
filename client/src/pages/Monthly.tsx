@@ -393,6 +393,7 @@ export default function MonthlyPage() {
   const [addEndDate,     setAddEndDate]     = useState("");
   const [addStart,       setAddStart]       = useState("");
   const [addEnd,         setAddEnd]         = useState("");
+  const [addError,       setAddError]       = useState<string | null>(null);
 
   // Single shared month key across both reports and payroll sections
   const monthKey = `${year}-${pad(month + 1)}`;
@@ -458,8 +459,15 @@ export default function MonthlyPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["entries", year, month] });
       setAddOpen(false);
+      setAddError(null);
       setAddAssistantId(""); setAddStartDate(""); setAddEndDate("");
       setAddStart(""); setAddEnd("");
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+        ?? (err as Error)?.message
+        ?? "Unknown error";
+      setAddError(msg);
     },
   });
 
@@ -1118,7 +1126,7 @@ export default function MonthlyPage() {
       </Dialog>
 
       {/* ── Add entry modal ──────────────────────────────────────────────────── */}
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+      <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) setAddError(null); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Add entry manually</DialogTitle>
@@ -1126,6 +1134,11 @@ export default function MonthlyPage() {
               Add hours that were not clock-logged. Entry counts immediately toward FK reports and payroll.
             </DialogDescription>
           </DialogHeader>
+          {addError && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+              {addError}
+            </div>
+          )}
           <div className="grid gap-4 mt-2">
             {/* Assistant */}
             <div className="space-y-1.5">
