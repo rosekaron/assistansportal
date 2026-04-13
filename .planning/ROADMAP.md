@@ -187,9 +187,13 @@ Plans:
 2. Guardian sees a monthly compliance checklist showing required steps (approve time entries, generate FK 3059, generate FK 3057, generate AGI) with completion status and regulatory due dates (FK: 5th of second following month; AGI: 12th of following month)
 3. System sends email reminders to the guardian on a configurable date each month with links to pending forms and step-by-step next actions
 
-**Plans:** TBD
+**Plans:** 4 plans
 
-**UI hint**: yes
+Plans:
+- [ ] 05-01-PLAN.md — Wave 0: Test stubs for deadlineUtils and reminderCron (COMP-01, COMP-02)
+- [ ] 05-02-PLAN.md — Wave 1: Home.tsx assistant-row schedule table + week navigation (SCHED-01)
+- [ ] 05-03-PLAN.md — Wave 1: deadlineUtils implementation + Monthly.tsx deadline badges (COMP-01)
+- [ ] 05-04-PLAN.md — Wave 2: reminderCron implementation + email.ts + Settings.tsx Notifications card + human checkpoint (COMP-02)
 
 ---
 
