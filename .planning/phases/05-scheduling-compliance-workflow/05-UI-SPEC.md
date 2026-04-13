@@ -5,6 +5,7 @@ status: draft
 shadcn_initialized: false
 preset: none
 created: 2026-04-14
+revised: 2026-04-14
 ---
 
 # Phase 5 — UI Design Contract: Scheduling & Compliance Workflow
@@ -59,8 +60,9 @@ Exception: Schedule grid cells — minimum touch target 36×36px (w-9 h-9) per P
 
 2 weights only: 400 regular · 600 semibold.
 
-Cell time ranges (e.g. "08:00–16:00"): text-xs (12.8px), weight 400, font-mono tabular-nums.
-Daily total row: text-xs, weight 600 semibold.
+Cell time ranges (e.g. "08:00–16:00") use text-sm (14.4px), weight 400, with font-mono tabular-nums and text-muted-foreground for visual distinction from labels — no additional size token.
+Daily total row values use text-sm (14.4px), weight 600 semibold, font-mono tabular-nums.
+Footer "Total" label uses text-sm uppercase tracking-wide text-muted-foreground.
 
 ---
 
@@ -91,6 +93,8 @@ Assistant color dots: per-assistant color values already assigned via AssistantA
 
 **Purpose:** Multi-assistant week view — rows = assistants, columns = Mon–Sun.
 
+The schedule grid is the primary visual anchor on the Home.tsx screen. It occupies the upper main content area, above the pending-items section, and is the first element a guardian interacts with on load.
+
 **Layout:**
 
 ```
@@ -107,7 +111,7 @@ Assistant color dots: per-assistant color values already assigned via AssistantA
 ```
 
 **Cell states:**
-- Shift present: time range in text-xs font-mono + assistant dot color as left border (2px solid)
+- Shift present: time range in text-sm font-mono text-muted-foreground + assistant dot color as left border (2px solid)
 - No shift: "–" in text-muted-foreground
 - Today column: background `hsl(var(--primary)/5%)`, left border `2px solid hsl(var(--primary))`
 - Hover on shift cell: `bg-secondary` — reveals "Mark absent" icon button (UserX, size 14px)
@@ -118,8 +122,8 @@ Assistant color dots: per-assistant color values already assigned via AssistantA
 - Week label: text-sm font-semibold text-foreground, centered
 
 **Footer row:**
-- "Total (hrs)" label: text-xs uppercase tracking-wide text-muted-foreground
-- Daily total values: text-xs font-semibold font-mono tabular-nums
+- "Total (hrs)" label: text-sm uppercase tracking-wide text-muted-foreground
+- Daily total values: text-sm font-semibold font-mono tabular-nums
 
 **Reused components:** AssistantAvatar (color dot 8×8px filled circle), getWeekDates(), entriesApi.list().
 
@@ -135,7 +139,7 @@ Assistant color dots: per-assistant color values already assigned via AssistantA
 |-------|--------|-------------|-------|
 | complete | emerald bg + CheckCircle2 icon | text-foreground | none |
 | active | primary border + primary/10 bg | text-foreground | countdown badge (blue/amber/red) |
-| locked | border-border + muted bg | text-muted-foreground | due date static text-xs |
+| locked | border-border + muted bg | text-muted-foreground | due date static text-sm |
 
 **Due date sublabel (per step):**
 - Step 1 (Daily reports): no regulatory deadline — sublabel: "{approved}/{total} reports approved"
@@ -173,15 +177,15 @@ Notifications
 
 [  Compliance reminder ]
 [ Day of month: [  1  ] ]
-[ Save ]
+[ Save reminder day ]
 ```
 
 - Label: "Monthly compliance reminder" (text-sm font-medium text-foreground)
-- Sublabel: "Email sent on this day each month with pending compliance steps." (text-xs text-muted-foreground)
+- Sublabel: "Email sent on this day each month with pending compliance steps." (text-sm text-muted-foreground)
 - Input: `<Input type="number" min="1" max="28" className="w-20">` — max 28 avoids February edge case
-- Save: `<Button variant="default" size="sm">Save</Button>`
-- Success feedback: inline text-xs text-emerald-600 "Saved" for 2 seconds, then clears
-- Validation: if value < 1 or > 28 → inline error text-xs text-destructive "Enter a day between 1 and 28"
+- Save: `<Button variant="default" size="sm">Save reminder day</Button>`
+- Success feedback: inline text-sm text-emerald-600 "Saved" for 2 seconds, then clears
+- Validation: if value < 1 or > 28 → inline error text-sm text-destructive "Enter a day between 1 and 28"
 
 ---
 
@@ -193,7 +197,7 @@ Notifications
 |-------|-------------|
 | Loading | Skeleton rows — 3 rows, 7 columns of `bg-muted animate-pulse rounded h-6` |
 | No assistants | EmptyState component: "No assistants added yet. Add assistants in Settings." |
-| No entries this week | Grid renders with "–" in all cells. No dedicated empty message — the table itself communicates emptiness. |
+| No entries this week | Grid renders with "–" in all cells. An `aria-live="polite"` caption below the table reads "No shifts scheduled this week." for screen reader support. |
 | Week with data | Full grid, time ranges per cell |
 | Error | `<p className="text-sm text-destructive">Could not load schedule. Check your connection and reload.</p>` inside grid area |
 
@@ -218,6 +222,7 @@ Notifications
 | Week nav — today | "Today" |
 | Week nav — next | "Next week →" (aria-label) |
 | Schedule empty — no assistants | "No assistants added yet. Add assistants in Settings." |
+| Schedule empty — no entries this week | "No shifts scheduled this week." (screen reader caption, aria-live) |
 | Schedule loading | (skeleton, no text) |
 | Schedule error | "Could not load schedule. Check your connection and reload." |
 | No shift in cell | "–" |
@@ -236,7 +241,7 @@ Notifications
 | Reminder field section heading | "Notifications" |
 | Reminder field label | "Monthly compliance reminder" |
 | Reminder field sublabel | "Email sent on this day each month with pending compliance steps." |
-| Reminder save button | "Save" |
+| Reminder save button | "Save reminder day" |
 | Reminder save success | "Saved" |
 | Reminder validation error | "Enter a day between 1 and 28" |
 | Email subject line | "Compliance reminder — {Month Year}" |
@@ -273,7 +278,7 @@ Carry-forward from Phase 3.5 (unchanged):
 
 ### Reminder Day Save
 - POST /api/settings (existing endpoint, existing JSON body shape) with `{ reminderDay: N }`
-- Optimistic: disable Save button while saving, re-enable on success or error
+- Optimistic: disable Save reminder day button while saving, re-enable on success or error
 - Server validates 1–28 range; client validates before submit
 - If server returns error: show text-destructive message below input
 
@@ -289,6 +294,7 @@ Carry-forward from Phase 3.5 (unchanged):
 - Countdown badge: role not required — decorative; color is supplemented by text label (never color-only)
 - Reminder input: `aria-describedby` pointing to sublabel id
 - Week nav buttons: `aria-label` as specified in copywriting contract
+- No-entries caption: rendered as `<caption>` or adjacent `<p aria-live="polite">` so screen readers announce the empty week state without relying on the "–" cell characters alone
 
 ---
 
@@ -309,7 +315,7 @@ Custom Radix-based component library only (client/src/components/ui/). No new th
 |------|--------|
 | `client/src/pages/Home.tsx` lines 66–151 | Replace byDay day-card strip with assistant-row table component |
 | `client/src/pages/Monthly.tsx` ProgressStepper | Add dueDate prop + badge sublabel rendering to StepProps |
-| `client/src/pages/Settings.tsx` | Add Notifications card with reminderDay Input + Save |
+| `client/src/pages/Settings.tsx` | Add Notifications card with reminderDay Input + Save reminder day |
 | `server/src/db/schema.ts` | Add `reminderDay` integer column to guardian_profiles or settings table |
 | `server/src/lib/email.ts` | Add sendComplianceReminderEmail template |
 | `server/src/routes/` | Register cron job or scheduled task for reminder dispatch |
