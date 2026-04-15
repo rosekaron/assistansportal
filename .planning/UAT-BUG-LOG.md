@@ -54,32 +54,43 @@
 **Fix:** Added `GET /api/assistant/schedule` endpoint that reads the guardian's Google Calendar (same `getCalendarClient()` used by the guardian view). `AssistantDashboard.tsx` now uses this for Today's shift, week strip, and Upcoming tab. Reports tab still uses entries (actual worked hours).
 **Status:** Fixed 2026-04-12
 
-## 🟠 Open — Needs Fix
-
 ### BUG-004 — No email sent to assistant
-**Page:** Unknown (invite flow / hour logging notification)
-**Steps to reproduce:** TBD — clarify trigger (invite sent? shift assigned? hours approved?)
-**Expected:** Assistant receives an email notification
-**Actual:** No email received
-**Status:** Open
+**Page:** Assistants → Add assistant (invite flow)
+**Steps to reproduce:** Go to Assistants → click "Add assistant" → fill form → Submit
+**Expected:** Assistant receives an email with subject "You've been invited to assist [patient] — Assistansportal" and an "Accept invitation →" link
+**Actual:** Email was not received during initial UAT (SMTP not confirmed at test time)
+**Code verification (2026-04-15):**
+- `server/src/lib/email.ts`: `sendAssistantInviteEmail()` fully implemented — nodemailer transporter using `GMAIL_USER` + `GMAIL_APP_PASSWORD`, correct subject line, accept link points to `/accept-invite?token=<invite-id>` using `row.id` (crypto newId)
+- `server/src/routes/misc.ts` lines 79-87: function called immediately after DB insert; errors caught and logged without exposing credentials
+- `server/.env`: Both `GMAIL_USER` and `GMAIL_APP_PASSWORD` confirmed present
+- **Note:** Gmail App Password must be a 16-char app-specific password from https://myaccount.google.com/apppasswords — not the Gmail login password
+**Status:** Fixed — code path complete and wired; env vars present; requires live SMTP test to confirm delivery
 
 ---
-
-## 🟡 Deferred — Low Priority
 
 ### BUG-002 — Week navigator missing on Home
 **Page:** Home
 **Steps to reproduce:** Go to Home → look for prev/next week controls
 **Expected:** Guardian can navigate backwards and forwards through weeks
-**Actual:** Schedule grid is hardcoded to current week only (`getWeekDates(0)`)
-**Status:** Open — feature gap, not a regression
+**Actual (before fix):** Schedule grid was hardcoded to current week only (`getWeekDates(0)`)
+**Fix (2026-04-15):**
+- Added `weekOffset` state to `Home.tsx` (default 0 = current week)
+- Changed `getWeekDates(0)` to `getWeekDates(weekOffset)`
+- Added Prev / Next buttons and a Today shortcut in the schedule card header
+- Past navigation limited to 12 weeks; gcalEvents query auto-refetches on offset change
+**Status:** Fixed — commit e5794a7
 
 ### BUG-005 — Guardian cannot register as their own assistant
 **Page:** Assistants / Invite flow
 **Expected:** A guardian who also acts as an assistant can register themselves and log hours
-**Actual:** System treats guardian and assistant as separate roles; no self-registration
-**Note:** Common use case in Swedish LSS
-**Status:** Open — architectural decision required
+**Actual (before fix):** System treated guardian and assistant as separate roles; no self-registration UI existed
+**Note:** Common use case in Swedish LSS (self-managed assistansersättning)
+**Fix (2026-04-15):**
+- Added "I'm also an assistant" button to Assistants page header (next to "Add assistant")
+- Added self-registration dialog with fields: name, pno, phone, minWeeklyHours, isFlexible
+- Calls `POST /api/assistants/register-self` (already existed with duplicate check → 409)
+- On success: assistant list refreshes; on 409: error message displayed
+**Status:** Fixed — commit ea9a995
 
 ---
 
