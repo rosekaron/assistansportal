@@ -32,18 +32,18 @@ function AssistantAbsenceSummary({ assistantId }: { assistantId: string }) {
   return (
     <>
       <Separator className="my-3" />
-      <SectionLabel>Frånvaro {year}</SectionLabel>
+      <SectionLabel>Absence {year}</SectionLabel>
       <div className="flex gap-6 text-sm">
         <span>
-          <span className="text-muted-foreground">VAB kvar: </span>
+          <span className="text-muted-foreground">VAB remaining: </span>
           <span className={cn("font-semibold", vabColorClass)}>
-            {vabRemaining === null ? "--" : `${vabRemaining} dagar`}
+            {vabRemaining === null ? "--" : `${vabRemaining} days`}
           </span>
         </span>
         <span>
-          <span className="text-muted-foreground">Sjukfrånvaro: </span>
+          <span className="text-muted-foreground">Sick leave: </span>
           <span className="font-semibold">
-            {sickDays === null ? "--" : `${sickDays} dagar`}
+            {sickDays === null ? "--" : `${sickDays} days`}
           </span>
         </span>
       </div>
@@ -59,6 +59,9 @@ export default function AssistantsPage() {
   const [editForm,    setEditForm]    = useState({ name: "", pno: "", phone: "", minWeeklyHours: "", isFlexible: false });
   const [inviteForm,  setInviteForm]  = useState({ name: "", email: "", minWeeklyHours: "", isFlexible: false, message: "" });
   const [inviteSent,  setInviteSent]  = useState(false);
+  const [selfOpen,    setSelfOpen]    = useState(false);
+  const [selfForm,    setSelfForm]    = useState({ name: "", pno: "", phone: "", minWeeklyHours: "", isFlexible: false });
+  const [selfError,   setSelfError]   = useState<string | null>(null);
 
   const { data: profile }      = useQuery({ queryKey: ["profile"],    queryFn: () => profileApi.get().then((r) => r.data) });
   const { data: assistants = [] } = useQuery({ queryKey: ["assistants"], queryFn: () => assistantsApi.list().then((r) => r.data) });
@@ -94,6 +97,20 @@ export default function AssistantsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["invites"] }); setInviteSent(true); setTimeout(() => { setInviteSent(false); setInviteOpen(false); setInviteForm({ name: "", email: "", minWeeklyHours: "", isFlexible: false, message: "" }); }, 1800); },
   });
 
+  const registerSelf = useMutation({
+    mutationFn: (data: Record<string, unknown>) => assistantsApi.registerSelf(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["assistants"] });
+      setSelfOpen(false);
+      setSelfForm({ name: "", pno: "", phone: "", minWeeklyHours: "", isFlexible: false });
+      setSelfError(null);
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setSelfError(msg ?? "Registration failed. You may already be registered as an assistant.");
+    },
+  });
+
   const updateInvite = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => invitesApi.update(id, status),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["invites"] }),
@@ -121,9 +138,14 @@ export default function AssistantsPage() {
         title="Assistants"
         description="Manage your personal assistants and pending invitations"
         action={
-          <Button onClick={() => setInviteOpen(true)}>
-            <UserPlus className="w-4 h-4" />Add assistant
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => { setSelfError(null); setSelfOpen(true); }}>
+              I'm also an assistant
+            </Button>
+            <Button onClick={() => setInviteOpen(true)}>
+              <UserPlus className="w-4 h-4" />Add assistant
+            </Button>
+          </div>
         }
       />
 
@@ -276,6 +298,48 @@ export default function AssistantsPage() {
           ))}
         </div>
       </div>
+
+      {/* Self-registration dialog */}
+      <Dialog open={selfOpen} onOpenChange={(o) => { if (!registerSelf.isPending) { setSelfOpen(o); if (!o) { setSelfError(null); } } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Register yourself as an assistant</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">As the guardian, you can also act as a personal assistant. Fill in your details to register yourself — no invite email needed.</p>
+            <div className="space-y-1.5"><Label>Full name *</Label><Input placeholder="First Last" value={selfForm.name} onChange={(e) => setSelfForm((f) => ({ ...f, name: e.target.value }))} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Personnummer *</Label>
+                <Input placeholder="ÅÅMMDD-XXXX" value={selfForm.pno} onChange={(e) => setSelfForm((f) => ({ ...f, pno: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Phone</Label>
+                <Input placeholder="07X-XXX XX XX" value={selfForm.phone} onChange={(e) => setSelfForm((f) => ({ ...f, phone: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Min hours/week *</Label>
+              <div className="relative">
+                <Input type="number" placeholder="20" className="pr-8" value={selfForm.minWeeklyHours} onChange={(e) => setSelfForm((f) => ({ ...f, minWeeklyHours: e.target.value }))} />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">h</span>
+              </div>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer text-sm">
+              <input type="checkbox" checked={selfForm.isFlexible} onChange={(e) => setSelfForm((f) => ({ ...f, isFlexible: e.target.checked }))} className="rounded" />
+              <span>Flexible — can take hours from the shared pool</span>
+            </label>
+            {selfError && (
+              <p className="text-sm text-destructive">{selfError}</p>
+            )}
+            <Button
+              className="w-full"
+              disabled={!selfForm.name || !selfForm.pno || !selfForm.minWeeklyHours || registerSelf.isPending}
+              onClick={() => registerSelf.mutate({ name: selfForm.name, pno: selfForm.pno, phone: selfForm.phone, minWeeklyHours: parseInt(selfForm.minWeeklyHours), isFlexible: selfForm.isFlexible })}
+            >
+              {registerSelf.isPending ? "Registering…" : "Register as assistant →"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Add assistant / identity verification dialog */}
       <Dialog open={inviteOpen} onOpenChange={(o) => !inviteSent && setInviteOpen(o)}>
