@@ -3,11 +3,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   profileApi,
+  settingsApi,
   assistantsApi,
   entriesApi,
   payrollApi,
   absenceApi,
   pdfApi,
+  gcalApi,
 } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,6 +36,7 @@ import {
   ChevronRight,
   AlertCircle,
   Banknote,
+  Plus,
 } from "lucide-react";
 import { getWeekDates, cn } from "@/lib/utils";
 
@@ -70,11 +73,28 @@ export default function HomePage() {
 
   const [markAbsentEntry, setMarkAbsentEntry] = useState<MarkAbsentEntry | null>(null);
   const [absenceType,     setAbsenceType]     = useState<string>("sjukfrånvaro");
+  const [addShiftDate,    setAddShiftDate]    = useState<string | null>(null);
+  const [shiftForm,       setShiftForm]       = useState({ assistantId: "", startTime: "08:00", endTime: "16:00" });
+
+  // ── Week navigator state ───────────────────────────────────
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  // ── Hoist weekDates so gcalEvents query can reference it ──────
+  const weekDates = getWeekDates(weekOffset);
+  const todayStr  = now.toISOString().split("T")[0];
 
   // ── Data queries ───────────────────────────────────────────
   const { data: profile }         = useQuery({ queryKey: ["profile"],    queryFn: () => profileApi.get().then(r => r.data) });
+  const { data: settings = {} }   = useQuery({ queryKey: ["settings"],   queryFn: () => settingsApi.get().then(r => r.data) });
   const { data: assistants = [] } = useQuery({ queryKey: ["assistants"], queryFn: () => assistantsApi.list().then(r => r.data) });
-  const { data: entries    = [] } = useQuery({ queryKey: ["entries"],    queryFn: () => entriesApi.list().then(r => r.data) });
+  const { data: entries    = [] } = useQuery({ queryKey: ["entries"],    queryFn: () => entriesApi.list().then(r => r.data), staleTime: 0, refetchOnWindowFocus: true });
+  const gcalConnected = (settings as Record<string, string>).gcal_connected === "true";
+  const { data: gcalEvents = [] } = useQuery({
+    queryKey: ["gcal-events-home", weekDates[0]],
+    queryFn:  () => gcalApi.events(weekDates[0], weekDates[6]).then(r => r.data as Record<string, unknown>[]),
+    enabled:  gcalConnected,
+    staleTime: 2 * 60 * 1000,
+  });
 
   // ── FK deadline (copied from Dashboard.tsx lines 56-76) ────
   const invoiceMonthIdx = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
@@ -117,11 +137,17 @@ export default function HomePage() {
     },
   });
 
+  const addEntry = useMutation({
+    mutationFn: (data: Record<string, unknown>) => entriesApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["entries"] });
+      setAddShiftDate(null);
+      setShiftForm({ assistantId: "", startTime: "08:00", endTime: "16:00" });
+    },
+  });
+
   // ── Computed values ────────────────────────────────────────
-  const allEntries    = entries as Entry[];
-  const weekDates     = getWeekDates(0);
-  const todayStr      = now.toISOString().split("T")[0];
-  const gcalConnected = !!(profile?.gcalCalendarId);
+  const allEntries = entries as Entry[];
 
   const pendingApprovals = allEntries.filter(e =>
     e.reqStatus === "approved" && e.repStatus === "pending"
@@ -138,16 +164,23 @@ export default function HomePage() {
 
   const fkGated = invoicePending > 0 || invoiceHours === 0;
 
+  // Schedule driven by Google Calendar events (source of truth)
+  function gcalEventDate(ev: Record<string, unknown>): string {
+    const dt = ((ev.start as Record<string, string>)?.dateTime ?? (ev.start as Record<string, string>)?.date ?? "");
+    return dt.substring(0, 10);
+  }
+  function gcalEventHours(ev: Record<string, unknown>): number {
+    const s = ((ev.start as Record<string, string>)?.dateTime ?? "");
+    const e = ((ev.end   as Record<string, string>)?.dateTime ?? "");
+    if (!s || !e) return 0;
+    return parseFloat(((new Date(e).getTime() - new Date(s).getTime()) / 3_600_000).toFixed(1));
+  }
+
   const byDay = weekDates.map((date, i) => {
-    const dayEntries = allEntries.filter(e =>
-      e.date === date && e.reqStatus !== "rejected"
-    );
-    const totalHours    = dayEntries.reduce((s, e) => s + ((e.hours as number) ?? 0), 0);
-    const assistantIds  = [...new Set(dayEntries.map(e => e.assistantId as string).filter(Boolean))];
-    const dayAssistants = assistantIds
-      .map(aid => (assistants as Assistant[]).find(a => a.id === aid))
-      .filter(Boolean) as Assistant[];
-    return { date, dayName: DAY_NAMES[i], totalHours, dayAssistants };
+    const dayGcal      = (gcalEvents as Record<string, unknown>[]).filter(ev => gcalEventDate(ev) === date);
+    const totalHours   = dayGcal.reduce((s, ev) => s + gcalEventHours(ev), 0);
+    const eventTitles  = dayGcal.map(ev => (ev.summary as string) ?? "Event").slice(0, 2);
+    return { date, dayName: DAY_NAMES[i], totalHours, eventCount: dayGcal.length, eventTitles };
   });
 
   const guardianFirst = (profile?.guardianName as string)?.split(" ")[0] ?? "";
@@ -200,13 +233,51 @@ export default function HomePage() {
       {/* ── This week's schedule ─────────────────────────────── */}
       <Card className="mb-5">
         <CardContent className="pt-5">
-          <p className="text-base font-semibold mb-4">This week's schedule</p>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-base font-semibold">
+              {weekOffset === 0 ? "This week's schedule" : (() => {
+                const first = new Date(weekDates[0] + "T12:00:00");
+                const last  = new Date(weekDates[6] + "T12:00:00");
+                const fmt   = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+                return `${fmt.format(first)} – ${fmt.format(last)}`;
+              })()}
+            </p>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setWeekOffset(o => Math.max(o - 1, -12))}
+                disabled={weekOffset <= -12}
+                className="text-xs px-2"
+              >
+                ← Prev
+              </Button>
+              {weekOffset !== 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setWeekOffset(0)}
+                  className="text-xs px-2"
+                >
+                  Today
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setWeekOffset(o => o + 1)}
+                className="text-xs px-2"
+              >
+                Next →
+              </Button>
+            </div>
+          </div>
 
           {/* 7-column grid */}
           <div className="grid grid-cols-3 sm:grid-cols-7 gap-2 mb-2">
-            {byDay.map(({ date, dayName, dayAssistants, totalHours }) => {
+            {byDay.map(({ date, dayName, eventCount, totalHours, eventTitles }) => {
               const isToday = date === todayStr;
-              const isEmpty = dayAssistants.length === 0;
+              const isEmpty = eventCount === 0;
               return (
                 <div
                   key={date}
@@ -234,36 +305,31 @@ export default function HomePage() {
 
                   {isEmpty ? (
                     <div className="h-7 flex items-center justify-center">
-                      <span className="text-base text-muted-foreground/30">—</span>
+                      <div className="w-6 h-6 rounded-full border border-dashed border-muted-foreground/20 flex items-center justify-center text-muted-foreground/20">
+                        <Plus className="w-3 h-3" />
+                      </div>
                     </div>
                   ) : (
                     <>
-                      <div className="flex justify-center gap-0.5 mb-1 flex-wrap">
-                        {dayAssistants.slice(0, 2).map(a => (
-                          <AssistantAvatar
-                            key={a.id as string}
-                            name={a.name    as string}
-                            initials={a.initials as string}
-                            color={a.color   as string}
-                            size={22}
-                          />
+                      <div className="space-y-0.5 mb-1">
+                        {eventTitles.map((title, idx) => (
+                          <p key={idx} className="text-[9px] text-blue-700 font-medium truncate leading-tight">{title}</p>
                         ))}
-                        {dayAssistants.length > 2 && (
-                          <div className="w-5 h-5 rounded-full bg-secondary border border-border flex items-center justify-center text-[9px] font-bold text-muted-foreground">
-                            +{dayAssistants.length - 2}
-                          </div>
+                        {eventCount > 2 && (
+                          <p className="text-[9px] text-muted-foreground">+{eventCount - 2} more</p>
                         )}
                       </div>
                       <p className="text-xs font-mono font-semibold text-foreground mb-1.5">
-                        {totalHours}h
+                        {totalHours > 0 ? `${totalHours}h` : `${eventCount} event${eventCount !== 1 ? "s" : ""}`}
                       </p>
                       {gcalConnected && (
                         <button
                           onClick={() => {
-                            const firstAssistant = dayAssistants[0];
+                            const firstAsst = (assistants as Assistant[])[0];
+                            if (!firstAsst) return;
                             setMarkAbsentEntry({
-                              assistantId:   firstAssistant.id   as string,
-                              assistantName: firstAssistant.name as string,
+                              assistantId:   firstAsst.id   as string,
+                              assistantName: firstAsst.name as string,
                               date,
                             });
                           }}
@@ -402,6 +468,59 @@ export default function HomePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* ── Add shift dialog ────────────────────────────────── */}
+      <Dialog open={addShiftDate !== null} onOpenChange={(open) => { if (!open) { setAddShiftDate(null); setShiftForm({ assistantId: "", startTime: "08:00", endTime: "16:00" }); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add shift</DialogTitle>
+            <DialogDescription>
+              {addShiftDate && new Date(addShiftDate + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-1">
+            <div>
+              <p className="text-sm font-medium mb-1.5">Assistant</p>
+              <Select value={shiftForm.assistantId} onValueChange={(v) => setShiftForm(f => ({ ...f, assistantId: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select assistant" /></SelectTrigger>
+                <SelectContent>
+                  {(assistants as Assistant[]).map(a => (
+                    <SelectItem key={a.id as string} value={a.id as string}>{a.name as string}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className="text-sm font-medium mb-1.5">Start</p>
+                <input type="time" value={shiftForm.startTime} onChange={e => setShiftForm(f => ({ ...f, startTime: e.target.value }))}
+                  className="w-full border border-border rounded-md px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-1.5">End</p>
+                <input type="time" value={shiftForm.endTime} onChange={e => setShiftForm(f => ({ ...f, endTime: e.target.value }))}
+                  className="w-full border border-border rounded-md px-3 py-2 text-sm" />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button
+                className="flex-1"
+                disabled={!shiftForm.assistantId || addEntry.isPending}
+                onClick={() => {
+                  if (!addShiftDate || !shiftForm.assistantId) return;
+                  const [sh, sm] = shiftForm.startTime.split(":").map(Number);
+                  const [eh, em] = shiftForm.endTime.split(":").map(Number);
+                  const hours = Math.max(0, (eh * 60 + em - sh * 60 - sm) / 60);
+                  addEntry.mutate({ assistantId: shiftForm.assistantId, date: addShiftDate, startTime: shiftForm.startTime, endTime: shiftForm.endTime, hours, reqStatus: "approved", repStatus: "draft", source: "proposal" });
+                }}
+              >
+                {addEntry.isPending ? "Saving…" : "Add shift"}
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={() => setAddShiftDate(null)}>Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Mark absent dialog ──────────────────────────────── */}
       <Dialog
