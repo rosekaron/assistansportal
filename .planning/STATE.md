@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-04-11T21:08:14.334Z"
+status: verifying
+last_updated: "2026-04-15T21:33:53.968Z"
 progress:
-  total_phases: 7
-  completed_phases: 6
-  total_plans: 30
-  completed_plans: 30
-  percent: 100
+  total_phases: 9
+  completed_phases: 8
+  total_plans: 36
+  completed_plans: 32
+  percent: 89
 ---
 
 # Kalinga Assistansportal — Project State
@@ -26,7 +26,7 @@ progress:
 The guardian can complete the full monthly compliance cycle — approve hours, generate all required forms, calculate pay — without needing an HR department or assistance company.
 
 **Current Focus:**
-Phase 04 — tax-reporting-agi
+Phase 06.1 — uat-bug-fix
 
 **Tech Stack:**
 
@@ -40,12 +40,12 @@ Phase 04 — tax-reporting-agi
 
 ## Current Position
 
-Phase: 04 (tax-reporting-agi) — EXECUTING
-Plan: 1 of 3
-**Phase:** 1 COMPLETE (stability-correctness) — all 4 plans verified GREEN
-**Plan:** 4/4 complete
-**Status:** Executing Phase 04
-**Progress:** [██████████] 100%
+Phase: 06.1 (uat-bug-fix) — EXECUTING
+Plan: 1 of 1
+**Phase 06:** COMPLETE (google-calendar-integration) — UAT: 4 passed, 3 blocked on credentials
+**Phase 06.1:** Plan written — 3 remaining UAT bugs (BUG-002, BUG-004, BUG-005)
+**Status:** Phase complete — ready for verification
+**Progress:** [█████████░] 89%
 
 ---
 
@@ -100,6 +100,12 @@ Plan: 1 of 3
 - [Phase 03.5-02]: Used newId() (crypto.randomBytes) for ID generation — matches existing project convention; nanoid not a dependency
 - [Phase 04]: agiUnlocked = step2Complete — Step 4 unlocks when all payroll records are approved (consistent with D-07)
 - [Phase 04]: preliminary_tax_rate stored as decimal string in settings, displayed as integer percentage in UI — conversion on read and write
+- [Phase 06.1-uat-bug-fix]: Self-registration requires name+pno+minWeeklyHours; server enforces 409 on duplicate
+- [Phase 06.1-uat-bug-fix]: BUG-004 marked Fixed (code path complete); live SMTP test required separately for delivery confirmation
+
+## Roadmap Evolution
+
+- Phase 06.1 inserted after Phase 06: UAT Bug Fix (URGENT) — 7 bugs found during Phase 6 acceptance testing logged in .planning/UAT-BUG-LOG.md
 
 ## Accumulated Context
 

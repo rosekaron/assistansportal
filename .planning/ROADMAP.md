@@ -290,3 +290,13 @@ Phase 5: Scheduling & Compliance (can proceed in parallel with Phase 4, depends 
 *Phase 3.5 planned: 2026-04-11 — 10 plans, 6 waves*
 *Phase 4 planned: 2026-04-11 — 3 plans, 3 waves*
 *Phase 6 planned: 2026-04-12 — 1 plan, 1 wave*
+
+### Phase 06.1: UAT Bug Fix (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 6
+**Plans:** 1/1 plans complete
+
+Plans:
+- [x] TBD (run /gsd-plan-phase 06.1 to break down) (completed 2026-04-15)
