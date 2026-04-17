@@ -88,6 +88,7 @@ interface StepProps {
   label: string;
   sublabel?: string;
   state: StepState;
+  badge?: { variant: "info" | "warning" | "destructive"; text: string };  // D-08
 }
 
 function StepCircle({ number, state }: { number: number; state: StepState }) {
@@ -128,6 +129,14 @@ function ProgressStepper({ steps }: { steps: StepProps[] }) {
               </p>
               {step.sublabel && (
                 <p className="text-xs text-muted-foreground mt-0.5">{step.sublabel}</p>
+              )}
+              {step.badge && (
+                <Badge
+                  variant={step.badge.variant}
+                  className="mt-1 text-[10px] py-0 px-1.5 h-4"
+                >
+                  {step.badge.text}
+                </Badge>
               )}
             </div>
           </div>
@@ -547,28 +556,56 @@ export default function MonthlyPage() {
   // D-07: Step 4 unlocks when all payroll is approved (same condition as step2Complete)
   const agiUnlocked = step2Complete;
 
+  // ── Deadline computation for compliance steps (D-07) ────────────────────
+  const [rmYear, rmMon] = monthKey.split("-").map(Number);
+  // FK: 5th of second following month. mon is 1-based; JS months 0-based.
+  // new Date(year, mon+1, 5): Jan(1) → new Date(y, 2, 5) = Mar 5
+  const fkDeadline  = new Date(rmYear, rmMon + 1, 5);
+  // AGI: 12th of following month.
+  // new Date(year, mon, 12): Jan(1) → new Date(y, 1, 12) = Feb 12
+  const agiDeadline = new Date(rmYear, rmMon, 12);
+  const nowMs = Date.now();
+  const fkDaysLeft  = Math.ceil((fkDeadline.getTime()  - nowMs) / 86400000);
+  const agiDaysLeft = Math.ceil((agiDeadline.getTime() - nowMs) / 86400000);
+
+  function makeDeadlineBadge(daysLeft: number, isComplete: boolean): StepProps["badge"] {
+    if (isComplete) return undefined;
+    if (daysLeft <= 0)  return { variant: "destructive", text: "Overdue" };
+    if (daysLeft <= 7)  return { variant: "destructive", text: `${daysLeft} days left` };
+    if (daysLeft <= 14) return { variant: "warning",     text: `${daysLeft} days left` };
+    return { variant: "info", text: `${daysLeft} days left` };
+  }
+
   // ── Stepper state ─────────────────────────────────────────────────────────
   const stepperSteps: StepProps[] = [
     {
       number: 1,
       label: "Daily reports",
-      sublabel: totalReportsCount > 0 ? `${approvedReportsCount}/${totalReportsCount}` : undefined,
+      sublabel: totalReportsCount > 0 ? `${approvedReportsCount}/${totalReportsCount} reports approved` : undefined,
       state: step1Complete ? "complete" : "active",
     },
     {
       number: 2,
       label: "Payroll",
-      sublabel: payrollTotalCount > 0 ? `${payrollApprovedCount}/${payrollTotalCount}` : undefined,
+      sublabel: payrollTotalCount > 0 ? `${payrollApprovedCount}/${payrollTotalCount} records approved` : undefined,
       state: step2Complete ? "complete" : (step1Complete ? "active" : "active"),
     },
     {
       number: 3,
       label: "FK forms",
+      sublabel: fkDaysLeft < 0
+        ? `Overdue by ${Math.abs(fkDaysLeft)} days`
+        : `Due ${fkDeadline.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · ${fkDaysLeft} days left`,
+      badge: makeDeadlineBadge(fkDaysLeft, step1Complete),
       state: fkUnlocked ? "complete" : "locked",
     },
     {
       number: 4,
       label: "AGI (4805)",
+      sublabel: agiDaysLeft < 0
+        ? `Overdue by ${Math.abs(agiDaysLeft)} days`
+        : `Due ${agiDeadline.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · ${agiDaysLeft} days left`,
+      badge: makeDeadlineBadge(agiDaysLeft, step2Complete),
       state: agiUnlocked ? "active" : "locked",
     },
   ];
