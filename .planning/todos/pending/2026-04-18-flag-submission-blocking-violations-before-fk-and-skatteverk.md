@@ -2,6 +2,7 @@
 created: 2026-04-18T00:00:00Z
 title: Flag submission-blocking violations before FK and Skatteverket report download
 area: ui
+planned_milestone: v1.2
 files:
   - client/src/pages/Monthly.tsx
   - client/src/pages/Records.tsx
@@ -10,6 +11,9 @@ files:
   - server/src/lib/form4805-utils.ts
   - .planning/compliance/2026-03-advisor-brief.md
 ---
+
+> **Milestone assignment (2026-04-18):** This design is scoped for **v1.2 — Submission Readiness Gate**. See ROADMAP.md "Future Milestones" section. Promote via `/gsd-new-milestone v1.2` after v1.0 archives.
+
 
 ## Problem
 

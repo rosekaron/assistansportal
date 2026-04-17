@@ -2,13 +2,18 @@
 created: 2026-04-18T00:00:00Z
 title: Home notification for labor-law and FK schedule violations
 area: ui
+planned_milestone: v1.3
 files:
   - client/src/pages/Home.tsx
+  - client/src/pages/Monthly.tsx
   - server/src/lib/scheduleCompliance.ts   # NEW — proposed pure-function module
   - server/src/routes/entries.ts
   - .planning/compliance/2026-03-advisor-brief.md
   - .planning/todos/pending/2026-04-18-march-2026-compliance-escalation-to-labor-law-advisor.md
 ---
+
+> **Milestone assignment (2026-04-18):** This design is scoped for **v1.3 — Schedule-Violation Warnings on Monthly**. Original todo was Home-only; user directed that Monthly placement is primary (with Home as secondary mirror). See ROADMAP.md "Future Milestones" section. Promote via `/gsd-new-milestone v1.3` after v1.0 archives.
+
 
 ## Problem
 

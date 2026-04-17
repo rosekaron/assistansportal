@@ -23,6 +23,63 @@
 
 ---
 
+## Future Milestones (planned 2026-04-18)
+
+### 🔜 v1.1 — Bulk Schedule Entry
+
+**Goal:** Guardian can efficiently create multi-day / multi-assistant schedule entries in one action instead of one row at a time.
+
+**Scope:**
+- Bulk action on Home / Monthly for creating manual entries across multiple days and/or assistants in a single interaction
+- Templates (e.g. "copy previous week", "apply this shift to Mon–Fri")
+- Proper feedback on partial failures when bulk create hits validation errors
+
+**Open questions for discuss phase:**
+- What's the most common bulk pattern (copy week, apply weekday template, fill-remaining-days)?
+- Does bulk entry trigger GCal outbound sync per entry, or a single batch sync?
+- Should bulk entries bypass the schedule-violation warnings or respect them?
+
+**Not yet planned.** No phases defined. Promote during `/gsd-new-milestone v1.1`.
+
+---
+
+### 🔜 v1.2 — Submission Readiness Gate
+
+**Goal:** Before the guardian downloads FK 3057 / FK 3059 / SKV 4805, surface any data gaps that would cause the receiving authority (FK or Skatteverket) to reject the submission. Disable downloads until blockers are resolved.
+
+**Scope:**
+- Pre-flight validator for each form with 12 blockers (brukare pno, beslutsnummer, assistant pno/address, payroll approval, tax table, etc.)
+- "Submission readiness" panel on Monthly and Records pages
+- Server-side mirror (422 on PDF POST when blockers exist)
+- Deep-link from each blocker row to the fix location
+
+**Existing design:** [.planning/todos/pending/2026-04-18-flag-submission-blocking-violations-before-fk-and-skatteverk.md](todos/pending/2026-04-18-flag-submission-blocking-violations-before-fk-and-skatteverk.md) — full 12-blocker matrix already specified. Promote that design during `/gsd-new-milestone v1.2`.
+
+**Depends on:** v1.1 schema additions ([2026-04-18-capture-missing-assistant-and-profile-fields-for-fk-and-skat.md](todos/pending/2026-04-18-capture-missing-assistant-and-profile-fields-for-fk-and-skat.md)) for 6 of 12 blockers.
+
+---
+
+### 🔜 v1.3 — Schedule-Violation Warnings on Monthly
+
+**Goal:** When the guardian opens the Monthly page, show any FK-rule or labor-law violations in the approved schedule for the month being filed. Errors gate approval; warnings require explicit confirmation.
+
+**Scope:**
+- Pure-function rule engine with 10 rules: ATL §5/§8/§13/§14, FK dubbel-assistans, FK coverage gap/excess, FK decision expiry, anhörigassistans cap, employment-period check
+- "Schedule health" card on Monthly (and mirror on Home per the existing Home-notification todo)
+- Gate Monthly Step 1 ("Approve time entries") on error-severity resolution
+
+**Existing design:** [.planning/todos/pending/2026-04-18-home-notification-for-labor-law-and-fk-schedule-violations.md](todos/pending/2026-04-18-home-notification-for-labor-law-and-fk-schedule-violations.md) — original was Home-only; scope now includes Monthly per 2026-04-18 user direction. Full rule set + implementation sketch already in that todo.
+
+**Depends on:** v1.1 schema additions (FK-coverage-* and employment-period rules need new columns).
+
+**Note:** Kick-off blocked by the payroll-formula triage (STATE.md PAUSED). Also note that ATL-rule subset can ship without any schema change — that can be a v1.3-lite if urgency warrants.
+
+---
+
+**Backlog trigger:** After v1.0 archives and the payroll triage resolves, run `/gsd-new-milestone v1.1` to promote bulk entry first (most independent). v1.2 and v1.3 depend on schema additions that v1.1 doesn't yet plan — sequence those into v1.1 scope or create a shared "v1.5 schema additions" milestone.
+
+---
+
 ## Phase Details
 
 ### Phase 1: Stability & Correctness
