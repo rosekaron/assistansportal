@@ -14,7 +14,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/inputs";
-import { PageHeader, AssistantAvatar, EmptyState } from "@/components/shared";
+import { PageHeader, EmptyState } from "@/components/shared";
 import {
   Dialog,
   DialogContent,
@@ -33,10 +33,11 @@ import {
   Info,
   CheckCircle2,
   FileDown,
+  ChevronLeft,
   ChevronRight,
   AlertCircle,
   Banknote,
-  Plus,
+  UserX,
 } from "lucide-react";
 import { getWeekDates, cn } from "@/lib/utils";
 
@@ -164,24 +165,30 @@ export default function HomePage() {
 
   const fkGated = invoicePending > 0 || invoiceHours === 0;
 
-  // Schedule driven by Google Calendar events (source of truth)
-  function gcalEventDate(ev: Record<string, unknown>): string {
-    const dt = ((ev.start as Record<string, string>)?.dateTime ?? (ev.start as Record<string, string>)?.date ?? "");
-    return dt.substring(0, 10);
-  }
-  function gcalEventHours(ev: Record<string, unknown>): number {
-    const s = ((ev.start as Record<string, string>)?.dateTime ?? "");
-    const e = ((ev.end   as Record<string, string>)?.dateTime ?? "");
-    if (!s || !e) return 0;
-    return parseFloat(((new Date(e).getTime() - new Date(s).getTime()) / 3_600_000).toFixed(1));
-  }
+  // ── Schedule grid data (D-01, D-03) ───────────────────────
+  const weekEntries = (entries as Entry[]).filter(e =>
+    weekDates.includes(e.date as string)
+  );
 
-  const byDay = weekDates.map((date, i) => {
-    const dayGcal      = (gcalEvents as Record<string, unknown>[]).filter(ev => gcalEventDate(ev) === date);
-    const totalHours   = dayGcal.reduce((s, ev) => s + gcalEventHours(ev), 0);
-    const eventTitles  = dayGcal.map(ev => (ev.summary as string) ?? "Event").slice(0, 2);
-    return { date, dayName: DAY_NAMES[i], totalHours, eventCount: dayGcal.length, eventTitles };
-  });
+  const byAssistantDay = (assistants as Assistant[]).map(assistant => ({
+    assistant,
+    days: weekDates.map(date =>
+      weekEntries.filter(
+        e => (e.assistantId as string) === (assistant.id as string) && e.date === date
+      )
+    ),
+  }));
+
+  const dailyTotals = weekDates.map(date =>
+    weekEntries
+      .filter(e => e.date === date)
+      .reduce((sum, e) => sum + ((e.hours as number) ?? 0), 0)
+  );
+
+  // Week label: "Mon 14 Apr – Sun 20 Apr"
+  const weekLabel = weekDates.length === 7
+    ? `${new Date(weekDates[0] + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} – ${new Date(weekDates[6] + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}`
+    : "";
 
   const guardianFirst = (profile?.guardianName as string)?.split(" ")[0] ?? "";
   const patientName   = (profile?.patientName  as string) ?? "";
@@ -233,117 +240,165 @@ export default function HomePage() {
       {/* ── This week's schedule ─────────────────────────────── */}
       <Card className="mb-5">
         <CardContent className="pt-5">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-base font-semibold">
-              {weekOffset === 0 ? "This week's schedule" : (() => {
-                const first = new Date(weekDates[0] + "T12:00:00");
-                const last  = new Date(weekDates[6] + "T12:00:00");
-                const fmt   = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
-                return `${fmt.format(first)} – ${fmt.format(last)}`;
-              })()}
-            </p>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setWeekOffset(o => Math.max(o - 1, -12))}
-                disabled={weekOffset <= -12}
-                className="text-xs px-2"
-              >
-                ← Prev
-              </Button>
-              {weekOffset !== 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setWeekOffset(0)}
-                  className="text-xs px-2"
-                >
-                  Today
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setWeekOffset(o => o + 1)}
-                className="text-xs px-2"
-              >
-                Next →
-              </Button>
-            </div>
+          <p className="text-base font-semibold mb-3">This week's schedule</p>
+
+          {/* Week navigation (D-02) */}
+          <div className="flex items-center justify-between mb-4 gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Previous week"
+              onClick={() => setWeekOffset(o => o - 1)}
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Prev
+            </Button>
+            <span className="text-sm font-semibold text-foreground text-center flex-1">{weekLabel}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setWeekOffset(0)}
+              className={cn(weekOffset === 0 ? "border-primary text-primary" : "")}
+            >
+              Today
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Next week"
+              onClick={() => setWeekOffset(o => o + 1)}
+            >
+              Next
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
           </div>
 
-          {/* 7-column grid */}
-          <div className="grid grid-cols-3 sm:grid-cols-7 gap-2 mb-2">
-            {byDay.map(({ date, dayName, eventCount, totalHours, eventTitles }) => {
-              const isToday = date === todayStr;
-              const isEmpty = eventCount === 0;
-              return (
-                <div
-                  key={date}
-                  className={cn(
-                    "rounded-xl p-2 text-center border transition-all",
-                    isToday
-                      ? "border-primary/40 bg-primary/8 ring-1 ring-primary/20"
-                      : isEmpty
-                        ? "border-border bg-secondary/20 opacity-40"
-                        : "border-border bg-secondary/20",
-                  )}
-                >
-                  <p className={cn(
-                    "text-[10px] font-semibold uppercase tracking-wide mb-1",
-                    isToday ? "text-primary" : "text-muted-foreground"
-                  )}>
-                    {dayName}
-                  </p>
-                  <p className={cn(
-                    "text-xs font-mono mb-2",
-                    isToday ? "text-primary font-bold" : "text-muted-foreground"
-                  )}>
-                    {new Date(date + "T12:00:00").getDate()}
-                  </p>
-
-                  {isEmpty ? (
-                    <div className="h-7 flex items-center justify-center">
-                      <div className="w-6 h-6 rounded-full border border-dashed border-muted-foreground/20 flex items-center justify-center text-muted-foreground/20">
-                        <Plus className="w-3 h-3" />
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="space-y-0.5 mb-1">
-                        {eventTitles.map((title, idx) => (
-                          <p key={idx} className="text-[9px] text-blue-700 font-medium truncate leading-tight">{title}</p>
-                        ))}
-                        {eventCount > 2 && (
-                          <p className="text-[9px] text-muted-foreground">+{eventCount - 2} more</p>
-                        )}
-                      </div>
-                      <p className="text-xs font-mono font-semibold text-foreground mb-1.5">
-                        {totalHours > 0 ? `${totalHours}h` : `${eventCount} event${eventCount !== 1 ? "s" : ""}`}
-                      </p>
-                      {gcalConnected && (
-                        <button
-                          onClick={() => {
-                            const firstAsst = (assistants as Assistant[])[0];
-                            if (!firstAsst) return;
-                            setMarkAbsentEntry({
-                              assistantId:   firstAsst.id   as string,
-                              assistantName: firstAsst.name as string,
-                              date,
-                            });
-                          }}
-                          className="text-[9px] text-muted-foreground hover:text-foreground underline transition-colors"
+          {/* Schedule table (D-01, D-04, D-05) */}
+          {(assistants as Assistant[]).length === 0 ? (
+            <EmptyState message="No assistants added yet. Add assistants in Settings." />
+          ) : (
+            <div className="overflow-x-auto -mx-1">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-secondary/40">
+                    <th
+                      scope="col"
+                      className="text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground px-2 py-2 w-28 min-w-[7rem]"
+                    >
+                      Assistant
+                    </th>
+                    {weekDates.map((date, i) => {
+                      const isToday = date === todayStr;
+                      return (
+                        <th
+                          key={date}
+                          scope="col"
+                          aria-current={isToday ? "date" : undefined}
+                          className={cn(
+                            "text-center text-xs font-semibold px-1 py-2 min-w-[3.5rem]",
+                            isToday ? "text-primary" : "text-muted-foreground"
+                          )}
+                          style={isToday ? { borderBottom: "2px solid hsl(var(--primary))" } : undefined}
                         >
-                          Mark absent
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                          <div>{DAY_NAMES[i]}</div>
+                          <div className="font-mono text-[11px] font-normal mt-0.5">
+                            {new Date(date + "T12:00:00").getDate()}
+                          </div>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {byAssistantDay.map(({ assistant, days }) => (
+                    <tr
+                      key={assistant.id as string}
+                      className="border-t border-border hover:bg-secondary/20 transition-colors"
+                    >
+                      <th
+                        scope="row"
+                        className="text-left px-2 py-2 font-normal"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          {/* Color dot (D-04): 8×8px filled circle using assistant.color hex */}
+                          <span
+                            className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: (assistant.color as string) || "#6366f1" }}
+                            aria-hidden="true"
+                          />
+                          <span className="text-xs font-medium text-foreground truncate max-w-[5rem]">
+                            {(assistant.name as string)?.split(" ")[0]}
+                          </span>
+                        </div>
+                      </th>
+                      {days.map((dayEntries, i) => {
+                        const date = weekDates[i];
+                        const isToday = date === todayStr;
+                        const hasShift = dayEntries.length > 0;
+                        const firstEntry = dayEntries[0];
+                        return (
+                          <td
+                            key={date}
+                            aria-current={isToday ? "date" : undefined}
+                            className={cn(
+                              "text-center px-1 py-2 relative group",
+                              isToday ? "bg-primary/5" : ""
+                            )}
+                            style={isToday ? { borderLeft: "2px solid hsl(var(--primary))" } : undefined}
+                          >
+                            {hasShift ? (
+                              <div
+                                className="relative inline-block"
+                                style={{ borderLeft: `2px solid ${(assistant.color as string) || "#6366f1"}`, paddingLeft: "4px" }}
+                              >
+                                <span className="text-xs font-mono text-muted-foreground">
+                                  {(firstEntry.startTime as string)?.substring(0, 5)}–{(firstEntry.endTime as string)?.substring(0, 5)}
+                                </span>
+                                {/* Mark absent trigger (hover only) */}
+                                <button
+                                  className="absolute -top-1.5 -right-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  aria-label={`Mark ${assistant.name as string} absent on ${date}`}
+                                  onClick={() => setMarkAbsentEntry({
+                                    assistantId: assistant.id as string,
+                                    assistantName: assistant.name as string,
+                                    date,
+                                  })}
+                                >
+                                  <UserX className="w-3 h-3 text-muted-foreground hover:text-destructive transition-colors" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground/50 text-xs">–</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t border-border bg-secondary/20">
+                    <td className="px-2 py-1.5 text-xs uppercase tracking-wide text-muted-foreground font-medium">
+                      Total
+                    </td>
+                    {dailyTotals.map((hrs, i) => (
+                      <td key={weekDates[i]} className="text-center px-1 py-1.5 text-xs font-mono font-semibold text-foreground">
+                        {hrs > 0 ? `${hrs}h` : "—"}
+                      </td>
+                    ))}
+                  </tr>
+                </tfoot>
+              </table>
+              {weekEntries.length === 0 && (assistants as Assistant[]).length > 0 && (
+                <p
+                  aria-live="polite"
+                  className="text-xs text-muted-foreground text-center py-3"
+                >
+                  No shifts scheduled this week.
+                </p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
