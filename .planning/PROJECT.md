@@ -103,3 +103,18 @@ This platform exists because families managing personal assistance (assistansers
 - Guardian approves before submission — guardian is the authorizing party, not the care company
 - Clean audit trail means families can defend their FK claims in disputes or audits
 - Clock-in/out with identity verification would be the strongest differentiator (see backlog seed)
+
+## Architectural Clarification (2026-04-12)
+
+**Schedule source of truth: Google Calendar — not internal entries**
+
+The schedule (what shifts are planned and when) is owned by Google Calendar. The app reads from Google Calendar to display the schedule. The app does **not** create a schedule internally; users add events directly in Google Calendar.
+
+- **Schedule views** (Calendar page grid, Home weekly strip) → pull from `GET /api/gcal/events` → Google Calendar API
+- **Hour tracking** (entries table) → created by assistant clock-in/out; represents what was actually worked
+- **Approval workflow** (Monthly page) → guardian approves clock-out entries before FK/payroll submission
+
+This means:
+- The "assign assistant to slot" flow in Calendar.tsx is a legacy/fallback, not the primary scheduling path
+- A shift appearing on the schedule does not automatically create a DB entry — the assistant must clock in/out
+- The entries table is a record of actual hours worked, not a schedule

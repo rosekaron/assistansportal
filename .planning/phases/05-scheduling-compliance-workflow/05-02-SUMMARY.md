@@ -37,6 +37,8 @@ key-decisions:
 # Metrics
 duration: 15min
 completed: 2026-04-17
+
+requirements-completed: [SCHED-01]
 ---
 
 # Phase 05 Plan 02: Scheduling — Assistant-Row Schedule Table Summary

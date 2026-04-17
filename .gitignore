@@ -3,3 +3,10 @@ dist/
 .env
 *.local
 .DS_Store
+
+# Test + coverage artifacts
+client/test-results/
+server/coverage/
+
+# Claude Code worktree scratch
+.claude/worktrees/

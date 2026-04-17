@@ -3,8 +3,9 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { db } from "../db";
-import { auth, emailVerifications, passwordResets, assistants, invites, profile } from "../db/schema";
+import { auth, emailVerifications, passwordResets, assistants, invites, profile, assistantGuardianLinks } from "../db/schema";
 import { eq, and, gt } from "drizzle-orm";
+import { newId } from "../lib/id";
 import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 import { sendVerificationEmail, sendPasswordResetEmail, sendAssistantInviteEmail } from "../lib/email";
 
@@ -197,6 +198,26 @@ router.post("/accept-invite", async (req, res) => {
 
     if (assistant) {
       await db.update(assistants).set({ authId: user.id, inviteStatus: "accepted" }).where(eq(assistants.id, assistant.id));
+
+      // Ensure an active guardian link exists so the assistant can clock in.
+      // Single-tenant: the one guardian is the only user with role="guardian".
+      const [guardian] = await db.select({ id: auth.id }).from(auth)
+        .where(eq(auth.role, "guardian")).limit(1);
+      if (guardian) {
+        await db.insert(assistantGuardianLinks).values({
+          id:          newId("gl"),
+          assistantId: assistant.id,
+          guardianId:  guardian.id,
+          active:      true,
+        }).onConflictDoNothing();
+        // Also activate any existing inactive link
+        await db.update(assistantGuardianLinks)
+          .set({ active: true })
+          .where(and(
+            eq(assistantGuardianLinks.assistantId, assistant.id),
+            eq(assistantGuardianLinks.guardianId, guardian.id),
+          ));
+      }
     }
     await db.update(invites).set({ status: "accepted" }).where(eq(invites.id, invite.id));
 

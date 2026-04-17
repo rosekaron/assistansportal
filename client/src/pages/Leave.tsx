@@ -18,15 +18,15 @@ function formatPeriod(startDate: string, endDate: string): string {
   const start = new Date(startDate + "T12:00:00");
   const end   = new Date(endDate   + "T12:00:00");
   const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
-  const startStr = start.toLocaleDateString("sv-SE", opts);
-  const endStr   = end.toLocaleDateString("sv-SE", { ...opts, year: "numeric" });
+  const startStr = start.toLocaleDateString("en-GB", opts);
+  const endStr   = end.toLocaleDateString("en-GB", { ...opts, year: "numeric" });
   return `${startStr} – ${endStr}`;
 }
 
 // Helper: format "d MMM yyyy"
 function formatCreated(dateStr: string): string {
   const d = new Date(dateStr);
-  return d.toLocaleDateString("sv-SE", { day: "numeric", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
 // Helper: calendar days between two YYYY-MM-DD strings (inclusive)
@@ -44,10 +44,10 @@ function vabColor(remaining: number): string {
 // Absence type badge
 function AbsenceTypeBadge({ type }: { type: AbsenceType }) {
   const map: Record<AbsenceType, { variant: "warning" | "info" | "success" | "slate"; label: string }> = {
-    "sjukfrånvaro": { variant: "warning", label: "Sjukfrånvaro" },
+    "sjukfrånvaro": { variant: "warning", label: "Sick leave" },
     "vab":          { variant: "info",    label: "VAB" },
-    "semester":     { variant: "success", label: "Semester" },
-    "other":        { variant: "slate",   label: "Övrigt" },
+    "semester":     { variant: "success", label: "Holiday" },
+    "other":        { variant: "slate",   label: "Other" },
   };
   const { variant, label } = map[type] ?? { variant: "slate" as const, label: type };
   return <Badge variant={variant}>{label}</Badge>;
@@ -84,7 +84,7 @@ function AssistantBalanceCards({
             />
             {assistant.name}
           </CardTitle>
-          <CardDescription>VAB kvar {year}</CardDescription>
+          <CardDescription>VAB remaining {year}</CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
           {isLoading ? (
@@ -94,7 +94,7 @@ function AssistantBalanceCards({
               <p className={cn("text-2xl font-bold", vabColor(vabRemaining))}>
                 {vabRemaining}
               </p>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-1">dagar kvar av 120</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-1">days remaining of 120</p>
               <div className="mt-3 h-1.5 w-full bg-muted rounded-full overflow-hidden">
                 <div
                   className="h-full bg-primary rounded-full"
@@ -118,7 +118,7 @@ function AssistantBalanceCards({
             />
             {assistant.name}
           </CardTitle>
-          <CardDescription>Sjukfrånvaro {year}</CardDescription>
+          <CardDescription>Sick leave {year}</CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
           {isLoading ? (
@@ -126,7 +126,7 @@ function AssistantBalanceCards({
           ) : (
             <>
               <p className="text-2xl font-bold text-foreground">{sickDays}</p>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-1">dagar registrerade</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-1">days recorded</p>
             </>
           )}
         </CardContent>
@@ -196,7 +196,7 @@ export default function LeaveAbsencePage() {
       setServerError("");
     },
     onError: () => {
-      setServerError("Kunde inte spara frånvaro. Kontrollera datumen och försök igen.");
+      setServerError("Could not save absence. Check the dates and try again.");
     },
   });
 
@@ -211,7 +211,7 @@ export default function LeaveAbsencePage() {
       setDeleteError("");
     },
     onError: () => {
-      setDeleteError("Kunde inte radera. Försök igen.");
+      setDeleteError("Could not delete. Please try again.");
     },
   });
 
@@ -229,7 +229,7 @@ export default function LeaveAbsencePage() {
   function formatMonthLabel(ym: string): string {
     const [y, m] = ym.split("-");
     const d = new Date(Number(y), Number(m) - 1, 1);
-    return d.toLocaleDateString("sv-SE", { month: "short", year: "numeric" });
+    return d.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
   }
 
   function handleSubmit() {
@@ -237,7 +237,7 @@ export default function LeaveAbsencePage() {
     setServerError("");
 
     if (formState.startDate && formState.endDate && formState.endDate < formState.startDate) {
-      setDateError("Slutdatum kan inte vara före startdatum.");
+      setDateError("End date cannot be before start date.");
       return;
     }
 
@@ -264,11 +264,11 @@ export default function LeaveAbsencePage() {
   return (
     <div>
       <PageHeader
-        title="Frånvaro"
-        description="Registrera och spåra frånvaro per assistent"
+        title="Leave"
+        description="Record and track absence per assistant"
         action={
           <Button onClick={() => { setDialogOpen(true); setServerError(""); setDateError(""); }}>
-            Registrera frånvaro
+            Record absence
           </Button>
         }
       />
@@ -285,12 +285,12 @@ export default function LeaveAbsencePage() {
               {assistants.length === 1 && (
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Totalt frånvaro</CardTitle>
+                    <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total absence</CardTitle>
                     <CardDescription>{year}</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <p className="text-2xl font-bold text-foreground">{totalAbsencesYear}</p>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-1">poster registrerade</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-1">records registered</p>
                   </CardContent>
                 </Card>
               )}
@@ -299,12 +299,12 @@ export default function LeaveAbsencePage() {
             /* Summary for > 3 assistants */
             <Card className="col-span-3">
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Frånvaro {year}</CardTitle>
-                <CardDescription>Sammandrag för alla assistenter</CardDescription>
+                <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Absence {year}</CardTitle>
+                <CardDescription>Summary for all assistants</CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
                 <p className="text-2xl font-bold text-foreground">{totalAbsencesYear}</p>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-1">poster registrerade totalt</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-1">total records registered</p>
               </CardContent>
             </Card>
           )}
@@ -312,17 +312,17 @@ export default function LeaveAbsencePage() {
       )}
 
       {/* Filters */}
-      <SectionLabel>Frånvaro</SectionLabel>
+      <SectionLabel>Absence</SectionLabel>
       <div className="flex gap-3 mb-4">
         {/* Assistant filter */}
         <div className="flex flex-col gap-1 min-w-[160px]">
-          <Label htmlFor="filter-assistant">Assistent</Label>
+          <Label htmlFor="filter-assistant">Assistant</Label>
           <Select value={filterAssistant || "__all__"} onValueChange={(v) => setFilterAssistant(v === "__all__" ? "" : v)}>
             <SelectTrigger id="filter-assistant">
-              <SelectValue placeholder="Alla assistenter" />
+              <SelectValue placeholder="All assistants" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">Alla assistenter</SelectItem>
+              <SelectItem value="__all__">All assistants</SelectItem>
               {assistants.map((a) => (
                 <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
               ))}
@@ -332,30 +332,30 @@ export default function LeaveAbsencePage() {
 
         {/* Type filter */}
         <div className="flex flex-col gap-1 min-w-[160px]">
-          <Label htmlFor="filter-type">Typ</Label>
+          <Label htmlFor="filter-type">Type</Label>
           <Select value={filterType || "__all__"} onValueChange={(v) => setFilterType(v === "__all__" ? "" : v)}>
             <SelectTrigger id="filter-type">
-              <SelectValue placeholder="Alla typer" />
+              <SelectValue placeholder="All types" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">Alla typer</SelectItem>
-              <SelectItem value="sjukfrånvaro">Sjukfrånvaro</SelectItem>
-              <SelectItem value="vab">VAB (vård av barn)</SelectItem>
-              <SelectItem value="semester">Semester</SelectItem>
-              <SelectItem value="other">Övrigt</SelectItem>
+              <SelectItem value="__all__">All types</SelectItem>
+              <SelectItem value="sjukfrånvaro">Sick leave</SelectItem>
+              <SelectItem value="vab">VAB (childcare)</SelectItem>
+              <SelectItem value="semester">Holiday</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Month filter */}
         <div className="flex flex-col gap-1 min-w-[160px]">
-          <Label htmlFor="filter-month">Månad</Label>
+          <Label htmlFor="filter-month">Month</Label>
           <Select value={filterMonth || "__all__"} onValueChange={(v) => setFilterMonth(v === "__all__" ? "" : v)}>
             <SelectTrigger id="filter-month">
-              <SelectValue placeholder="Alla månader" />
+              <SelectValue placeholder="All months" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">Alla månader</SelectItem>
+              <SelectItem value="__all__">All months</SelectItem>
               {uniqueMonths.map((ym) => (
                 <SelectItem key={ym} value={ym}>{formatMonthLabel(ym)}</SelectItem>
               ))}
@@ -369,21 +369,21 @@ export default function LeaveAbsencePage() {
         <CardContent className="pt-5 p-0 overflow-hidden">
           {absenceListError ? (
             <div className="px-4 py-3 text-sm text-destructive">
-              Kunde inte hämta frånvaro. Kontrollera anslutningen och ladda om sidan.
+              Could not load absences. Check your connection and reload the page.
             </div>
           ) : filtered.length === 0 ? (
             <EmptyState
               message={
                 absenceList.length === 0
-                  ? "Ingen frånvaro registrerad. Klicka på 'Registrera frånvaro' för att lägga till frånvaro för en assistent."
-                  : "Inga poster matchar de valda filtren."
+                  ? "No absences recorded. Click 'Record absence' to add one."
+                  : "No records match the selected filters."
               }
             />
           ) : (
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-card">
                 <tr>
-                  {["Assistent", "Period", "Antal dagar", "Typ", "Registrerad", "Åtgärder"].map((h) => (
+                  {["Assistant", "Period", "Days", "Type", "Recorded", "Actions"].map((h) => (
                     <th
                       key={h}
                       className="text-left text-[11px] uppercase tracking-wide text-muted-foreground px-4 py-3 font-semibold"
@@ -414,7 +414,7 @@ export default function LeaveAbsencePage() {
                             <span className="text-foreground">{asst.name}</span>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground">Alla assistenter</span>
+                          <span className="text-muted-foreground">All assistants</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground" style={{ width: 160 }}>
@@ -433,28 +433,28 @@ export default function LeaveAbsencePage() {
                         {isConfirming ? (
                           <div className="flex items-center gap-2 whitespace-nowrap">
                             {deleteError && <span className="text-xs text-destructive">{deleteError}</span>}
-                            <span className="text-xs text-foreground">Bekräfta radering?</span>
+                            <span className="text-xs text-foreground">Confirm deletion?</span>
                             <Button
                               size="sm"
                               variant="destructive"
                               onClick={() => deleteAbsence.mutate(absence.id)}
                               disabled={deleteAbsence.isPending}
                             >
-                              Ja, radera
+                              Yes, delete
                             </Button>
                             <Button
                               size="sm"
                               variant="ghost"
                               onClick={() => setConfirmDeleteId(null)}
                             >
-                              Avbryt
+                              Cancel
                             </Button>
                           </div>
                         ) : (
                           <Button
                             variant="ghost"
                             size="icon"
-                            aria-label="Radera frånvaro"
+                            aria-label="Delete absence"
                             className="hover:bg-red-50 hover:text-red-600"
                             onClick={() => setConfirmDeleteId(absence.id)}
                           >
@@ -475,25 +475,25 @@ export default function LeaveAbsencePage() {
       <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setDateError(""); setServerError(""); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Registrera frånvaro</DialogTitle>
+            <DialogTitle>Record absence</DialogTitle>
             <DialogDescription>
-              Välj assistent, typ av frånvaro och period.
+              Select assistant, absence type and period.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Assistent */}
+            {/* Assistant */}
             <div className="space-y-1.5">
-              <Label htmlFor="dialog-assistant">Assistent</Label>
+              <Label htmlFor="dialog-assistant">Assistant</Label>
               <Select
                 value={formState.assistantId || "__all__"}
                 onValueChange={(v) => setFormState((f) => ({ ...f, assistantId: v === "__all__" ? "" : v }))}
               >
                 <SelectTrigger id="dialog-assistant">
-                  <SelectValue placeholder="Alla assistenter" />
+                  <SelectValue placeholder="All assistants" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">Alla assistenter</SelectItem>
+                  <SelectItem value="__all__">All assistants</SelectItem>
                   {assistants.map((a) => (
                     <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                   ))}
@@ -501,28 +501,28 @@ export default function LeaveAbsencePage() {
               </Select>
             </div>
 
-            {/* Typ av frånvaro */}
+            {/* Absence type */}
             <div className="space-y-1.5">
-              <Label htmlFor="dialog-type">Typ av frånvaro</Label>
+              <Label htmlFor="dialog-type">Absence type</Label>
               <Select
                 value={formState.absenceType}
                 onValueChange={(v) => setFormState((f) => ({ ...f, absenceType: v }))}
               >
                 <SelectTrigger id="dialog-type">
-                  <SelectValue placeholder="Välj typ" />
+                  <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sjukfrånvaro">Sjukfrånvaro</SelectItem>
-                  <SelectItem value="vab">VAB (vård av barn)</SelectItem>
-                  <SelectItem value="semester">Semester</SelectItem>
-                  <SelectItem value="other">Övrigt</SelectItem>
+                  <SelectItem value="sjukfrånvaro">Sick leave</SelectItem>
+                  <SelectItem value="vab">VAB (childcare)</SelectItem>
+                  <SelectItem value="semester">Holiday</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Startdatum */}
+            {/* Start date */}
             <div className="space-y-1.5">
-              <Label htmlFor="startDate">Startdatum</Label>
+              <Label htmlFor="startDate">Start date</Label>
               <Input
                 id="startDate"
                 type="date"
@@ -531,9 +531,9 @@ export default function LeaveAbsencePage() {
               />
             </div>
 
-            {/* Slutdatum */}
+            {/* End date */}
             <div className="space-y-1.5">
-              <Label htmlFor="endDate">Slutdatum</Label>
+              <Label htmlFor="endDate">End date</Label>
               <Input
                 id="endDate"
                 type="date"
@@ -559,7 +559,7 @@ export default function LeaveAbsencePage() {
                 !formState.endDate
               }
             >
-              {createAbsence.isPending ? "Sparar…" : "Spara frånvaro"}
+              {createAbsence.isPending ? "Saving..." : "Save absence"}
             </Button>
 
             {serverError && (

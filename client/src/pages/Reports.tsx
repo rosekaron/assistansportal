@@ -21,9 +21,9 @@ type Cost = {
 };
 
 const COST_LABELS: Record<string, string> = {
-  wages:        "Wages (lön)",
+  wages:        "Wages",
   employer_tax: "Employer tax",
-  sick_leave:   "Sick leave (sjuklön)",
+  sick_leave:   "Sick leave",
   training:     "Training",
   adaptation:   "Workplace adaptation",
   other:        "Other",
@@ -685,7 +685,7 @@ export default function ReportsPage() {
                             <option value="active">Active</option>
                             <option value="waiting">Waiting</option>
                             <option value="standby">Standby</option>
-                            <option value="sick">Sick (sjuklön)</option>
+                            <option value="sick">Sick leave</option>
                           </select>
                         </td>
                         <td className="px-4 py-3 font-mono text-sm font-semibold">{e.hours}h</td>

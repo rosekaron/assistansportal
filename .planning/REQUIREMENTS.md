@@ -9,20 +9,20 @@
 
 ### Stability & Correctness
 
-- [ ] **STAB-01**: Server enforces role separation — assistants cannot call guardian-only API endpoints (role middleware applied to all protected routes)
-- [ ] **STAB-02**: FK 3057 date range uses the correct last day of the reporting month (not hardcoded day 31)
-- [ ] **STAB-03**: FK hourly rate and employer tax rate (arbetsgivaravgifter) are configurable in Settings, not hardcoded in source code
-- [ ] **STAB-04**: API response types are defined in TypeScript — camelCase field access is consistent throughout client codebase (no silent snake_case fallbacks)
+- [x] **STAB-01**: Server enforces role separation — assistants cannot call guardian-only API endpoints (role middleware applied to all protected routes)
+- [x] **STAB-02**: FK 3057 date range uses the correct last day of the reporting month (not hardcoded day 31)
+- [x] **STAB-03**: FK hourly rate and employer tax rate (arbetsgivaravgifter) are configurable in Settings, not hardcoded in source code
+- [x] **STAB-04**: API response types are defined in TypeScript — camelCase field access is consistent throughout client codebase (no silent snake_case fallbacks)
 
 ### Leave & Absence
 
-- [ ] **LEAV-01**: Guardian can record an assistant absence with type (sick leave / sjukfrånvaro, VAB / vård av barn, holiday / semester, other), start date, and end date
-- [ ] **LEAV-02**: Hours marked as absence are automatically excluded from billable hours in FK 3059 and FK 3057 calculations
-- [ ] **LEAV-03**: Guardian can view remaining VAB days (max 120/year) and sick leave balance per assistant
+- [x] **LEAV-01**: Guardian can record an assistant absence with type (sick leave / sjukfrånvaro, VAB / vård av barn, holiday / semester, other), start date, and end date
+- [x] **LEAV-02**: Hours marked as absence are automatically excluded from billable hours in FK 3059 and FK 3057 calculations
+- [x] **LEAV-03**: Guardian can view remaining VAB days (max 120/year) and sick leave balance per assistant
 
 ### Payroll
 
-- [ ] **PAY-01**: System calculates gross pay per assistant for a given month (approved billable hours × configured hourly rate) and employer social security contributions (arbetsgivaravgifter, 31.42% standard rate)
+- [x] **PAY-01**: System calculates gross pay per assistant for a given month (approved billable hours × configured hourly rate) and employer social security contributions (arbetsgivaravgifter, 31.42% standard rate)
 - [x] **PAY-02**: Guardian can view a payroll summary per assistant per month showing: billable hours, absence hours by type, gross pay, employer contributions, and total employer cost
 - [x] **PAY-03**: Guardian can record a payment made to an assistant (date, amount, method) and the system shows outstanding balance versus calculated gross
 
@@ -33,12 +33,12 @@
 
 ### Scheduling
 
-- [ ] **SCHED-01**: Guardian can view a multi-assistant week grid showing all assistants' scheduled and logged shifts in a single calendar view
+- [x] **SCHED-01**: Guardian can view a multi-assistant week grid showing all assistants' scheduled and logged shifts in a single calendar view
 
 ### Compliance Workflow
 
-- [ ] **COMP-01**: Guardian sees a monthly compliance checklist showing required steps (approve time entries, generate FK 3059, generate FK 3057, generate AGI) with completion status and due dates (FK: 5th of second following month; AGI: 12th of following month)
-- [ ] **COMP-02**: System sends an email reminder to the guardian on a configurable date each month with links to pending FK and AGI forms
+- [x] **COMP-01**: Guardian sees a monthly compliance checklist showing required steps (approve time entries, generate FK 3059, generate FK 3057, generate AGI) with completion status and due dates (FK: 5th of second following month; AGI: 12th of following month)
+- [x] **COMP-02**: System sends an email reminder to the guardian on a configurable date each month with links to pending FK and AGI forms
 
 ---
 
@@ -97,28 +97,29 @@ These are part of the roadmap but deferred after v1.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| STAB-01 | 1 | Pending |
-| STAB-02 | 1 | Pending |
-| STAB-03 | 1 | Pending |
-| STAB-04 | 1 | Pending |
-| LEAV-01 | 2 | Pending |
-| LEAV-02 | 2 | Pending |
-| LEAV-03 | 2 | Pending |
-| PAY-01 | 3 | Pending |
+| STAB-01 | 1 | Complete |
+| STAB-02 | 1 | Complete |
+| STAB-03 | 1 | Complete |
+| STAB-04 | 1 | Complete |
+| LEAV-01 | 2 | Complete |
+| LEAV-02 | 2 | Complete |
+| LEAV-03 | 2 | Complete |
+| PAY-01 | 3 | Complete |
 | PAY-02 | 3 | Complete |
 | PAY-03 | 3 | Complete |
 | TAX-01 | 4 | Complete |
 | TAX-02 | 4 | Complete |
-| SCHED-01 | 5 | Pending |
-| COMP-01 | 5 | Pending |
-| COMP-02 | 5 | Pending |
+| SCHED-01 | 5 | Complete |
+| COMP-01 | 5 | Complete |
+| COMP-02 | 5 | Complete |
 
 **Coverage:**
 - v1 requirements: 15 total
 - Mapped to phases: 15
 - Unmapped: 0 ✓
+- Complete: 15/15 ✓
 
 ---
 
 *Requirements defined: 2026-04-06*
-*Last updated: 2026-04-06 — roadmap traceability complete*
+*Last updated: 2026-04-17 — all v1 requirements marked complete after milestone audit*

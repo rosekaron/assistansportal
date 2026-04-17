@@ -45,7 +45,7 @@ function formatAbsenceBreakdown(json: string | null): string {
 function monthLabel(month: string): string {
   const [year, mon] = month.split("-");
   const d = new Date(parseInt(year), parseInt(mon) - 1, 1);
-  return d.toLocaleDateString("sv-SE", { month: "long", year: "numeric" });
+  return d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 }
 
 function prevMonth(month: string): string {
@@ -69,7 +69,7 @@ function PayrollCardSkeleton() {
   return (
     <div
       role="status"
-      aria-label="Laddar löneunderlag..."
+      aria-label="Loading payroll records..."
       className="animate-pulse bg-muted rounded-xl h-48 w-full"
     />
   );
@@ -135,8 +135,8 @@ function AssistantPayrollCard({
           <div>
             <h3 className="text-xl font-semibold text-foreground">{assistantName}</h3>
             {record.status === "draft"
-              ? <Badge variant="slate">Utkast</Badge>
-              : <Badge variant="success">Godkänd</Badge>
+              ? <Badge variant="slate">Draft</Badge>
+              : <Badge variant="success">Approved</Badge>
             }
           </div>
         </div>
@@ -148,16 +148,16 @@ function AssistantPayrollCard({
             onClick={() => approveMutation.mutate()}
             className={cn(approveMutation.isPending && "opacity-50")}
           >
-            {approveMutation.isPending ? "..." : "Godkänn"}
+            {approveMutation.isPending ? "..." : "Approve"}
           </Button>
         ) : (
           <Button
             variant="approve"
             size="sm"
             disabled
-            aria-label="Löneunderlag godkänt"
+            aria-label="Payroll record approved"
           >
-            Godkänd ✓
+            Approved ✓
           </Button>
         )}
       </CardHeader>
@@ -166,11 +166,11 @@ function AssistantPayrollCard({
         {/* Stat grid — 5 columns */}
         <div className="grid grid-cols-5 gap-4">
           {[
-            { label: "Fakturerbara timmar", value: formatHours(record.billableHours) },
-            { label: "Frånvarotimmar",      value: formatAbsenceBreakdown(record.absenceBreakdownJson) },
-            { label: "Bruttolön",           value: <span aria-label={`${Math.round(record.grossPay)} kronor`}>{formatSek(record.grossPay)}</span> },
-            { label: `Arbetsgivaravgift (${String((record.taxRateSnapshot * 100).toFixed(2)).replace(".", ",")}%)`, value: <span aria-label={`${Math.round(record.employerContributions)} kronor`}>{formatSek(record.employerContributions)}</span> },
-            { label: "Total kostnad",       value: <span aria-label={`${Math.round(record.totalEmployerCost)} kronor`}>{formatSek(record.totalEmployerCost)}</span> },
+            { label: "Billable hours",  value: formatHours(record.billableHours) },
+            { label: "Absence hours",   value: formatAbsenceBreakdown(record.absenceBreakdownJson) },
+            { label: "Gross pay",       value: <span aria-label={`${Math.round(record.grossPay)} kronor`}>{formatSek(record.grossPay)}</span> },
+            { label: `Employer tax (${String((record.taxRateSnapshot * 100).toFixed(2)).replace(".", ",")}%)`, value: <span aria-label={`${Math.round(record.employerContributions)} kronor`}>{formatSek(record.employerContributions)}</span> },
+            { label: "Total cost",      value: <span aria-label={`${Math.round(record.totalEmployerCost)} kronor`}>{formatSek(record.totalEmployerCost)}</span> },
           ].map(({ label, value }) => (
             <div key={label} className="bg-secondary rounded-lg p-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{label}</p>
@@ -182,9 +182,9 @@ function AssistantPayrollCard({
         <Separator />
 
         {/* Payment history */}
-        <SectionLabel>Betalningar</SectionLabel>
+        <SectionLabel>Payments</SectionLabel>
         {payments.length === 0 ? (
-          <EmptyState message="Inga betalningar registrerade ännu." />
+          <EmptyState message="No payments recorded yet." />
         ) : (
           <ul className="space-y-1">
             {payments.map((p) => (
@@ -194,12 +194,12 @@ function AssistantPayrollCard({
                 <Badge variant="slate">{p.method}</Badge>
                 <button
                   onClick={() => {
-                    if (window.confirm(`Ta bort den här betalningen på ${formatSek(p.amountSek)}? Det går inte att ångra.`)) {
+                    if (window.confirm(`Delete this payment of ${formatSek(p.amountSek)}? This cannot be undone.`)) {
                       deletePaymentMutation.mutate(p.id);
                     }
                   }}
                   className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive/80 transition-opacity"
-                  aria-label={`Ta bort betalning ${formatSek(p.amountSek)}`}
+                  aria-label={`Delete payment ${formatSek(p.amountSek)}`}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -210,14 +210,14 @@ function AssistantPayrollCard({
 
         {/* Add payment toggle + form */}
         <Button variant="ghost" size="sm" onClick={() => setShowAddForm(!showAddForm)}>
-          Lägg till betalning
+          Add payment
         </Button>
 
         {showAddForm && (
           <div className="space-y-3 pt-2">
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <Label htmlFor={`date-${record.id}`}>Datum</Label>
+                <Label htmlFor={`date-${record.id}`}>Date</Label>
                 <Input
                   id={`date-${record.id}`}
                   type="date"
@@ -226,7 +226,7 @@ function AssistantPayrollCard({
                 />
               </div>
               <div>
-                <Label htmlFor={`amount-${record.id}`}>Belopp (SEK)</Label>
+                <Label htmlFor={`amount-${record.id}`}>Amount (SEK)</Label>
                 <Input
                   id={`amount-${record.id}`}
                   type="number"
@@ -238,7 +238,7 @@ function AssistantPayrollCard({
                 />
               </div>
               <div>
-                <Label htmlFor={`method-${record.id}`}>Metod</Label>
+                <Label htmlFor={`method-${record.id}`}>Method</Label>
                 <select
                   id={`method-${record.id}`}
                   value={newMethod}
@@ -247,7 +247,7 @@ function AssistantPayrollCard({
                 >
                   <option value="bankgiro">Bankgiro</option>
                   <option value="swish">Swish</option>
-                  <option value="kontant">Kontant</option>
+                  <option value="kontant">Cash</option>
                 </select>
               </div>
             </div>
@@ -258,10 +258,10 @@ function AssistantPayrollCard({
                 disabled={!newDate || !newAmount || createPaymentMutation.isPending}
                 onClick={() => createPaymentMutation.mutate()}
               >
-                {createPaymentMutation.isPending ? "..." : "Spara betalning"}
+                {createPaymentMutation.isPending ? "..." : "Save payment"}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => { setShowAddForm(false); setNewDate(""); setNewAmount(""); }}>
-                Avbryt
+                Cancel
               </Button>
             </div>
           </div>
@@ -273,9 +273,9 @@ function AssistantPayrollCard({
           "text-sm font-mono",
           outstanding === 0 ? "text-emerald-700" : "text-amber-700"
         )}>
-          Utestående saldo:{" "}
+          Outstanding balance:{" "}
           <span aria-label={`${Math.round(outstanding)} kronor`}>
-            {outstanding === 0 ? "Betald i sin helhet" : formatSek(outstanding)}
+            {outstanding === 0 ? "Paid in full" : formatSek(outstanding)}
           </span>
         </p>
       </CardFooter>
@@ -319,8 +319,8 @@ export default function PayrollPage() {
   return (
     <div>
       <PageHeader
-        title="Löneunderlag"
-        description="Månatlig lönekalkyl per assistent"
+        title="Payroll"
+        description="Monthly payroll per assistant"
         action={monthSelector}
       />
 
@@ -331,13 +331,13 @@ export default function PayrollPage() {
         </div>
       ) : !records || records.length === 0 ? (
         <div className="flex flex-col items-center gap-4 py-16">
-          <EmptyState message="Inga löneunderlag för denna månad" />
+          <EmptyState message="No payroll records for this month" />
           <Button
             variant="default"
             disabled={generateMutation.isPending}
             onClick={() => generateMutation.mutate()}
           >
-            {generateMutation.isPending ? "Genererar..." : "Generera löneunderlag"}
+            {generateMutation.isPending ? "Generating..." : "Generate payroll"}
           </Button>
         </div>
       ) : (

@@ -63,41 +63,65 @@ router.delete("/:id", requireAuth, requireGuardian, async (req: AuthRequest, res
   res.json({ ok: true });
 });
 
-// POST /api/assistants/:id/link-self
-// Lets a guardian link their own auth account to an assistant record so they
-// can clock in/out for themselves. Sets assistants.authId, auth.assistantId,
-// and creates an active assistantGuardianLinks row.
-router.post("/:id/link-self", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
+// POST /api/assistants/register-self
+// Guardian registers themselves as an assistant in a single step.
+// Creates the assistant record, links it to the guardian's auth account,
+// and creates an active guardian link. No invite email needed.
+// IMPORTANT: must be before /:id routes to avoid Express path conflict
+router.post("/register-self", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   try {
-    const { id } = req.params;
-    const [asst] = await db.select().from(assistants).where(eq(assistants.id, id)).limit(1);
-    if (!asst) return res.status(404).json({ error: "Assistant not found" });
+    const { name, pno, phone, minWeeklyHours, isFlexible } = req.body;
+    if (!name) return res.status(400).json({ error: "Name is required" });
 
-    // Link assistant record → auth account
-    await db.update(assistants)
-      .set({ authId: req.userId!, inviteStatus: "accepted" })
-      .where(eq(assistants.id, id));
+    // Check if guardian already has a linked assistant record
+    const [existing] = await db.select().from(auth).where(eq(auth.id, req.userId!)).limit(1);
+    if (existing?.assistantId) {
+      return res.status(409).json({ error: "You already have a linked assistant record" });
+    }
+
+    // Safety check: make sure no OTHER assistant row already has this guardian's auth_id.
+    // This prevents accidentally linking the guardian account to an existing assistant
+    // (e.g. a family member's record that was manually patched in the DB).
+    const alreadyLinked = await db.select().from(assistants).where(eq(assistants.authId, req.userId!));
+    if (alreadyLinked.length > 0) {
+      return res.status(409).json({
+        error: `Your account is already linked to assistant "${alreadyLinked[0].name}". Remove that link before registering yourself as a new assistant.`,
+      });
+    }
+
+    const count = (await db.select().from(assistants)).length;
+    const initials = name.trim().split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+
+    const [row] = await db.insert(assistants).values({
+      id:            newId("a"),
+      name:          name.trim(),
+      initials,
+      color:         COLORS[count % COLORS.length],
+      email:         existing?.email ?? "",
+      pno:           pno    ?? "",
+      phone:         phone  ?? "",
+      minWeeklyHours: minWeeklyHours ?? 0,
+      isFlexible:    isFlexible ?? false,
+      authId:        req.userId!,
+      inviteStatus:  "accepted",
+    }).returning();
 
     // Link auth account → assistant record
     await db.update(auth)
-      .set({ assistantId: id })
+      .set({ assistantId: row.id })
       .where(eq(auth.id, req.userId!));
 
-    // Create active guardian link so clock-in works
+    // Create active guardian link so clock-in works immediately
     await db.insert(assistantGuardianLinks).values({
       id:          newId("gl"),
-      assistantId: id,
+      assistantId: row.id,
       guardianId:  req.userId!,
       active:      true,
     }).onConflictDoNothing();
 
-    await db.update(assistantGuardianLinks)
-      .set({ active: true })
-      .where(eq(assistantGuardianLinks.assistantId, id));
-
-    res.json({ ok: true, assistantId: id });
+    res.status(201).json({ ok: true, assistantId: row.id, assistant: row });
   } catch (e) {
-    console.error("[assistants] link-self error:", e);
+    console.error("[assistants] register-self error:", e);
     res.status(500).json({ error: "Internal server error" });
   }
 });

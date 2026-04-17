@@ -88,6 +88,32 @@ export default function CalendarPage() {
   const gcalConnected = (settings as Record<string,string>).gcal_connected === "true";
   const step = gcalConnected ? 2 : 1;
 
+  // ── Google Calendar events (source of truth for the schedule) ─
+  const { data: gcalEvents = [] } = useQuery({
+    queryKey: ["gcal-events", weekDates[0]],
+    queryFn:  () => gcalApi.events(weekDates[0], weekDates[6]).then((r) => r.data as Record<string, unknown>[]),
+    enabled:  gcalConnected,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Parse a GCal event into { date, startHour, endHour, summary }
+  function parseGcalEvent(ev: Record<string, unknown>) {
+    const startDT = ((ev.start as Record<string, string>)?.dateTime ?? (ev.start as Record<string, string>)?.date ?? "");
+    const endDT   = ((ev.end   as Record<string, string>)?.dateTime ?? (ev.end   as Record<string, string>)?.date ?? "");
+    if (!startDT) return null;
+    const date      = startDT.substring(0, 10);
+    const startHour = parseInt(startDT.substring(11, 13) || "0", 10);
+    const endHour   = parseInt(endDT.substring(11, 13)   || "0", 10);
+    return { date, startHour, endHour: endHour || startHour + 1, summary: (ev.summary as string) ?? "Event" };
+  }
+
+  function gcalEventsAt(date: string, hour: number) {
+    return (gcalEvents as Record<string, unknown>[]).filter(ev => {
+      const p = parseGcalEvent(ev);
+      return p && p.date === date && p.startHour <= hour && p.endHour > hour;
+    });
+  }
+
   // ── Connect Google Calendar (real OAuth) ───────────────────
   function connectGcal() {
     // Go directly to the server port for OAuth redirect
@@ -147,7 +173,7 @@ export default function CalendarPage() {
         try {
           const assistant = (assistants as Entry[]).find(a => a.id === data.assistantId);
           await gcalApi.createEvent({
-            summary:       `Assistance — ${(assistant?.name as string ?? "").split(" ")[0]}`,
+            summary:       `Assistance: ${assistant?.name ?? ""}`,
             description:   `Assistance shift\nAssistant: ${assistant?.name ?? ""}`,
             date:          data.date,
             startTime:     data.startTime as string,
@@ -240,7 +266,7 @@ export default function CalendarPage() {
       endTime:     hhmm(parseInt(endHour)),
       hours,
       reqStatus:   "approved",
-      repStatus:   "draft",
+      repStatus:   "pending",
       source:      "proposal",
       calStatus:   "confirmed",
     });
@@ -369,6 +395,10 @@ export default function CalendarPage() {
               <span className="text-muted-foreground">Assign assistant</span>
             </div>
             <div className="flex items-center gap-1.5 text-xs">
+              <div className="w-3 h-3 rounded bg-blue-100 border border-blue-200" />
+              <span className="text-muted-foreground">Google Calendar event</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs">
               <div className="w-3 h-3 rounded bg-emerald-100 border border-emerald-200" />
               <span className="text-muted-foreground">Confirmed shift</span>
             </div>
@@ -417,6 +447,9 @@ export default function CalendarPage() {
                       let cellClass = "bg-white hover:bg-primary/5 cursor-pointer";
                       let cellContent = null;
 
+                      const gcalHere = gcalEventsAt(date, hour);
+                      const gcalParsed = gcalHere.length > 0 ? parseGcalEvent(gcalHere[0]) : null;
+
                       if (blockHere) {
                         cellClass = "bg-red-50 cursor-pointer";
                         if (getStart(blockHere) === hour) {
@@ -429,6 +462,19 @@ export default function CalendarPage() {
                               >
                                 <X style={{ width: 10, height: 10 }} />
                               </button>
+                            </div>
+                          );
+                        }
+                      } else if (gcalHere.length > 0) {
+                        // Google Calendar event — source of truth for the schedule
+                        cellClass = "bg-blue-50 cursor-default";
+                        if (gcalParsed && gcalParsed.startHour === hour) {
+                          cellContent = (
+                            <div className="px-1 pt-0.5">
+                              <div className="text-[10px] font-medium leading-tight text-blue-700 truncate">{gcalParsed.summary}</div>
+                              {gcalHere.length > 1 && (
+                                <div className="text-[9px] text-muted-foreground">+{gcalHere.length - 1} more</div>
+                              )}
                             </div>
                           );
                         }
@@ -455,8 +501,8 @@ export default function CalendarPage() {
                         <td
                           key={date}
                           onClick={() => {
-                            if (blockHere || dayEntries.some(e => e.req_status === "approved")) return;
-                            if (!blockHere && dayEntries.length === 0) {
+                            if (blockHere || gcalHere.length > 0 || dayEntries.some(e => (e.reqStatus ?? e.req_status) === "approved")) return;
+                            if (!blockHere && gcalHere.length === 0 && dayEntries.length === 0) {
                               setActionModal({ date, hour });
                             }
                           }}

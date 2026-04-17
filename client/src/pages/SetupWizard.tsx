@@ -82,7 +82,7 @@ export default function SetupWizard() {
   async function finish() {
     setSaving(true);
     try {
-      await profileApi.update({ ...profile, weeklyHours: weekly, setup_done: true });
+      await profileApi.update({ ...profile, weeklyHours: weekly, setupDone: true });
       for (const row of rows.filter((r) => r.name.trim())) {
         await assistantsApi.create({
           name: row.name, email: row.email,

@@ -15,10 +15,11 @@
 - [x] **Phase 2: Leave & Absence Foundation** — Implement absence tracking so billable hours can be calculated correctly downstream (completed 2026-04-06)
 - [x] **Phase 2.5: UI Overhaul & Design System** — Fix Tailwind CSS rendering, rebuild visual design to B2B-ready care.com-inspired standard for both guardian and assistant views (completed 2026-04-08)
 - [x] **Phase 3: Payroll Calculation & Recording** — Monthly payroll per assistant with 2026 Swedish tax rates and employer contributions (completed 2026-04-10)
-- [ ] **Phase 3.5: UX Consolidation & IA Redesign** — Audit all pages, consolidate features by user goal, produce formal UI-SPEC with one-page-one-purpose information architecture
+- [x] **Phase 3.5: UX Consolidation & IA Redesign** — Audit all pages, consolidate features by user goal, produce formal UI-SPEC with one-page-one-purpose information architecture (completed 2026-04-11)
 - [x] **Phase 4: Tax Reporting (AGI)** — Generate Skatteverket-ready AGI declarations per month (completed 2026-04-11)
 - [x] **Phase 5: Scheduling & Compliance Workflow** — Multi-assistant schedule grid, monthly compliance checklist, and deadline reminders (completed 2026-04-17)
-- [ ] **Phase 6: Google Calendar Integration** — Real OAuth2 connection to Google Calendar with calendar picker, replacing the simulated connect flow
+- [x] **Phase 6: Google Calendar Integration** — Real OAuth2 connection to Google Calendar with calendar picker, replacing the simulated connect flow (completed 2026-04-15)
+- [x] **Phase 6.1: UAT Bug Fix** (inserted) — 3 remaining UAT bugs (BUG-002 week navigator, BUG-004 invite email, BUG-005 self-registration) (completed 2026-04-15)
 
 ---
 
@@ -226,10 +227,11 @@ Plans:
 | 2. Leave & Absence Foundation | 4/4 | Complete | 2026-04-06 |
 | 2.5. UI Overhaul & Design System | 5/5 | Complete   | 2026-04-08 |
 | 3. Payroll Calculation & Recording | 4/4 | Complete | 2026-04-10 |
-| 3.5. UX Consolidation & IA Redesign | 0/10 | Not started | — |
+| 3.5. UX Consolidation & IA Redesign | 10/10 | Complete | 2026-04-11 |
 | 4. Tax Reporting (AGI) | 3/3 | Complete   | 2026-04-11 |
 | 5. Scheduling & Compliance Workflow | 4/4 | Complete | 2026-04-17 |
-| 6. Google Calendar Integration | 0/1 | Not started | — |
+| 6. Google Calendar Integration | 1/1 | Complete | 2026-04-15 |
+| 6.1. UAT Bug Fix (inserted) | 1/1 | Complete | 2026-04-15 |
 
 ---
 
