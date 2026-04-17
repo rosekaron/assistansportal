@@ -4,6 +4,7 @@ import { openSlots, blocked, invites, settings } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 import { newId } from "../lib/id";
+import { sendAssistantInviteEmail } from "../lib/email";
 
 const router = Router();
 
@@ -74,8 +75,16 @@ router.post("/invites", requireAuth, requireGuardian, async (req: AuthRequest, r
     status: "pending", message: d.message ?? "",
     sentAt: new Date(),
   }).returning();
-  // TODO: send actual email via SMTP / SendGrid
-  console.log(`📨 Invite → ${d.email} (${d.name})`);
+  // Send invite email — fetch guardian/patient names from settings
+  try {
+    const settingsRows = await db.select().from(settings);
+    const get = (key: string) => settingsRows.find(r => r.key === key)?.value ?? "";
+    const guardianName = get("guardian_name") || "Your guardian";
+    const patientName  = get("patient_name")  || "the care recipient";
+    await sendAssistantInviteEmail(d.email, d.name, guardianName, patientName, row.id, d.message);
+  } catch (err) {
+    console.error("[invite] email failed:", err);
+  }
   res.status(201).json(row);
 });
 
@@ -99,6 +108,17 @@ router.get("/settings", requireAuth, requireGuardian, async (_req: AuthRequest, 
 
 router.put("/settings", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   const data: Record<string, string> = req.body;
+
+  // Server-side validation: reminder_day must be integer 1–28 (T-5-04-01: Tampering mitigation)
+  if ("reminder_day" in data) {
+    const val = parseInt(String(data.reminder_day), 10);
+    if (isNaN(val) || val < 1 || val > 28) {
+      return res.status(400).json({ error: "Invalid day: reminder_day must be between 1 and 28" });
+    }
+    // Normalise to integer string before storage
+    data.reminder_day = String(val);
+  }
+
   for (const [key, value] of Object.entries(data)) {
     await db
       .insert(settings)

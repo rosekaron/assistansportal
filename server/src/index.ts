@@ -14,6 +14,7 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "dev_secret") {
 process.env.PATH = `/opt/homebrew/bin:${process.env.PATH}`;
 
 import { seedDefaults } from "./db";
+import { startReminderCron } from "./lib/reminderCron";
 import authRoutes            from "./routes/auth";
 import profileRoutes         from "./routes/profile";
 import assistantRoutes       from "./routes/assistants";
@@ -56,6 +57,8 @@ app.get("/api/health", (_req, res) => res.json({ ok: true, ts: new Date().toISOS
 
 async function main() {
   await seedDefaults();
+  startReminderCron();
+  console.log("  Cron          → compliance reminder job started");
   app.listen(PORT, () => {
     console.log(`\n✅  Server running → http://localhost:${PORT}`);
     console.log(`   Postgres       → ${process.env.DATABASE_URL?.split("@")[1] ?? "localhost:5432"}\n`);

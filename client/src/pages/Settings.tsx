@@ -77,12 +77,15 @@ export default function SettingsPage() {
   const [wizardOpen, setWizardOpen] = useState(false);
 
   // ── Assistants section state ───────────────────────────────────────────────
-  const [inviteOpen,  setInviteOpen]  = useState(false);
-  const [removeId,    setRemoveId]    = useState<string | null>(null);
-  const [editTarget,  setEditTarget]  = useState<Assistant | null>(null);
-  const [editForm,    setEditForm]    = useState({ name: "", pno: "", phone: "", minWeeklyHours: "", isFlexible: false, address: "" });
-  const [inviteForm,  setInviteForm]  = useState({ name: "", email: "", minWeeklyHours: "", isFlexible: false, message: "" });
-  const [inviteSent,  setInviteSent]  = useState(false);
+  const [inviteOpen,    setInviteOpen]    = useState(false);
+  const [removeId,      setRemoveId]      = useState<string | null>(null);
+  const [editTarget,    setEditTarget]    = useState<Assistant | null>(null);
+  const [editForm,      setEditForm]      = useState({ name: "", pno: "", phone: "", minWeeklyHours: "", isFlexible: false, address: "" });
+  const [inviteForm,    setInviteForm]    = useState({ name: "", email: "", minWeeklyHours: "", isFlexible: false, message: "" });
+  const [inviteSent,    setInviteSent]    = useState(false);
+  const [selfOpen,      setSelfOpen]      = useState(false);
+  const [selfForm,      setSelfForm]      = useState({ name: "", pno: "", phone: "", minWeeklyHours: "0", isFlexible: false });
+  const [selfError,     setSelfError]     = useState<string | null>(null);
 
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data: profile }             = useQuery({ queryKey: ["profile"],    queryFn: () => profileApi.get().then((r) => r.data) });
@@ -116,6 +119,10 @@ export default function SettingsPage() {
 
   const [prelimTaxRate, setPrelimTaxRate] = useState("30");
   // Stored as percentage integer string in UI (e.g. "30"), saved as decimal string "0.30" to settings
+
+  const [reminderDay,   setReminderDay]   = useState<number>(1);
+  const [reminderSaved, setReminderSaved] = useState(false);
+  const [reminderError, setReminderError] = useState<string | null>(null);
 
   function setField(field: keyof FormState, val: string) {
     setForm((f) => ({ ...f, [field]: val }));
@@ -160,6 +167,12 @@ export default function SettingsPage() {
       if (rawPrelim) {
         const asPct = Math.round(parseFloat(rawPrelim) * 100);
         setPrelimTaxRate(String(asPct));
+      }
+      // Read reminder_day from settings (stored as integer string e.g. "5")
+      const rawReminderDay = settings["reminder_day"];
+      if (rawReminderDay) {
+        const parsed = parseInt(rawReminderDay, 10);
+        if (!isNaN(parsed)) setReminderDay(parsed);
       }
     }
   }, [settings]);
@@ -235,11 +248,19 @@ export default function SettingsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["assistants"] }); setEditTarget(null); },
   });
 
-  const linkSelfMutation = useMutation({
-    mutationFn: (id: string) => assistantsApi.linkSelf(id),
-    onSuccess: (_res, id) => {
-      setAssistantId(id);
+  const registerSelfMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) => assistantsApi.registerSelf(data),
+    onSuccess: (res) => {
+      const assistantId = (res.data as { assistantId: string }).assistantId;
+      setAssistantId(assistantId);
       qc.invalidateQueries({ queryKey: ["assistants"] });
+      setSelfOpen(false);
+      setSelfError(null);
+      setSelfForm({ name: "", pno: "", phone: "", minWeeklyHours: "0", isFlexible: false });
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to register";
+      setSelfError(msg);
     },
   });
 
@@ -296,9 +317,16 @@ export default function SettingsPage() {
       {/* ── 1. ASSISTANTS ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-3">
         <SectionLabel>Assistants</SectionLabel>
-        <Button size="sm" onClick={() => setInviteOpen(true)}>
-          <UserPlus className="w-4 h-4" />Add assistant
-        </Button>
+        <div className="flex items-center gap-2">
+          {!authAssistantId && (
+            <Button size="sm" variant="outline" onClick={() => setSelfOpen(true)}>
+              <Users className="w-4 h-4" />I'm also an assistant
+            </Button>
+          )}
+          <Button size="sm" onClick={() => setInviteOpen(true)}>
+            <UserPlus className="w-4 h-4" />Add assistant
+          </Button>
+        </div>
       </div>
 
       {/* Weekly budget bar */}
@@ -379,32 +407,17 @@ export default function SettingsPage() {
                     </div>
                   )}
                   {authAssistantId === (a.id as string)
-                    ? <Badge variant="success" className="text-[10px]">● Active · Linked to your account</Badge>
+                    ? <Badge variant="info" className="text-[10px]">● You · Linked to your account</Badge>
                     : <Badge variant="success" className="text-[10px]">● Active</Badge>
                   }
-                  {/* View leave link — replaces AssistantAbsenceSummary */}
-                  <div className="pt-2 border-t border-border mt-2 flex items-center justify-between">
+                  {/* View leave link */}
+                  <div className="pt-2 border-t border-border mt-2">
                     <button
                       onClick={() => navigate("/records")}
                       className="text-xs text-primary hover:underline flex items-center gap-1"
                     >
                       View leave <ChevronRight className="w-3 h-3" />
                     </button>
-                    {/* Guardian-as-assistant: link this record to the guardian's own account */}
-                    {!authAssistantId && (
-                      <button
-                        onClick={() => {
-                          if (confirm(`Link your guardian account to ${a.name as string}? You'll be able to clock in/out as this assistant.`)) {
-                            linkSelfMutation.mutate(a.id as string);
-                          }
-                        }}
-                        disabled={linkSelfMutation.isPending}
-                        className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-                        title="Link your account so you can clock in as this assistant"
-                      >
-                        Link my account
-                      </button>
-                    )}
                   </div>
                 </div>
               </CardContent>
@@ -744,6 +757,67 @@ export default function SettingsPage() {
         </Button>
       </div>
 
+      {/* ── 6. NOTIFICATIONS ───────────────────────────────────────────────── */}
+      <div className="mt-8 mb-3"><SectionLabel>Notifications</SectionLabel></div>
+      {/* ── Notifications (COMP-02) ──────────────────────────────────────── */}
+      <Card className="mb-6">
+        <CardContent className="pt-5">
+          <p className="text-base font-semibold mb-4">Notifications</p>
+          <div className="space-y-2">
+            <div>
+              <p className="text-sm font-medium text-foreground mb-0.5">
+                Monthly compliance reminder
+              </p>
+              <p
+                id="reminder-day-desc"
+                className="text-sm text-muted-foreground mb-3"
+              >
+                Email sent on this day each month with pending compliance steps.
+              </p>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="number"
+                  min={1}
+                  max={28}
+                  value={reminderDay}
+                  onChange={e => {
+                    setReminderError(null);
+                    setReminderDay(parseInt(e.target.value, 10) || 1);
+                  }}
+                  className="w-20"
+                  aria-describedby="reminder-day-desc"
+                />
+                <Button
+                  size="sm"
+                  onClick={async () => {
+                    if (reminderDay < 1 || reminderDay > 28) {
+                      setReminderError("Enter a day between 1 and 28");
+                      return;
+                    }
+                    setReminderError(null);
+                    try {
+                      await settingsApi.update({ reminder_day: String(reminderDay) });
+                      setReminderSaved(true);
+                      setTimeout(() => setReminderSaved(false), 2000);
+                    } catch {
+                      setReminderError("Failed to save. Try again.");
+                    }
+                  }}
+                >
+                  Save reminder day
+                </Button>
+                {reminderSaved && (
+                  <span className="text-sm text-emerald-600">Saved</span>
+                )}
+              </div>
+              {reminderError && (
+                <p className="text-sm text-destructive mt-1.5">{reminderError}</p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* ── DIALOGS ────────────────────────────────────────────────────────── */}
 
       {/* Add assistant / identity verification dialog */}
@@ -851,6 +925,85 @@ export default function SettingsPage() {
           <div className="flex justify-end gap-2 mt-2">
             <Button variant="ghost" onClick={() => setRemoveId(null)}>Cancel</Button>
             <Button variant="reject" onClick={() => deleteAssistant.mutate(removeId!)}>Remove</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* I'm also an assistant — self-registration dialog */}
+      <Dialog open={selfOpen} onOpenChange={(o) => { setSelfOpen(o); if (!o) setSelfError(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Register yourself as an assistant</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground -mt-1">
+            This creates an assistant record linked to your account. You'll be able to switch between the guardian view and the assistant view from the sidebar.
+          </p>
+          <div className="space-y-3 mt-1">
+            <div className="space-y-1.5">
+              <Label>Full name *</Label>
+              <Input
+                placeholder="First Last"
+                value={selfForm.name}
+                onChange={(e) => setSelfForm((f) => ({ ...f, name: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Personnummer</Label>
+                <Input
+                  placeholder="ÅÅMMDD-XXXX"
+                  value={selfForm.pno}
+                  onChange={(e) => setSelfForm((f) => ({ ...f, pno: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Phone</Label>
+                <Input
+                  placeholder="07X-XXX XX XX"
+                  value={selfForm.phone}
+                  onChange={(e) => setSelfForm((f) => ({ ...f, phone: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Min hours/week</Label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  className="pr-8"
+                  value={selfForm.minWeeklyHours}
+                  onChange={(e) => setSelfForm((f) => ({ ...f, minWeeklyHours: e.target.value }))}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">h</span>
+              </div>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer text-sm">
+              <input
+                type="checkbox"
+                checked={selfForm.isFlexible}
+                onChange={(e) => setSelfForm((f) => ({ ...f, isFlexible: e.target.checked }))}
+                className="rounded"
+              />
+              <span>Flexible — can take hours from the shared pool</span>
+            </label>
+            {selfError && (
+              <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">{selfError}</p>
+            )}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="ghost" onClick={() => { setSelfOpen(false); setSelfError(null); }}>Cancel</Button>
+              <Button
+                disabled={!selfForm.name || registerSelfMutation.isPending}
+                onClick={() => registerSelfMutation.mutate({
+                  name:           selfForm.name,
+                  pno:            selfForm.pno,
+                  phone:          selfForm.phone,
+                  minWeeklyHours: parseInt(selfForm.minWeeklyHours) || 0,
+                  isFlexible:     selfForm.isFlexible,
+                })}
+              >
+                {registerSelfMutation.isPending ? "Registering…" : "Register as assistant →"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
