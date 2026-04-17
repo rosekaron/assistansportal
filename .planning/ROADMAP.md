@@ -17,7 +17,7 @@
 - [x] **Phase 3: Payroll Calculation & Recording** — Monthly payroll per assistant with 2026 Swedish tax rates and employer contributions (completed 2026-04-10)
 - [ ] **Phase 3.5: UX Consolidation & IA Redesign** — Audit all pages, consolidate features by user goal, produce formal UI-SPEC with one-page-one-purpose information architecture
 - [x] **Phase 4: Tax Reporting (AGI)** — Generate Skatteverket-ready AGI declarations per month (completed 2026-04-11)
-- [ ] **Phase 5: Scheduling & Compliance Workflow** — Multi-assistant schedule grid, monthly compliance checklist, and deadline reminders
+- [x] **Phase 5: Scheduling & Compliance Workflow** — Multi-assistant schedule grid, monthly compliance checklist, and deadline reminders (completed 2026-04-17)
 - [ ] **Phase 6: Google Calendar Integration** — Real OAuth2 connection to Google Calendar with calendar picker, replacing the simulated connect flow
 
 ---
@@ -228,7 +228,7 @@ Plans:
 | 3. Payroll Calculation & Recording | 4/4 | Complete | 2026-04-10 |
 | 3.5. UX Consolidation & IA Redesign | 0/10 | Not started | — |
 | 4. Tax Reporting (AGI) | 3/3 | Complete   | 2026-04-11 |
-| 5. Scheduling & Compliance Workflow | 0/TBD | Not started | — |
+| 5. Scheduling & Compliance Workflow | 4/4 | Complete | 2026-04-17 |
 | 6. Google Calendar Integration | 0/1 | Not started | — |
 
 ---
