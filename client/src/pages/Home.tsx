@@ -166,23 +166,71 @@ export default function HomePage() {
   const fkGated = invoicePending > 0 || invoiceHours === 0;
 
   // ── Schedule grid data (D-01, D-03) ───────────────────────
-  const weekEntries = (entries as Entry[]).filter(e =>
-    weekDates.includes(e.date as string)
-  );
+  //
+  // Source of truth for DISPLAY is Google Calendar when connected.
+  // The internal `entries` table is still the source of truth for
+  // payroll / FK / absence — those downstream consumers read from
+  // entries, not GCal. When GCal is not connected, the grid falls
+  // back to entries so the view is never blank.
+  //
+  // GCal events are matched to assistants by case-insensitive name
+  // in the event summary: "Assistance: {Name}" / "Assistance : {Name}"
+  // / "Shift: {Name}" (clock-out format, see server/routes/clock.ts).
+  type ShiftLike = { date: string; startTime: string; endTime: string; hours: number };
+
+  const entriesAsShifts: (ShiftLike & { assistantId: string })[] = (entries as Entry[])
+    .filter(e => weekDates.includes(e.date as string))
+    .map(e => ({
+      assistantId: e.assistantId as string,
+      date:        e.date as string,
+      startTime:   (e.startTime as string) ?? "",
+      endTime:     (e.endTime as string) ?? "",
+      hours:       (e.hours as number) ?? 0,
+    }));
+
+  const gcalShifts: (ShiftLike & { assistantId: string })[] = gcalConnected
+    ? (gcalEvents as Record<string, unknown>[]).flatMap(ev => {
+        const start = ev.start as Record<string, string> | undefined;
+        const end   = ev.end   as Record<string, string> | undefined;
+        const startDT = start?.dateTime ?? start?.date ?? "";
+        const endDT   = end?.dateTime   ?? end?.date   ?? "";
+        if (!startDT) return [];
+        const date      = startDT.slice(0, 10);
+        if (!weekDates.includes(date)) return [];
+        const startTime = startDT.slice(11, 16) || "00:00";
+        const endTime   = endDT.slice(11, 16)   || "00:00";
+        const summary = (ev.summary as string) ?? "";
+        const nameMatch = /(?:Assistance|Shift)\s*:\s*(.+)$/.exec(summary);
+        const name = nameMatch ? nameMatch[1].trim() : "";
+        if (!name) return [];
+        const assistant = (assistants as Assistant[]).find(
+          a => ((a.name as string) ?? "").toLowerCase() === name.toLowerCase()
+        );
+        if (!assistant) return [];
+        // Hours from timestamps (handles overnight: start > end → +24h).
+        const [sh, sm] = startTime.split(":").map(Number);
+        const [eh, em] = endTime.split(":").map(Number);
+        let hours = (eh * 60 + em - sh * 60 - sm) / 60;
+        if (hours < 0) hours += 24;
+        return [{ assistantId: assistant.id as string, date, startTime, endTime, hours }];
+      })
+    : [];
+
+  const displayShifts = gcalConnected ? gcalShifts : entriesAsShifts;
 
   const byAssistantDay = (assistants as Assistant[]).map(assistant => ({
     assistant,
     days: weekDates.map(date =>
-      weekEntries.filter(
-        e => (e.assistantId as string) === (assistant.id as string) && e.date === date
+      displayShifts.filter(
+        s => s.assistantId === (assistant.id as string) && s.date === date
       )
     ),
   }));
 
   const dailyTotals = weekDates.map(date =>
-    weekEntries
-      .filter(e => e.date === date)
-      .reduce((sum, e) => sum + ((e.hours as number) ?? 0), 0)
+    displayShifts
+      .filter(s => s.date === date)
+      .reduce((sum, s) => sum + s.hours, 0)
   );
 
   // Week label: "Mon 14 Apr – Sun 20 Apr"
@@ -335,7 +383,10 @@ export default function HomePage() {
                         const date = weekDates[i];
                         const isToday = date === todayStr;
                         const hasShift = dayEntries.length > 0;
-                        const firstEntry = dayEntries[0];
+                        // Sort shifts by start time so multiple-shift days render chronologically
+                        const sortedShifts = [...dayEntries].sort((a, b) =>
+                          ((a.startTime as string) ?? "").localeCompare((b.startTime as string) ?? "")
+                        );
                         return (
                           <td
                             key={date}
@@ -347,13 +398,16 @@ export default function HomePage() {
                             style={isToday ? { borderLeft: "2px solid hsl(var(--primary))" } : undefined}
                           >
                             {hasShift ? (
-                              <div
-                                className="relative inline-block"
-                                style={{ borderLeft: `2px solid ${(assistant.color as string) || "#6366f1"}`, paddingLeft: "4px" }}
-                              >
-                                <span className="text-xs font-mono text-muted-foreground">
-                                  {(firstEntry.startTime as string)?.substring(0, 5)}–{(firstEntry.endTime as string)?.substring(0, 5)}
-                                </span>
+                              <div className="relative inline-flex flex-col items-start gap-0.5">
+                                {sortedShifts.map((shift, shiftIdx) => (
+                                  <span
+                                    key={shiftIdx}
+                                    className="text-xs font-mono text-muted-foreground whitespace-nowrap"
+                                    style={{ borderLeft: `2px solid ${(assistant.color as string) || "#6366f1"}`, paddingLeft: "4px" }}
+                                  >
+                                    {(shift.startTime as string)?.substring(0, 5)}–{(shift.endTime as string)?.substring(0, 5)}
+                                  </span>
+                                ))}
                                 {/* Mark absent trigger (hover only) */}
                                 <button
                                   className="absolute -top-1.5 -right-5 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -389,7 +443,7 @@ export default function HomePage() {
                   </tr>
                 </tfoot>
               </table>
-              {weekEntries.length === 0 && (assistants as Assistant[]).length > 0 && (
+              {displayShifts.length === 0 && (assistants as Assistant[]).length > 0 && (
                 <p
                   aria-live="polite"
                   className="text-xs text-muted-foreground text-center py-3"

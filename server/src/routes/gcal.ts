@@ -230,13 +230,20 @@ router.get("/events", requireAuth, requireGuardian, async (req: AuthRequest, res
   try {
     const { start, end } = req.query as Record<string, string>;
     const { calendar, calendarId } = await getCalendarClient();
+    // `end` arrives as a calendar date (YYYY-MM-DD). Google's timeMax is
+    // exclusive, so new Date(end).toISOString() would exclude the entire
+    // end day. Advance to the next day's midnight UTC so the end date is
+    // inclusive (e.g. Sunday events render when the client passes the
+    // week's Sunday as `end`).
+    const timeMaxDate = end ? new Date(end) : null;
+    if (timeMaxDate) timeMaxDate.setUTCDate(timeMaxDate.getUTCDate() + 1);
     const { data } = await calendar.events.list({
       calendarId,
       timeMin: start ? new Date(start).toISOString() : new Date().toISOString(),
-      timeMax: end   ? new Date(end).toISOString()   : undefined,
+      timeMax: timeMaxDate ? timeMaxDate.toISOString() : undefined,
       singleEvents: true,
       orderBy: "startTime",
-      maxResults: 100,
+      maxResults: 250,
     });
     res.json(data.items ?? []);
   } catch (e) {
