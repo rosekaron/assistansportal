@@ -2,21 +2,52 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-last_updated: "2026-04-17T19:12:58.090Z"
+status: paused_triage
+last_updated: "2026-04-18T22:00:00.000Z"
+paused_at: "2026-04-18T22:00:00.000Z"
+paused_reason: "Triage gate — do not advance phases until payroll formula discussion is resolved with guardian"
 progress:
   total_phases: 9
   completed_phases: 9
   total_plans: 36
   completed_plans: 36
   percent: 100
+next_action:
+  command: /gsd-check-todos
+  priority_files:
+    - .planning/todos/pending/2026-04-18-resume-discussion-payroll-formula-hypotheses-before-any-code.md
+    - .planning/todos/pending/2026-04-18-triage-all-open-todos-with-guardian-before-any-implementatio.md
+    - .planning/todos/pending/2026-04-18-verify-and-fix-payroll-calculation-deduct-employer-tax-and-c.md
 ---
 
 # Kalinga Assistansportal — Project State
 
+## ⏸ PAUSED — Read this first on every session resume
+
+Milestone v1.0 code is shipped (9/9 phases complete). Do NOT auto-advance to milestone archive or the next milestone.
+
+On 2026-04-18 the guardian flagged the payroll calculation as wrong. Investigation showed the formula is arithmetically correct, so the real issue is one of six hypotheses (H1–H6). A triage gate was established: no new implementation until the hypotheses are discussed and a fix direction is chosen.
+
+**When `/gsd-next` runs next:** route to the payroll-formula triage discussion, not phase advancement. Read:
+1. `.planning/todos/pending/2026-04-18-resume-discussion-payroll-formula-hypotheses-before-any-code.md` — the hypothesis table + resume script
+2. `.planning/todos/pending/2026-04-18-triage-all-open-todos-with-guardian-before-any-implementatio.md` — the broader backlog (8 todos) awaiting triage
+3. `.planning/todos/pending/2026-04-18-verify-and-fix-payroll-calculation-deduct-employer-tax-and-c.md` — full analysis with hypotheses H1–H6
+
+**Do not:**
+- Run `/gsd-complete-milestone` (the milestone is ready for archival but paused pending discussion)
+- Run `/gsd-plan-phase` or `/gsd-execute-phase` until a hypothesis is chosen
+- Convert todos to phases without the triage conversation first
+
+**Unpause protocol:**
+1. Ask guardian: "Last session we paused at payroll formula triage. Resume now?"
+2. If yes → walk through H1–H6 with guardian, settle on a direction
+3. Set `status: planning` (or `executing`) in frontmatter, remove this block, proceed
+
+---
+
 **Project:** Swedish personal assistance (assistansersättning) self-management platform
 **Milestone:** v1 — Stability, Compliance, and Core Payroll
-**State Updated:** 2026-04-06
+**State Updated:** 2026-04-18 (paused)
 
 ---
 
