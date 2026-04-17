@@ -190,10 +190,10 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Wave 0: Test stubs for deadlineUtils and reminderCron (COMP-01, COMP-02)
-- [ ] 05-02-PLAN.md — Wave 1: Home.tsx assistant-row schedule table + week navigation (SCHED-01)
-- [ ] 05-03-PLAN.md — Wave 1: deadlineUtils implementation + Monthly.tsx deadline badges (COMP-01)
-- [ ] 05-04-PLAN.md — Wave 2: reminderCron implementation + email.ts + Settings.tsx Notifications card + human checkpoint (COMP-02)
+- [x] 05-01-PLAN.md — Wave 0: Test stubs for deadlineUtils and reminderCron (COMP-01, COMP-02)
+- [x] 05-02-PLAN.md — Wave 1: Home.tsx assistant-row schedule table + week navigation (SCHED-01)
+- [x] 05-03-PLAN.md — Wave 1: deadlineUtils implementation + Monthly.tsx deadline badges (COMP-01)
+- [x] 05-04-PLAN.md — Wave 2: reminderCron implementation + email.ts + Settings.tsx Notifications card + human checkpoint (COMP-02)
 
 ---
 
