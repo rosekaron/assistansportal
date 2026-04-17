@@ -27,6 +27,10 @@ export async function seedDefaults() {
     { key: "gcal_sync_enabled",     value: "true" },
     { key: "gcal_reminders",        value: "true" },
     { key: "gcal_reminder_hours",   value: "24" },
+    // Phase 4: Preliminary tax rate — stored as decimal string, default 0 = no withholding
+    { key: "preliminary_tax_rate",  value: "0" },
+    // Phase 5 COMP-02: Monthly compliance reminder day (1-28)
+    { key: "reminder_day",          value: "1" },
   ];
 
   for (const s of defaultSettings) {

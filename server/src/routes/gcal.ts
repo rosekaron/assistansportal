@@ -181,13 +181,15 @@ router.post("/events", requireAuth, requireGuardian, async (req: AuthRequest, re
       event.sendUpdates = "all";
     }
 
-    const { data } = await calendar.events.insert({
+    const insertParams = {
       calendarId,
       requestBody: event,
       sendUpdates: attendeeEmail ? "all" : "none",
-    } as Parameters<typeof calendar.events.insert>[0]);
+    };
+    // googleapis overloads confuse TS; cast to the promise-returning form.
+    const resp = await (calendar.events.insert as unknown as (p: typeof insertParams) => Promise<{ data: { id?: string; htmlLink?: string } }>)(insertParams);
 
-    res.json({ eventId: data.id, htmlLink: data.htmlLink });
+    res.json({ eventId: resp.data.id, htmlLink: resp.data.htmlLink });
   } catch (e) {
     console.error("[gcal] error:", e);
     res.status(500).json({ error: "Internal server error" });

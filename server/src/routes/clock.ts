@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db } from "../db";
-import { clockEvents, assistantGuardianLinks, assistants, entries } from "../db/schema";
+import { clockEvents, assistantGuardianLinks, assistants, entries, settings } from "../db/schema";
 import { requireAuth, requireAssistantAccess, AuthRequest } from "../middleware/auth";
 import { newId } from "../lib/id";
+import { getCalendarClient } from "./gcal";
 
 const router = Router();
 
@@ -183,6 +184,43 @@ router.post("/out", async (req: AuthRequest, res) => {
         updatedAt:   now,
       })
       .returning();
+
+    // Outbound GCal sync: if guardian has Google Calendar connected, mirror the
+    // verified shift as a calendar event and store the eventId on the entry.
+    // Fire-and-forget: GCal failures must never block clock-out.
+    try {
+      const settingsRows = await db.select().from(settings);
+      const s = Object.fromEntries(settingsRows.map(r => [r.key, r.value]));
+      if (s.gcal_connected === "true" && s.gcal_refresh_token && s.gcal_sync_enabled !== "false") {
+        const [a] = await db
+          .select({ name: assistants.name })
+          .from(assistants)
+          .where(eq(assistants.id, assistantId))
+          .limit(1);
+        const { calendar, calendarId } = await getCalendarClient();
+        const insertParams = {
+          calendarId,
+          requestBody: {
+            summary:     `Shift: ${a?.name ?? "Assistant"}`,
+            description: `Verified shift (clock-in/out).\nAssistant: ${a?.name ?? ""}\nHours: ${hours}`,
+            start: { dateTime: `${dateStr}T${startStr}:00`, timeZone: "Europe/Stockholm" },
+            end:   { dateTime: `${dateStr}T${endStr}:00`,   timeZone: "Europe/Stockholm" },
+            colorId: "9",  // blueberry — assigned shift
+          },
+        };
+        // googleapis overloads confuse TS here; cast matches the pattern in gcal.ts.
+        const resp = await (calendar.events.insert as unknown as (p: typeof insertParams) => Promise<{ data: { id?: string } }>)(insertParams);
+        if (resp.data?.id) {
+          await db
+            .update(entries)
+            .set({ gcalEventId: resp.data.id })
+            .where(eq(entries.id, entry.id));
+          entry.gcalEventId = resp.data.id;
+        }
+      }
+    } catch (gcalErr) {
+      console.error("[clock/out] GCal sync failed (non-fatal):", gcalErr);
+    }
 
     return res.status(201).json({ event: outEvent, entry });
   } catch (err) {
