@@ -59,3 +59,30 @@ export async function sendAssistantInviteEmail(
     </div>`,
   });
 }
+
+export async function sendComplianceReminderEmail(
+  to: string,
+  month: string,    // "YYYY-MM"
+  pendingSteps: string[]
+) {
+  const monthLabel = new Date(month + "-01").toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const link = `${BASE}/monthly`;
+  const body = pendingSteps.length === 0
+    ? `<p style="color:#475569">All steps are complete for ${monthLabel}. Nothing to do.</p>`
+    : `<p style="color:#475569">You have pending compliance steps for ${monthLabel}:</p>
+       <ul style="color:#475569;margin:12px 0;padding-left:20px">
+         ${pendingSteps.map(s => `<li style="margin-bottom:6px">${s}</li>`).join("")}
+       </ul>
+       <a href="${link}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:12px">Open Monthly →</a>`;
+
+  await transporter.sendMail({
+    from: FROM,
+    to,
+    subject: `Compliance reminder — ${monthLabel}`,
+    html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
+      <h2 style="color:#1e3a8a">Monthly compliance reminder</h2>
+      ${body}
+      <p style="color:#94a3b8;font-size:12px;margin-top:24px">Assistansportal — sent automatically on your configured reminder day.</p>
+    </div>`,
+  });
+}
