@@ -187,42 +187,64 @@ router.post("/accept-invite", async (req, res) => {
     const existing = await db.select().from(auth).where(eq(auth.email, invite.email)).limit(1);
     if (existing.length > 0) return res.status(409).json({ error: "An account with this email already exists. Please log in instead." });
 
-    const [assistant] = await db.select().from(assistants).where(eq(assistants.email, invite.email)).limit(1);
+    // Find or create the assistants row. The legacy flow required the guardian
+    // to create the assistants row before sending the invite, but POST /api/invites
+    // does not create one — so invites accepted without a pre-existing row would
+    // silently leave the assistant orphaned (no row in assistants, not in the
+    // multi-assistant schedule grid, no ability to clock in). Auto-create from
+    // invite fields so every accepted invite produces a usable assistant.
+    let [assistant] = await db.select().from(assistants).where(eq(assistants.email, invite.email)).limit(1);
+    if (!assistant) {
+      const count = (await db.select().from(assistants)).length;
+      const COLORS = ["#6366f1","#0891b2","#059669","#d97706","#dc2626","#7c3aed","#0e7490","#b45309","#0f766e","#9333ea"];
+      const initials = invite.name.trim().split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+      [assistant] = await db.insert(assistants).values({
+        id:             newId("a"),
+        name:           invite.name.trim(),
+        initials,
+        color:          COLORS[count % COLORS.length],
+        email:          invite.email,
+        pno:            "",
+        phone:          "",
+        minWeeklyHours: invite.minWeeklyHours ?? 0,
+        isFlexible:     invite.isFlexible ?? false,
+        inviteStatus:   "pending",   // flipped to "accepted" below
+      }).returning();
+    }
 
     const hash = await bcrypt.hash(password, 12);
     const [user] = await db.insert(auth).values({
       email: invite.email, passwordHash: hash,
       role: "assistant", emailVerified: true,
-      assistantId: assistant?.id ?? null,
+      assistantId: assistant.id,
     }).returning();
 
-    if (assistant) {
-      await db.update(assistants).set({ authId: user.id, inviteStatus: "accepted" }).where(eq(assistants.id, assistant.id));
+    await db.update(assistants).set({ authId: user.id, inviteStatus: "accepted" }).where(eq(assistants.id, assistant.id));
 
-      // Ensure an active guardian link exists so the assistant can clock in.
-      // Single-tenant: the one guardian is the only user with role="guardian".
-      const [guardian] = await db.select({ id: auth.id }).from(auth)
-        .where(eq(auth.role, "guardian")).limit(1);
-      if (guardian) {
-        await db.insert(assistantGuardianLinks).values({
-          id:          newId("gl"),
-          assistantId: assistant.id,
-          guardianId:  guardian.id,
-          active:      true,
-        }).onConflictDoNothing();
-        // Also activate any existing inactive link
-        await db.update(assistantGuardianLinks)
-          .set({ active: true })
-          .where(and(
-            eq(assistantGuardianLinks.assistantId, assistant.id),
-            eq(assistantGuardianLinks.guardianId, guardian.id),
-          ));
-      }
+    // Ensure an active guardian link exists so the assistant can clock in.
+    // Single-tenant: the one guardian is the only user with role="guardian".
+    const [guardian] = await db.select({ id: auth.id }).from(auth)
+      .where(eq(auth.role, "guardian")).limit(1);
+    if (guardian) {
+      await db.insert(assistantGuardianLinks).values({
+        id:          newId("gl"),
+        assistantId: assistant.id,
+        guardianId:  guardian.id,
+        active:      true,
+      }).onConflictDoNothing();
+      // Also activate any existing inactive link
+      await db.update(assistantGuardianLinks)
+        .set({ active: true })
+        .where(and(
+          eq(assistantGuardianLinks.assistantId, assistant.id),
+          eq(assistantGuardianLinks.guardianId, guardian.id),
+        ));
     }
+
     await db.update(invites).set({ status: "accepted" }).where(eq(invites.id, invite.id));
 
-    const jwtToken = jwt.sign({ userId: user.id, role: "assistant", assistantId: assistant?.id }, JWT_SECRET, { expiresIn: "30d" });
-    res.json({ token: jwtToken, role: "assistant", assistantId: assistant?.id ?? null, message: "Account created. Welcome!" });
+    const jwtToken = jwt.sign({ userId: user.id, role: "assistant", assistantId: assistant.id }, JWT_SECRET, { expiresIn: "30d" });
+    res.json({ token: jwtToken, role: "assistant", assistantId: assistant.id, message: "Account created. Welcome!" });
   } catch (e) {
     console.error("[auth] error:", e);
     res.status(500).json({ error: "Internal server error" });
