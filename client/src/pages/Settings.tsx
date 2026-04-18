@@ -233,7 +233,15 @@ export default function SettingsPage() {
 
   // ── Profile mutations ─────────────────────────────────────────────────────
   const saveProfile = useMutation({
-    mutationFn: () => profileApi.update({ ...form, weeklyHours: parseInt(form.weeklyHours) }),
+    mutationFn: () => profileApi.update({
+      ...form,
+      weeklyHours: parseInt(form.weeklyHours),
+      fkDecisionStart:               form.fkDecisionStart || null,
+      fkDecisionEnd:                 form.fkDecisionEnd   || null,
+      patientRelationToGuardian:     form.patientRelationToGuardian,
+      dubbelAssistansApproved:       form.dubbelAssistansApproved,
+      patientRequiresRepresentative: form.patientRequiresRepresentative,
+    }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["profile"] });
       setSaved(true);
@@ -710,59 +718,86 @@ export default function SettingsPage() {
       </Card>
 
       {/* ── 5. ACCOUNT ─────────────────────────────────────────────────────── */}
-      <SectionLabel>Account & care details</SectionLabel>
-      <div className="grid grid-cols-2 gap-5">
-        <Card>
-          <CardContent className="pt-5 space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Guardian / Legal representative</p>
-            <SettingsField label="Full name"            field="guardianName"  placeholder=""  value={form.guardianName}  onChange={setField} />
-            <SettingsField label="Personal ID (12 dig)" field="guardianPno"   placeholder=""  value={form.guardianPno}   onChange={setField} />
-            <SettingsField label="Email"                field="guardianEmail" type="email"    value={form.guardianEmail} onChange={setField} />
-            <SettingsField label="Phone"                field="guardianPhone" placeholder=""  value={form.guardianPhone} onChange={setField} />
-          </CardContent>
-        </Card>
+      <SectionLabel>Konto & vårdinformation</SectionLabel>
+      <Card>
+        <CardContent className="p-0">
+          <CollapsibleSection
+            title="Personuppgifter"
+            open={profileSectionOpen.person}
+            onToggle={() => setProfileSectionOpen(s => ({ ...s, person: !s.person }))}
+          >
+            <div className="grid grid-cols-2 gap-3">
+              <SettingsField label="Fullständigt namn"    field="guardianName"  value={form.guardianName}  onChange={setField} />
+              <SettingsField label="Personnummer"         field="guardianPno"   value={form.guardianPno}   onChange={setField} />
+              <SettingsField label="E-post"               field="guardianEmail" type="email" value={form.guardianEmail} onChange={setField} />
+              <SettingsField label="Telefon"              field="guardianPhone" value={form.guardianPhone} onChange={setField} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <SettingsField label="Brukarens namn"         field="patientName" value={form.patientName} onChange={setField} />
+              <SettingsField label="Brukarens personnummer" field="patientPno"  value={form.patientPno}  onChange={setField} />
+            </div>
+            <SettingsField label="Gatuadress" field="address" value={form.address} onChange={setField} />
+            <div className="grid grid-cols-2 gap-3">
+              <SettingsField label="Ort"        field="city" value={form.city} onChange={setField} />
+              <SettingsField label="Postnummer" field="zip"  value={form.zip}  onChange={setField} />
+            </div>
+          </CollapsibleSection>
 
-        <div className="space-y-5">
-          <Card>
-            <CardContent className="pt-5 space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">The insured person</p>
-              <SettingsField label="Full name"            field="patientName" placeholder="" value={form.patientName} onChange={setField} />
-              <SettingsField label="Personal ID (12 dig)" field="patientPno"  placeholder="" value={form.patientPno}  onChange={setField} />
-              <SettingsField label="Street address"       field="address"     placeholder="" value={form.address}     onChange={setField} />
-              <div className="grid grid-cols-3 gap-2">
-                <div className="col-span-2">
-                  <SettingsField label="City" field="city" placeholder="" value={form.city} onChange={setField} />
-                </div>
-                <SettingsField label="Zip" field="zip" placeholder="" value={form.zip} onChange={setField} />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-5 space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Försäkringskassan</p>
-              <SettingsField label="Decision number" field="fkDecisionNo" placeholder="" value={form.fkDecisionNo} onChange={setField} />
+          <CollapsibleSection
+            title="FK-beslut"
+            open={profileSectionOpen.fk}
+            onToggle={() => setProfileSectionOpen(s => ({ ...s, fk: !s.fk }))}
+          >
+            <SettingsField label="Beslutsnummer" field="fkDecisionNo" placeholder="FK-XXXX-XXXXXXX" value={form.fkDecisionNo} onChange={setField} />
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Weekly hours granted</Label>
-                <div className="relative">
-                  <Input
-                    type="number"
-                    value={form.weeklyHours}
-                    className="pr-10"
-                    onChange={(e) => setField("weeklyHours", e.target.value)}
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">h/wk</span>
-                </div>
+                <Label>Beslutet gäller från</Label>
+                <Input type="date" value={form.fkDecisionStart} onChange={(e) => setField("fkDecisionStart", e.target.value)} />
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+              <div className="space-y-1.5">
+                <Label>Beslutet gäller t.o.m.</Label>
+                <Input type="date" value={form.fkDecisionEnd} onChange={(e) => setField("fkDecisionEnd", e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Relation till brukaren</Label>
+              <Select
+                value={form.patientRelationToGuardian}
+                onValueChange={(v) => setForm(f => ({ ...f, patientRelationToGuardian: v }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PATIENT_RELATION_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Veckotimmar enligt beslut</Label>
+              <div className="relative">
+                <Input type="number" className="pr-10" value={form.weeklyHours} onChange={(e) => setField("weeklyHours", e.target.value)} />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">h/v</span>
+              </div>
+            </div>
+            <ToggleRow
+              label="Dubbel assistans beviljad"
+              sub="Beslutet innehåller tillägg för dubbel assistans"
+              value={form.dubbelAssistansApproved}
+              onChange={(v) => setForm(f => ({ ...f, dubbelAssistansApproved: v }))}
+            />
+            <ToggleRow
+              label="Brukaren företräds av guardian"
+              sub="Använd när brukaren är vuxen men saknar rättslig handlingsförmåga (god man / förvaltare). Minderåriga hanteras automatiskt från personnummer."
+              value={form.patientRequiresRepresentative}
+              onChange={(v) => setForm(f => ({ ...f, patientRequiresRepresentative: v }))}
+            />
+          </CollapsibleSection>
+        </CardContent>
+      </Card>
 
       <div className="flex items-center justify-end gap-3 mt-5">
-        {saved && <span className="text-xs text-emerald-600">✓ Saved</span>}
+        {saved && <span className="text-xs text-emerald-600">✓ Sparat</span>}
         <Button onClick={() => saveProfile.mutate()} disabled={saveProfile.isPending}>
-          {saveProfile.isPending ? "Saving…" : "Save changes"}
+          {saveProfile.isPending ? "Sparar…" : "Spara"}
         </Button>
       </div>
 
