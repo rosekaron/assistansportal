@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: Retrospective
-status: completed
-last_updated: "2026-04-18T09:13:42.497Z"
+milestone: v1.0.1
+milestone_name: Salary Slip + Foundation Cleanup
+status: defining_requirements
+last_updated: "2026-04-18T23:59:00.000Z"
 progress:
-  total_phases: 9
-  completed_phases: 9
-  total_plans: 36
-  completed_plans: 36
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Kalinga Assistansportal — Project State
@@ -50,12 +50,18 @@ Phase 05 — scheduling-compliance-workflow
 
 ## Current Position
 
-Phase: 06
-Plan: Not started
-**Phase 06:** COMPLETE (google-calendar-integration) — UAT: 4 passed, 3 blocked on credentials
-**Phase 06.1:** Plan written — 3 remaining UAT bugs (BUG-002, BUG-004, BUG-005)
-**Status:** v1.0 milestone complete
-**Progress:** [█████████░] 89%
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements for v1.0.1
+Last activity: 2026-04-18 — Milestone v1.0.1 started (Salary Slip + Foundation Cleanup)
+**Progress:** [░░░░░░░░░░] 0%
+
+## Project Reference
+
+See: .planning/PROJECT.md (updated 2026-04-18)
+
+**Core value:** The guardian can complete the full monthly cycle — approve hours, generate all required forms, calculate pay — without needing an HR department or assistance company.
+**Current focus:** v1.0.1 — Salary Slip + Foundation Cleanup (legally required lönespecifikation + absorbed schema/helper/cleanup work)
 
 ---
 

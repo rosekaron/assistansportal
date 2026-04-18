@@ -28,57 +28,74 @@ Kalinga is a care management platform for the Swedish personal assistance sector
 
 The guardian can complete the full monthly cycle — approve hours, generate all required forms, calculate pay — without needing an HR department or assistance company.
 
+## Current Milestone: v1.0.1 — Salary Slip + Foundation Cleanup
+
+**Goal:** Ship the legally-required Swedish lönespecifikation (salary slip) for anhörig-model assistants, and absorb adjacent foundation items (schema additions, employer-representation helper, scheduling scaffolding removal, real-data entry) so v1.1–v1.3 don't rework this ground.
+
+**Why urgent:** Swedish labor law requires a written pay record per pay period. Rose + Mikael currently receive only a bank transfer reference — statutory non-compliance.
+
+**Target features:**
+- Salary slip (anhörig model) — PDF generation, guardian + assistant download paths, Fremia/Custom scaffolding disabled until v1.4/v1.5
+- Employer representation helper used by FK 3057, FK 3059, SKV 4805, and slip renderers
+- Capture-missing-fields schema on `assistants` + `profile` tables (unblocks v1.2 + v1.3)
+- Scheduling scaffolding removal (dead Settings card, openSlots table, self-book endpoints)
+- Real brukare/guardian/assistant data entered in Settings (replaces placeholders)
+
 ## Requirements
 
 ### Validated
 
-<!-- Already shipped in the existing codebase -->
+<!-- Shipped in v1.0 (2026-04-18) -->
 
-- ✓ Guardian and assistant authentication with role-based access — existing
-- ✓ Guardian can create and manage assistants (invite by email) — existing
-- ✓ Guardian can schedule shifts (open slots + manual entry) — existing
-- ✓ Assistant can view their schedule and log actual hours worked — existing
-- ✓ Guardian can approve or reject assistant time entries — existing
-- ✓ FK 3059 form is filled and downloadable as a PDF — existing
-- ✓ FK 3057 form is filled and downloadable as a PDF — existing
-- ✓ Monthly cost overview is tracked and visible — existing
-- ✓ Google Calendar sync for schedule entries — existing
-- ✓ Guardian profile setup wizard (first-run) — existing
+- ✓ Guardian and assistant authentication with role-based access — v1.0
+- ✓ Guardian can create and manage assistants (invite by email) — v1.0 / Phase 6.1
+- ✓ Guardian can schedule shifts (manual entry + Google Calendar source of truth) — v1.0
+- ✓ Assistant can view their schedule, clock in/out, and log verified hours — v1.0 / Phase 3.5
+- ✓ Guardian can approve or reject assistant time entries — v1.0
+- ✓ FK 3059 and FK 3057 forms filled and downloadable as PDF — v1.0
+- ✓ SKV 4805 (AGI) PDF per assistant per month — v1.0 / Phase 4
+- ✓ Monthly payroll summary with 2026 Swedish tax rates and employer contributions — v1.0 / Phase 3
+- ✓ Leave & absence tracking (sjukfrånvaro, VAB, semester, other) with FK billing exclusion and VAB 120-day balance — v1.0 / Phase 2
+- ✓ Role middleware enforced server-side; FK 3057 date bug fixed; rates env-configurable — v1.0 / Phase 1
+- ✓ Monthly compliance stepper with FK/AGI deadline badges + email reminder cron — v1.0 / Phase 5
+- ✓ Google Calendar OAuth2 connect + calendar picker + event CRUD + outbound clock-out sync — v1.0 / Phase 6
+- ✓ Multi-family assistant support (assistant-guardian links + family selector) — v1.0 / Phase 3.5
+- ✓ B2B-ready design system across guardian + assistant views — v1.0 / Phase 2.5
 
 ### Active
 
-<!-- What we are building toward -->
+<!-- v1.0.1 milestone scope -->
 
-#### Stability & Correctness
-- [ ] Role middleware enforced server-side (assistants cannot call guardian endpoints)
-- [ ] FK 3057 date range uses correct month-end date (not hardcoded day 31)
-- [ ] Hours page counts use camelCase field names (`reqStatus`, `repStatus`) correctly
-- [ ] FK hourly rate and employer tax rate are configurable in Settings (not hardcoded)
-- [ ] Dev-only endpoints (`/api/auth/dev-verify`) are disabled in production
+#### Salary Slip (Lönespecifikation)
+- [ ] Guardian can generate and download a monthly salary slip PDF per approved assistant per month
+- [ ] Assistant can view and download their own past salary slips from AssistantDashboard
+- [ ] Salary slip is gated on payroll approval (same 409 gate as SKV 4805)
+- [ ] Slip shows arbetstid (worked hours + absence days with running VAB balance), lön breakdown (bruttolön → preliminärskatt 30% → netto), and correct employer representation (minor brukare shows "Företrädd av [guardian]")
+- [ ] Each issued slip is recorded in a `payment_slips` audit table for bokföringslag compliance
+- [ ] Settings → Assistants exposes `salary_model` dropdown (anhörig wired; fremia/custom disabled with "(Kommer i v1.4/v1.5)")
 
-#### Payroll
-- [ ] Guardian can view a monthly payroll summary per assistant (hours × rate)
-- [ ] Guardian can record and track payments made to assistants
-- [ ] System calculates gross pay, employer social security contributions (arbetsgivaravgifter), and net pay per assistant
+#### Employer Representation Helper
+- [ ] `resolveEmployerRepresentation()` helper returns correct arbetsgivare + företrädare based on brukare minor-status + explicit override flag
+- [ ] FK 3057, FK 3059, SKV 4805, and salary slip all use the helper (no direct `guardianName` references for employer field)
+- [ ] `profile.patient_requires_representative` boolean override exists for adult-without-capacity (god man) case
 
-#### Skatteverket Reporting
-- [ ] System generates the AGI (arbetsgivardeklaration på individnivå) report data per month
-- [ ] Guardian can download or export Skatteverket-ready salary declaration output
-- [ ] Tax deductions (preliminärskatt) per assistant are tracked and included in reporting
+#### Schema Additions (unblocks v1.2 + v1.3)
+- [ ] `assistants` schema gains: skattetabell, tax_scheme, bank fields (clearing/account/iban), split address, employment_start/end_date, citizenship + residence_permit_expiry, notes, hourly_rate_override
+- [ ] `profile` schema gains: fk_decision_start/end, fk_decision_hours_per_day, dubbel_assistans_approved, patient_relation_to_guardian, patient_requires_representative
+- [ ] Settings → Profile + Settings → Assistants expose all new fields for editing
+- [ ] `payroll_records` snapshots `salary_model_used` + `hourly_rate_used` at generation time
 
-#### Leave & Absence
-- [ ] Guardian can record assistant absence (sick leave, VAB, holiday)
-- [ ] Absence entries are excluded from billable hours in FK reports
-- [ ] Leave balances are visible to the guardian per assistant
+#### Scheduling Scaffolding Removal
+- [ ] Settings "Scheduling" card removed (self-book toggle, approval mode, booking window)
+- [ ] `openSlots` table dropped; `/api/slots` + `/api/assistant/self-book` + `/api/assistant/open-slots` endpoints removed
+- [ ] Dead settings keys (`allow_self_book`, `self_book_approval`, `booking_window_days`) removed from `seedDefaults()`
+- [ ] Client API helpers (`slotsApi`, `assistantApi.selfBook`, `assistantApi.openSlots`) removed
 
-#### Scheduling Improvements
-- [ ] Self-booking slot capacity check is atomic (no race condition)
-- [ ] Guardian has a week/month view showing all assistants' shifts in one grid
-- [ ] Guardian can copy a previous week's schedule as a starting point
-
-#### Multi-Tenant Foundation
-- [ ] All data is scoped to a guardian account (enforced at query level, not just routing)
-- [ ] A second guardian account can be registered and operates fully independently
+#### Real Data Entry
+- [ ] Guardian enters real patient pno, patient name, patient address (no placeholder "TBD" or "000000-0000" remaining)
+- [ ] Guardian enters real FK beslutsnummer, decision start/end dates, and hours-per-day entitlement
+- [ ] Both assistants (Rose + Mikael) have valid pno, real addresses, tax scheme (A-skatt), and bank details
+- [ ] One clean FK 3057 + one SKV 4805 + one salary slip download produces zero placeholder text
 
 ### Out of Scope
 
@@ -111,8 +128,25 @@ The guardian can complete the full monthly cycle — approve hours, generate all
 | Physical form submission (no API filing) | Skatteverket AGI API requires certification; FK postal submission is still mandatory | — Pending |
 | Web-responsive assistant interface (no native app) | Reduces scope significantly; assistants only need to log hours and view schedule | — Pending |
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-04-06 — initial PROJECT.md after brownfield questioning*
+*Last updated: 2026-04-18 — v1.0.1 milestone kick-off (Salary Slip + Foundation Cleanup)*
 
 ## Core Value Proposition (Clarified 2026-04-10)
 
