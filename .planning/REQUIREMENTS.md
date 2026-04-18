@@ -97,34 +97,41 @@ Explicitly excluded from v1.0.1. Prevents scope creep during implementation.
 
 ## Traceability
 
-Empty initially — populated by gsd-roadmapper during phase decomposition. Each requirement maps to exactly one phase.
+Each v1.0.1 requirement maps to exactly one phase.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SLIP-01 | TBD | Pending |
-| SLIP-02 | TBD | Pending |
-| SLIP-03 | TBD | Pending |
-| SLIP-04 | TBD | Pending |
-| SLIP-05 | TBD | Pending |
-| SLIP-06 | TBD | Pending |
-| SLIP-07 | TBD | Pending |
-| EMP-01 | TBD | Pending |
-| EMP-02 | TBD | Pending |
-| SCHEMA-01 | TBD | Pending |
-| SCHEMA-02 | TBD | Pending |
-| SCHEMA-03 | TBD | Pending |
-| CLEAN-01 | TBD | Pending |
-| CLEAN-02 | TBD | Pending |
-| CLEAN-03 | TBD | Pending |
-| DATA-01 | TBD | Pending |
-| DATA-02 | TBD | Pending |
-| DATA-03 | TBD | Pending |
+| SLIP-01 | 9 | Pending |
+| SLIP-02 | 9 | Pending |
+| SLIP-03 | 9 | Pending |
+| SLIP-04 | 9 | Pending |
+| SLIP-05 | 9 | Pending |
+| SLIP-06 | 9 | Pending |
+| SLIP-07 | 9 | Pending |
+| EMP-01 | 8 | Pending |
+| EMP-02 | 8 | Pending |
+| SCHEMA-01 | 7 | Pending |
+| SCHEMA-02 | 7 | Pending |
+| SCHEMA-03 | 7 | Pending |
+| CLEAN-01 | 7 | Pending |
+| CLEAN-02 | 7 | Pending |
+| CLEAN-03 | 7 | Pending |
+| DATA-01 | 10 | Pending |
+| DATA-02 | 10 | Pending |
+| DATA-03 | 10 | Pending |
 
 **Coverage:**
 - v1.0.1 requirements: 18 total
-- Mapped to phases: 0 (awaiting roadmap)
-- Unmapped: 18 ⚠️ (will resolve after roadmap)
+- Mapped to phases: 18 (100%)
+- Unmapped: 0
+
+**Per-phase distribution:**
+- Phase 7 (Foundation — Schema & Cleanup): 6 requirements (SCHEMA-01/02/03 + CLEAN-01/02/03)
+- Phase 8 (Employer Representation Helper): 2 requirements (EMP-01, EMP-02)
+- Phase 9 (Salary Slip — Anhörig): 7 requirements (SLIP-01..07)
+- Phase 10 (Real Data Entry & E2E Verification): 3 requirements (DATA-01/02/03)
 
 ---
 *Requirements defined: 2026-04-18 for v1.0.1*
+*Traceability populated: 2026-04-18 by gsd-roadmapper (4-phase breakdown, Phases 7–10)*
 *v1.0 requirements archived at: [milestones/v1.0-REQUIREMENTS.md](milestones/v1.0-REQUIREMENTS.md)*

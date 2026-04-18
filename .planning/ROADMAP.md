@@ -1,8 +1,8 @@
 # Kalinga Assistansportal — Roadmap
 
 **Project:** Swedish personal assistance (assistansersättning) self-management platform with compliance and payroll integration
-**Current milestone:** v1.0 (shipped code, awaiting clean-finish archive) → v1.0.1 kick-off queued
-**Last updated:** 2026-04-18 23:59
+**Current milestone:** v1.0.1 — Salary Slip + Foundation Cleanup (active)
+**Last updated:** 2026-04-18
 
 ---
 
@@ -13,7 +13,7 @@ If you're a new session / new LLM and have never seen this project before, **rea
 ### Where the project stands (as of 2026-04-18)
 
 - **v1.0 is shipped and archived** (2026-04-18). 9 phases shipped, 36 plans summarised, 15/15 requirements satisfied in code. Git tag `v1.0`. Branch `milestone/v1.0-mvp` on `origin`. Full archive at [.planning/milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md).
-- **v1.0.1 is the next milestone** — user decision (2026-04-18) was to continue in this same repo (not a fresh GSD project, not a new workspace). Start with `/gsd-new-milestone v1.0.1`. Full scope in the v1.0.1 section below.
+- **v1.0.1 is the active milestone** (kicked off 2026-04-18). 4 phases (7–10), 18 requirements, ~6.5 days of work. Scope: legally-required salary slip (lönespec) for anhörig-model assistants, employer-representation helper, absorbed schema cleanup, scheduling scaffolding removal, real-data entry.
 - **The app itself works end-to-end** — guardian can run the full monthly compliance cycle (schedule, approve, payroll, FK 3057, FK 3059, SKV 4805) in the current UI. v1.0 accepted-known-issues and deferred items are catalogued in [.planning/milestones/v1.0-MILESTONE-AUDIT.md](milestones/v1.0-MILESTONE-AUDIT.md).
 
 ### The essential facts about this product
@@ -58,9 +58,8 @@ Eight concrete decisions that bind future work:
 
 For the next session / new LLM:
 
-1. **If user says "continue v1.0 cleanup":** run through the v1.0 Retrospective section, finish the scheduling cleanup code change, close the pending superseded todos, then `/gsd-complete-milestone v1.0`.
-2. **If user says "start v1.0.1":** read the v1.0.1 section in full, plus the linked todos. If the user wants a new GSD project run `/gsd-new-project` fresh and bring forward just the v1.0.1 spec. If they want a new milestone in this project run `/gsd-new-milestone v1.0.1`.
-3. **If user asks a specific question about any decision:** the session decisions list above has the reasoning. Cross-references point to the audit, compliance brief, or todo files with full context.
+1. **If user says "continue v1.0.1":** read the v1.0.1 phase section below, then `cat .planning/STATE.md` to see current phase/plan position, then run `/gsd-plan-phase <N>` on the current phase if plans aren't decomposed, or `/gsd-execute-plan <N-M>` to keep implementing.
+2. **If user asks a specific question about any decision:** the session decisions list above has the reasoning. Cross-references point to the audit, compliance brief, or todo files with full context.
 
 ### Artifacts that together tell the full story
 
@@ -131,7 +130,7 @@ Full detail in [milestones/v1.0-MILESTONE-AUDIT.md](milestones/v1.0-MILESTONE-AU
 
 ---
 
-## Phases (v1.0)
+## Phases (v1.0) — shipped
 
 - [x] **Phase 1: Stability & Correctness** — Fix critical security, data isolation, and calculation bugs before adding features (completed 2026-04-06)
 - [x] **Phase 2: Leave & Absence Foundation** — Implement absence tracking so billable hours can be calculated correctly downstream (completed 2026-04-06)
@@ -145,19 +144,30 @@ Full detail in [milestones/v1.0-MILESTONE-AUDIT.md](milestones/v1.0-MILESTONE-AU
 
 ---
 
-## Future Milestones (planned 2026-04-18)
+## v1.0.1 — Salary Slip + Foundation Cleanup (ACTIVE)
 
-### 🔜 v1.0.1 — Salary Slip + Foundation Cleanup — **URGENT / legally required**
+**Why urgent:** Swedish labor law (and any applicable kollektivavtal) requires the employer to issue a written pay record to each employee each pay period. Currently **zero provision** — Rose and Mikael receive a bank transfer reference only. This is statutory non-compliance for an ongoing employment relationship.
 
-**Why this is urgent:** Swedish labor-law (and any applicable kollektivavtal) requires the employer to issue a written pay record to each employee each pay period. Currently **zero provision** — Rose and Mikael receive a bank transfer reference only. This is statutory non-compliance for an ongoing employment relationship. Must ship before anything else.
+**Why absorbed foundation items:** While the core deliverable is the salary slip, four related items were absorbed to avoid rework and schema drift: schema columns needed by v1.2 + v1.3, employer-representation helper shared by FK/4805/slip renderers, scheduling scaffolding removal, and real-data entry.
 
-**Why it's a foundation:** While the core deliverable is the salary slip, four related items were absorbed to avoid rework and schema drift:
-1. Schema columns needed by v1.2 + v1.3 (submission gate, schedule warnings)
-2. Employer-representation helper shared by FK/4805/slip renderers
-3. Scheduling scaffolding removal (dead code from pre-IA-redesign era)
-4. Real brukare/guardian data entered (unblocks all downstream filings)
+**Effort estimate:** ~6.5 days (1 calendar week including review).
 
-#### Scope — Salary Slip (anhörig model only)
+**Full design narrative:** retained below under "v1.0.1 Design Reference" — that section is the source input for the formal phase breakdown and is preserved for traceability.
+
+### Phases (v1.0.1)
+
+- [ ] **Phase 7: Foundation — Schema & Cleanup** — Add all new `assistants` + `profile` columns and remove dead scheduling scaffolding so downstream phases build on a clean, complete schema
+- [ ] **Phase 8: Employer Representation Helper** — Extract single `resolveEmployerRepresentation()` helper and refactor FK 3057, FK 3059, SKV 4805 renderers to use it so the employer-name bug is closed and the slip renderer has a clean input
+- [ ] **Phase 9: Salary Slip (Anhörig Model)** — Ship the legally-required lönespec PDF with guardian + assistant download paths, payroll-approval gate, audit table, and scaffolding for Fremia/Custom (v1.4/v1.5)
+- [ ] **Phase 10: Real Data Entry & End-to-End Verification** — Guardian enters real brukare/guardian/assistant data in Settings and downloads clean FK 3057 + SKV 4805 + lönespec PDFs with zero placeholder text
+
+---
+
+## v1.0.1 Design Reference (narrative source)
+
+This section is the 2026-04-18 design narrative that fed the formal phases above. It is preserved for traceability — phase plans draw from these details but the phase breakdown is authoritative.
+
+### Scope — Salary Slip (anhörig model only)
 
 **Data model additions:**
 - `assistants.salary_model` enum: `anhörig` (default, fully wired) | `fremia` (UI scaffolding only, disabled) | `custom` (UI scaffolding only, disabled)
@@ -216,13 +226,13 @@ AVDRAG
 ```
 
 **Intentionally excluded** (per guardian direction 2026-04-18):
-- ❌ Arbetsgivaravgifter line — employer-side, not the assistant's concern
-- ❌ Total kostnad line — same reason
-- ❌ YTD cumulative (can be added later)
-- ❌ OB-tillägg, helgersättning, jour/beredskap — Fremia model (v1.4)
-- ❌ Tjänstepension, AFA-försäkringar, semesterlön reserve — Fremia model (v1.4)
+- Arbetsgivaravgifter line — employer-side, not the assistant's concern
+- Total kostnad line — same reason
+- YTD cumulative (can be added later)
+- OB-tillägg, helgersättning, jour/beredskap — Fremia model (v1.4)
+- Tjänstepension, AFA-försäkringar, semesterlön reserve — Fremia model (v1.4)
 
-#### Scope — Employer Representation Helper (absorbed from minor-vs-adult todo)
+### Scope — Employer Representation Helper (absorbed from minor-vs-adult todo)
 
 **Problem:** Current FK 3057 + 4805 code uses `profile.guardianName` where the legal arbetsgivare should be the brukare. Correct for minor-brukare (Kalinga's current user base) but silently wrong for adult-brukare.
 
@@ -251,7 +261,7 @@ Refactor touchpoints:
 
 **Full design:** [todos/pending/2026-04-18-minor-vs-adult-patient-handling-across-fk-4805-salary-slip.md](todos/pending/2026-04-18-minor-vs-adult-patient-handling-across-fk-4805-salary-slip.md)
 
-#### Scope — Capture-Missing-Fields schema (absorbed)
+### Scope — Capture-Missing-Fields schema (absorbed)
 
 All fields from the capture-missing-fields todo ship here because v1.0.1 already touches `assistants` and `profile`. Unblocks v1.2 + v1.3 downstream.
 
@@ -275,7 +285,7 @@ All fields from the capture-missing-fields todo ship here because v1.0.1 already
 
 **Full design:** [todos/pending/2026-04-18-capture-missing-assistant-and-profile-fields-for-fk-and-skat.md](todos/pending/2026-04-18-capture-missing-assistant-and-profile-fields-for-fk-and-skat.md)
 
-#### Scope — Scheduling scaffolding removal
+### Scope — Scheduling scaffolding removal
 
 **Problem:** Settings.tsx has a "Scheduling" card (self-book toggle, approval mode, booking window). None of these settings are read by any server route — dead config. Plus `openSlots` table + `/api/slots` + `/api/assistant/self-book/:slotId` are unreachable from the current IA.
 
@@ -292,7 +302,7 @@ All fields from the capture-missing-fields todo ship here because v1.0.1 already
 
 **Migration:** drop `open_slots` table. Optional: delete existing settings rows for the 3 dead keys (won't harm if left — just orphans).
 
-#### Scope — Real brukare / guardian / assistant data entered
+### Scope — Real brukare / guardian / assistant data entered
 
 Currently placeholder values (`TBD Guardian Name`, `patientPno: 000000-0000`, `fkDecisionNo: TBD-FK-DECISION`, etc). Without real values the FK/4805/salary slip PDFs all contain invalid data.
 
@@ -306,7 +316,7 @@ Not a code change — a guardian data-entry pass in Settings once the new fields
 
 **Acceptance:** Settings → Profile shows all fields non-blank; Assistants list shows valid pno for both; one clean FK 3057 + one SKV 4805 + one salary slip downloads without placeholder text visible.
 
-#### Total v1.0.1 effort estimate
+### Total v1.0.1 effort estimate
 
 | Work stream | Days |
 |-------------|------|
@@ -320,17 +330,9 @@ Not a code change — a guardian data-entry pass in Settings once the new fields
 | Data entry by guardian + verification walkthrough | 0.5 |
 | **Total** | **~6.5 days** (1 calendar week including review) |
 
-#### Success criteria
-
-1. Rose downloads her March 2026 slip from AssistantDashboard and it shows valid personal data, correct numbers, absence section, no placeholder text.
-2. Guardian downloads Mikael's March 2026 slip from Monthly and it shows "Företrädd av [guardian name]" if patient is a minor.
-3. Existing FK 3057 + SKV 4805 regeneration produces identical numbers but correct employer names (via the new helper).
-4. Settings → Scheduling card is gone. No broken links anywhere. `allow_self_book` settings key absent from Settings UI.
-5. All schema columns from the capture-missing-fields todo exist in the database and are editable in Settings.
-6. Tests pass: `server/` typecheck clean, `client/` typecheck clean, `vitest run` passes (including new unit tests on payrollSlipUtils).
-7. v1.0 audit "Deferred Items" list loses the scheduling-cleanup + minor-vs-adult items.
-
 ---
+
+## Future Milestones (planned 2026-04-18)
 
 ### 🔜 v1.1 — Bulk Schedule Entry
 
@@ -362,7 +364,7 @@ Not a code change — a guardian data-entry pass in Settings once the new fields
 
 **Existing design:** [.planning/todos/pending/2026-04-18-flag-submission-blocking-violations-before-fk-and-skatteverk.md](todos/pending/2026-04-18-flag-submission-blocking-violations-before-fk-and-skatteverk.md) — full 12-blocker matrix already specified. Promote that design during `/gsd-new-milestone v1.2`.
 
-**Depends on:** v1.1 schema additions ([2026-04-18-capture-missing-assistant-and-profile-fields-for-fk-and-skat.md](todos/pending/2026-04-18-capture-missing-assistant-and-profile-fields-for-fk-and-skat.md)) for 6 of 12 blockers.
+**Depends on:** v1.0.1 schema additions (Phase 7) for 6 of 12 blockers.
 
 ---
 
@@ -377,7 +379,7 @@ Not a code change — a guardian data-entry pass in Settings once the new fields
 
 **Existing design:** [.planning/todos/pending/2026-04-18-home-notification-for-labor-law-and-fk-schedule-violations.md](todos/pending/2026-04-18-home-notification-for-labor-law-and-fk-schedule-violations.md) — original was Home-only; scope now includes Monthly per 2026-04-18 user direction. Full rule set + implementation sketch already in that todo.
 
-**Depends on:** v1.1 schema additions (FK-coverage-* and employment-period rules need new columns).
+**Depends on:** v1.0.1 schema additions (FK-coverage-* and employment-period rules need new columns from Phase 7).
 
 **Note:** Kick-off blocked by the payroll-formula triage (STATE.md PAUSED). Also note that ATL-rule subset can ship without any schema change — that can be a v1.3-lite if urgency warrants.
 
@@ -400,7 +402,7 @@ Not a code change — a guardian data-entry pass in Settings once the new fields
 
 **Trigger:** Hiring a third assistant on a proper Fremia/Kommunal contract. Until then no point building — YAGNI.
 
-**Depends on:** v1.0.1 (salary_model enum scaffolding), v1.1 schema additions (employment_start/end already present).
+**Depends on:** v1.0.1 (salary_model enum scaffolding from Phase 9, employment_start/end columns from Phase 7).
 
 ---
 
@@ -432,7 +434,7 @@ Not a code change — a guardian data-entry pass in Settings once the new fields
 - **Multi-calendar support** (stretch): guardian has multiple Google calendars, picks which ones sync and which are ignored.
 - **Assistant-per-calendar routing** (stretch): different assistants' shifts live in different Google calendars.
 
-**Depends on:** v1.0.1 (schema cleanup + scheduling-scaffolding removal means v2.0 isn't fighting dead code).
+**Depends on:** v1.0.1 (Phase 7 cleanup + scheduling-scaffolding removal means v2.0 isn't fighting dead code).
 
 **Full design:** [todos/pending/2026-04-17-calendar-and-scheduling-user-stories-from-v1-0-learnings.md](todos/pending/2026-04-17-calendar-and-scheduling-user-stories-from-v1-0-learnings.md) — user-stories decomposition captured during v1.0.
 
@@ -442,9 +444,9 @@ Not a code change — a guardian data-entry pass in Settings once the new fields
 
 ### Backlog trigger / sequencing
 
-After v1.0 archives, ship in this order:
+Current shipping order:
 
-1. **v1.0.1** — Salary slip + absorbed foundation cleanup (legal obligation; ~6.5 days) → `/gsd-new-milestone v1.0.1`
+1. **v1.0.1** — Salary slip + absorbed foundation cleanup (**ACTIVE** — Phases 7–10)
 2. **v1.1** — Bulk schedule entry (convenience)
 3. **v1.2** — Submission readiness gate (prevents invalid FK/Skatteverket filings)
 4. **v1.3** — Schedule-violation warnings on Monthly (surfaces labor-law + FK-rule issues)
@@ -457,6 +459,85 @@ After v1.0 archives, ship in this order:
 ---
 
 ## Phase Details
+
+### Phase 7: Foundation — Schema & Cleanup
+
+**Goal:** All new `assistants` and `profile` columns exist and are editable in Settings; dead scheduling scaffolding (Settings card, openSlots table, self-book endpoints) is removed so the codebase is a clean foundation for salary-slip work and downstream v1.2 / v1.3 milestones.
+
+**Depends on:** v1.0 (complete)
+
+**Requirements:** SCHEMA-01, SCHEMA-02, SCHEMA-03, CLEAN-01, CLEAN-02, CLEAN-03
+
+**Success Criteria** (what must be TRUE):
+1. Guardian can open Settings → Assistants edit dialog and fill in skattetabell, tax_scheme, bank details (clearing/account/IBAN), split address, employment start/end, citizenship, residence permit expiry, and notes for each assistant — all fields persist to the database
+2. Guardian can open Settings → Profile and fill in FK decision number/start/end/hours-per-day, dubbel_assistans flag, patient relation enum, and patient_requires_representative override — all fields persist
+3. `payroll_records` generated after this phase contain `salary_model_used` and `hourly_rate_used` snapshot columns (defaults in place even though live slip shipping happens in Phase 9)
+4. Settings → Scheduling card no longer appears; navigating to `/api/slots`, `/api/assistant/self-book/:id`, or `/api/assistant/open-slots` returns 404; `open_slots` table is dropped from the database
+5. Fresh-DB boot (`seedDefaults()`) does not write the dead keys `allow_self_book`, `self_book_approval`, or `booking_window_days`
+
+**Plans:** TBD
+**UI hint**: yes
+
+---
+
+### Phase 8: Employer Representation Helper
+
+**Goal:** A single `resolveEmployerRepresentation()` helper is the authoritative source for the employer-name + representation fields on every document the platform produces — closing the latent FK 3057/3059/SKV 4805 bug where `guardianName` was used as the employer, and giving the upcoming salary slip a correct, reusable input.
+
+**Depends on:** Phase 7 (needs `profile.patient_requires_representative` column)
+
+**Requirements:** EMP-01, EMP-02
+
+**Success Criteria** (what must be TRUE):
+1. Guardian regenerates FK 3057, FK 3059, and SKV 4805 PDFs for a historical month and the employer field shows the patient's name + pno, not the guardian's — and when the patient is a minor (or the override flag is true) the "företrädd av" line correctly displays the guardian's name + pno
+2. When an adult patient has `patient_requires_representative = true`, the helper returns the guardian as företrädare; when the flag is null/false on an adult, the företrädare fields are null and only the patient appears
+3. No source file under `server/src/` references `profile.guardianName` for the employer-name field — the helper is the only source of truth (grep check passes)
+4. A unit test covers minor-by-pno, adult-with-override, and adult-without-override cases for the helper
+
+**Plans:** TBD
+
+---
+
+### Phase 9: Salary Slip (Anhörig Model)
+
+**Goal:** Guardian and assistants can generate and download a legally-compliant monthly lönespecifikation (anhörig-model) as PDF, gated on payroll approval, audited in a `payment_slips` table, and scaffolded in the UI for Fremia/Custom salary models shipping later.
+
+**Depends on:** Phase 7 (schema: salary_model, hourly_rate_override, payment_slips table, payroll_records snapshot columns), Phase 8 (employer representation helper used in slip header)
+
+**Requirements:** SLIP-01, SLIP-02, SLIP-03, SLIP-04, SLIP-05, SLIP-06, SLIP-07
+
+**Success Criteria** (what must be TRUE):
+1. Guardian clicks "Ladda ner lönespecifikation" on Monthly.tsx for an approved assistant/month and receives a PDF containing arbetstid (worked hours + sjuk/VAB/semester/annan days with running VAB year-to-date balance out of 120), a lön breakdown (bruttolön → preliminärskatt 30% → netto till bank), and zero employer-side numbers (no arbetsgivaravgifter, no total kostnad)
+2. Assistant (Rose or Mikael) logs in, opens their AssistantDashboard "Lönespecifikationer" section, and can list + download only their own past slips — attempting to access another assistant's slip via the `me` endpoint returns 403
+3. Requesting a slip for a month where `payroll_records.status !== "approved"` returns 409 with a clear Swedish error message (same gate as SKV 4805)
+4. When the patient is a minor (or the representative override is true), the slip header shows "Arbetsgivare: [patient name + pno]" followed by "Företrädd av: [guardian name + pno]"; when the patient is an adult without override, the Företrädd-av line is absent
+5. Each successful slip generation writes a row to `payment_slips` with a unique document number (format `LS-YYYY-MM-NNN`), issued-at timestamp, pay method, and pay date — a replay of the same month reuses the stored document number
+6. Settings → Assistants edit dialog exposes a salary-model dropdown with "Anhörigassistans" enabled, "Fremia" and "Custom" disabled with "(Kommer i v1.4/v1.5)" label, plus a per-assistant hourly_rate_override numeric field
+
+**Plans:** TBD
+**UI hint**: yes
+
+---
+
+### Phase 10: Real Data Entry & End-to-End Verification
+
+**Goal:** Guardian has entered real brukare, guardian, and assistant data into Settings, and a fresh download each of FK 3057, SKV 4805, and the new salary slip for a recent month shows zero placeholder strings — proving the v1.0.1 foundation + employer helper + slip pipeline work together on live data.
+
+**Depends on:** Phase 7 (field UI), Phase 8 (helper used by FK/SKV), Phase 9 (slip download available)
+
+**Requirements:** DATA-01, DATA-02, DATA-03
+
+**Success Criteria** (what must be TRUE):
+1. Settings → Profile shows real patient pno, name, address, FK beslutsnummer, decision start/end dates, and hours-per-day entitlement — no `TBD`, `000000-0000`, or `TBD-FK-DECISION` strings remain on screen
+2. Settings → Assistants lists both Rose and Mikael with valid Swedish pno, real street/zip/city addresses, tax_scheme set to `a-skatt`, and populated bank clearing/account (or IBAN) fields
+3. A fresh download of FK 3057 (for the reporting month), a fresh download of SKV 4805 per assistant, and a fresh download of the salary slip per assistant for a recent approved month each contain zero placeholder text when visually inspected — verified by the guardian during a walkthrough checkpoint
+
+**Plans:** TBD
+**UI hint**: yes
+
+---
+
+## Phase Details (v1.0) — archived
 
 ### Phase 1: Stability & Correctness
 
@@ -474,12 +555,6 @@ After v1.0 archives, ship in this order:
 
 **Plans:** 4/4 plans complete
 
-Plans:
-- [x] 01-01-PLAN.md — Vitest test framework setup and failing test stubs for all 4 STAB requirements (Wave 0)
-- [x] 01-02-PLAN.md — Role middleware enforcement on all guardian routes + error sanitization (STAB-01)
-- [x] 01-03-PLAN.md — FK 3057 date fix + JWT startup guard + dev-verify gate + /api/rates endpoint (STAB-02, STAB-03)
-- [x] 01-04-PLAN.md — Client camelCase types + Hours.tsx/Reports.tsx migration + rate consumption (STAB-04)
-
 ---
 
 ### Phase 2: Leave & Absence Foundation
@@ -495,13 +570,7 @@ Plans:
 2. Hours marked as absence are automatically excluded when FK 3059 and FK 3057 forms calculate total billable hours
 3. Guardian can view remaining VAB balance (max 120 days/year) and sick leave accrual per assistant on a single visibility page
 
-**Plans:** 4 plans
-
-Plans:
-- [x] 02-01-PLAN.md — Wave 0: failing test stubs for LEAV-01, LEAV-02, LEAV-03 (3 test files)
-- [x] 02-02-PLAN.md — Wave 1: absences table + absenceTypeEnum + reqStatusEnum "cancelled" + drizzle-kit push
-- [x] 02-03-PLAN.md — Wave 2: absences CRUD routes + FK billing exclusion + assistant clock-in block
-- [x] 02-04-PLAN.md — Wave 3: Frånvaro page + balance cards + sidebar nav + Assistants page integration
+**Plans:** 4/4 plans complete
 
 ---
 
@@ -513,21 +582,7 @@ Plans:
 
 **Requirements:** No functional requirements — pure UI/UX quality phase
 
-**Success Criteria** (what must be TRUE):
-1. Tailwind utility classes render correctly in the browser (flex layouts, colors, shadows all applied)
-2. Guardian sidebar and page layouts look professional and trust-inspiring — appropriate for a B2B demo to a care organisation
-3. Assistant dashboard is visually polished and clearly communicates shift information
-4. All pages use consistent typography, spacing, and color tokens
-5. The design system is ready to support Phase 3 payroll UI without visual debt
-
 **Plans:** 5/5 plans complete
-
-Plans:
-- [x] 02.5-01-PLAN.md — Wave 1: Fix Tailwind ESM/CJS bug (tailwind.config.js require() → import) — unblocks all visual work
-- [x] 02.5-02-PLAN.md — Wave 2: Update index.css colour tokens to B2B professional palette
-- [x] 02.5-03-PLAN.md — Wave 3: Redesign guardian Layout.tsx sidebar + Dashboard.tsx card layout (parallel with 02.5-04)
-- [x] 02.5-04-PLAN.md — Wave 3: Redesign AssistantDashboard.tsx — eliminate dark-mode artefacts, apply light theme (parallel with 02.5-03)
-- [x] 02.5-05-PLAN.md — Wave 4: Consistency pass across Leave, Login, Calendar, Reports, Assistants, Settings
 
 ---
 
@@ -539,18 +594,7 @@ Plans:
 
 **Requirements:** PAY-01, PAY-02, PAY-03
 
-**Success Criteria** (what must be TRUE):
-1. Guardian sees a monthly payroll summary showing: billable hours, absence hours by type, gross pay (hours × rate), employer contributions (31.42% standard rate), and total cost per assistant
-2. Guardian can approve payroll records; once approved, records are locked and changes tracked as separate adjustments for audit trail
-3. Guardian can record payments made to an assistant (date, amount, method) and the system shows outstanding balance vs. calculated gross pay
-
-**Plans:** 4 plans
-
-Plans:
-- [x] 03-01-PLAN.md — Wave 0: failing test stubs for PAY-01, PAY-02, PAY-03 (3 test files, RED state)
-- [x] 03-02-PLAN.md — Wave 1: payroll-utils.ts pure functions + schema.ts payrollRecords/payments tables + drizzle-kit push (PAY-01)
-- [x] 03-03-PLAN.md — Wave 2: payroll.ts + payments.ts Express routes + index.ts registration (PAY-01, PAY-02, PAY-03)
-- [x] 03-04-PLAN.md — Wave 3: Payroll.tsx page + api.ts types/helpers + App.tsx + Layout.tsx nav (PAY-02, PAY-03)
+**Plans:** 4/4 plans complete
 
 ---
 
@@ -560,28 +604,7 @@ Plans:
 
 **Depends on:** Phase 3
 
-**Requirements:** No functional requirements — UX/IA quality phase + V1 assistant features
-
-**Success Criteria** (what must be TRUE):
-1. Every page has a single, clearly stated purpose; no page contains features that belong on another page
-2. Navigation structure reflects the guardian's actual workflow (not implementation order)
-3. Assistant can clock in and clock out; clock-out auto-creates a verified shift report
-4. Assistants working for multiple families can select their active family context
-5. All existing features are accounted for — either consolidated, relocated, or explicitly cut from MVP scope
-
-**Plans:** 10 plans
-
-Plans:
-- [x] 03.5-01-PLAN.md — Wave 1: DB schema additions — clockEvents + assistantGuardianLinks tables + drizzle-kit push
-- [x] 03.5-02-PLAN.md — Wave 2: Clock API routes (POST /api/clock/in, /out, GET /status)
-- [x] 03.5-03-PLAN.md — Wave 2: Multi-family link API routes (GET /api/guardian-links, POST create + accept)
-- [x] 03.5-04-PLAN.md — Wave 3: Route restructure — App.tsx 4-route IA + Layout.tsx 4-item nav + legacy redirects
-- [x] 03.5-05-PLAN.md — Wave 4: New Home.tsx (schedule grid + pending actions + mark absent dialog)
-- [x] 03.5-06-PLAN.md — Wave 4: New Monthly.tsx (3-step stepper: reports + payroll + FK; Verified badge)
-- [x] 03.5-07-PLAN.md — Wave 4: New Records.tsx (read-only history: Payroll | FK Submissions | Leave tabs)
-- [x] 03.5-08-PLAN.md — Wave 4: Update Settings.tsx (embed Assistants section + GCal setup guide card)
-- [x] 03.5-09-PLAN.md — Wave 5: Redesign AssistantDashboard.tsx (clock-in hero + family selector + tabs)
-- [x] 03.5-10-PLAN.md — Wave 6: Phase verification checkpoint (TypeScript + server tests + human walkthrough)
+**Plans:** 10/10 plans complete
 
 ---
 
@@ -593,18 +616,7 @@ Plans:
 
 **Requirements:** TAX-01, TAX-02
 
-**Success Criteria** (what must be TRUE):
-1. System generates a filled blankett 4805 PDF per assistant for a given month, including: personnummer, gross salary, employer contributions, and withheld preliminary tax (preliminärskatt) — all figures derived from approved payroll_records
-2. Guardian can download the filled 4805 PDF per assistant from Monthly.tsx Step 4, gated on all payroll being approved
-3. Payroll formula is corrected: gross = (billableHours × hourlyRate − costs) / (1 + taxRate)
-4. Guardian can configure preliminary tax rate in Settings; rate is snapshotted into payroll_records at generation time
-
 **Plans:** 3/3 plans complete
-
-Plans:
-- [x] 04-01-PLAN.md — Wave 1: Schema columns (prelim_tax_rate_snapshot + assistants.address) + corrected payroll-utils.ts formula + payroll.ts route update + db:push + recalculate drafts (TAX-01)
-- [x] 04-02-PLAN.md — Wave 2: form4805-utils.ts pure field mapping + POST /api/pdf/4805 endpoint + pdfApi.form4805 helper (TAX-01, TAX-02)
-- [x] 04-03-PLAN.md — Wave 3: Monthly.tsx Step 4 per-assistant download buttons + Settings.tsx prelim tax rate field + assistant address edit dialog + human verification checkpoint (TAX-01, TAX-02)
 
 ---
 
@@ -616,18 +628,7 @@ Plans:
 
 **Requirements:** SCHED-01, COMP-01, COMP-02
 
-**Success Criteria** (what must be TRUE):
-1. Guardian can view a week/month grid showing all assistants' scheduled and logged shifts in a single calendar view without switching between assistants
-2. Guardian sees a monthly compliance checklist showing required steps (approve time entries, generate FK 3059, generate FK 3057, generate AGI) with completion status and regulatory due dates (FK: 5th of second following month; AGI: 12th of following month)
-3. System sends email reminders to the guardian on a configurable date each month with links to pending forms and step-by-step next actions
-
-**Plans:** 4 plans
-
-Plans:
-- [x] 05-01-PLAN.md — Wave 0: Test stubs for deadlineUtils and reminderCron (COMP-01, COMP-02)
-- [x] 05-02-PLAN.md — Wave 1: Home.tsx assistant-row schedule table + week navigation (SCHED-01)
-- [x] 05-03-PLAN.md — Wave 1: deadlineUtils implementation + Monthly.tsx deadline badges (COMP-01)
-- [x] 05-04-PLAN.md — Wave 2: reminderCron implementation + email.ts + Settings.tsx Notifications card + human checkpoint (COMP-02)
+**Plans:** 4/4 plans complete
 
 ---
 
@@ -639,16 +640,17 @@ Plans:
 
 **Requirements:** GCAL-01
 
-**Success Criteria** (what must be TRUE):
-1. Clicking "Connect" in Settings redirects to Google OAuth consent screen (not a simulation)
-2. After approving, guardian is returned to Settings and shown a dropdown of their actual Google calendars to choose from
-3. Selected calendar ID is saved and used for all subsequent event operations
-4. Disconnect clears all tokens and calendar linkage
+**Plans:** 1/1 plan complete
 
-**Plans:** 1 plan
+---
 
-Plans:
-- [ ] 06-01-PLAN.md — Fix OAuth redirect, add /calendars endpoint, wire real connect/disconnect/picker in Settings (Wave 1)
+### Phase 6.1: UAT Bug Fix (INSERTED)
+
+**Goal:** Close 3 remaining UAT bugs (BUG-002 week navigator, BUG-004 invite email, BUG-005 self-registration).
+
+**Depends on:** Phase 6
+
+**Plans:** 1/1 plan complete
 
 ---
 
@@ -658,80 +660,66 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Stability & Correctness | 4/4 | Complete | 2026-04-06 |
 | 2. Leave & Absence Foundation | 4/4 | Complete | 2026-04-06 |
-| 2.5. UI Overhaul & Design System | 5/5 | Complete   | 2026-04-08 |
+| 2.5. UI Overhaul & Design System | 5/5 | Complete | 2026-04-08 |
 | 3. Payroll Calculation & Recording | 4/4 | Complete | 2026-04-10 |
 | 3.5. UX Consolidation & IA Redesign | 10/10 | Complete | 2026-04-11 |
-| 4. Tax Reporting (AGI) | 3/3 | Complete   | 2026-04-11 |
+| 4. Tax Reporting (AGI) | 3/3 | Complete | 2026-04-11 |
 | 5. Scheduling & Compliance Workflow | 4/4 | Complete | 2026-04-17 |
 | 6. Google Calendar Integration | 1/1 | Complete | 2026-04-15 |
 | 6.1. UAT Bug Fix (inserted) | 1/1 | Complete | 2026-04-15 |
+| 7. Foundation — Schema & Cleanup | 0/TBD | Not started | — |
+| 8. Employer Representation Helper | 0/TBD | Not started | — |
+| 9. Salary Slip (Anhörig Model) | 0/TBD | Not started | — |
+| 10. Real Data Entry & End-to-End Verification | 0/TBD | Not started | — |
 
 ---
 
 ## Dependencies
 
 ```
-Phase 1: Stability & Correctness (foundation)
+Phase 7: Foundation — Schema & Cleanup
   ↓
-Phase 2: Leave & Absence (enables correct billable hours calculation)
+Phase 8: Employer Representation Helper  (needs patient_requires_representative column)
   ↓
-Phase 2.5: UI Overhaul & Design System (visual foundation for Phase 3 payroll UI)
+Phase 9: Salary Slip (Anhörig Model)     (needs salary_model, rate snapshot, payment_slips, employer helper)
   ↓
-Phase 3: Payroll Calculation (depends on billable hours + absences)
-  ↓
-Phase 3.5: UX Consolidation & IA Redesign (new IA + clock-in/out + multi-family)
-  ↓
-Phase 4: Tax Reporting (depends on payroll records and VAB data)
-  ↓
-Phase 5: Scheduling & Compliance (can proceed in parallel with Phase 4, depends on Payroll foundation)
+Phase 10: Real Data Entry & End-to-End Verification  (exercises the full pipeline)
 ```
 
-**Critical dependency chains:**
-- **Phase 2 must complete before Phase 3** — billable hours = approved hours − absence hours
-- **Phase 3 must complete before Phase 4** — AGI consumes payroll records and VAB data
-- **Phase 1 must complete before any other feature phase** — security and data isolation are foundational
+**Critical dependency chain (v1.0.1):**
+- **Phase 7 must complete before 8** — employer helper depends on `patient_requires_representative` column
+- **Phases 7 + 8 must complete before 9** — salary slip needs all new schema columns and uses the employer helper in its header
+- **Phase 10 is last** — it validates end-to-end by exercising FK 3057 + SKV 4805 (Phase 8 output) and the salary slip (Phase 9 output) with real data
 
 ---
 
-## Requirement Traceability
+## Requirement Traceability (v1.0.1)
 
 | Requirement | Phase | Category | Status |
 |-------------|-------|----------|--------|
-| STAB-01 | 1 | Stability & Correctness | Pending |
-| STAB-02 | 1 | Stability & Correctness | Pending |
-| STAB-03 | 1 | Stability & Correctness | Pending |
-| STAB-04 | 1 | Stability & Correctness | Pending |
-| LEAV-01 | 2 | Leave & Absence | Pending |
-| LEAV-02 | 2 | Leave & Absence | Pending |
-| LEAV-03 | 2 | Leave & Absence | Pending |
-| PAY-01 | 3 | Payroll | Pending |
-| PAY-02 | 3 | Payroll | Pending |
-| PAY-03 | 3 | Payroll | Pending |
-| TAX-01 | 4 | Tax Reporting | Pending |
-| TAX-02 | 4 | Tax Reporting | Pending |
-| SCHED-01 | 5 | Scheduling | Pending |
-| COMP-01 | 5 | Compliance Workflow | Pending |
-| COMP-02 | 5 | Compliance Workflow | Pending |
+| SLIP-01 | 9 | Salary Slip | Pending |
+| SLIP-02 | 9 | Salary Slip | Pending |
+| SLIP-03 | 9 | Salary Slip | Pending |
+| SLIP-04 | 9 | Salary Slip | Pending |
+| SLIP-05 | 9 | Salary Slip | Pending |
+| SLIP-06 | 9 | Salary Slip | Pending |
+| SLIP-07 | 9 | Salary Slip | Pending |
+| EMP-01 | 8 | Employer Representation | Pending |
+| EMP-02 | 8 | Employer Representation | Pending |
+| SCHEMA-01 | 7 | Schema Additions | Pending |
+| SCHEMA-02 | 7 | Schema Additions | Pending |
+| SCHEMA-03 | 7 | Schema Additions | Pending |
+| CLEAN-01 | 7 | Scheduling Cleanup | Pending |
+| CLEAN-02 | 7 | Scheduling Cleanup | Pending |
+| CLEAN-03 | 7 | Scheduling Cleanup | Pending |
+| DATA-01 | 10 | Real Data | Pending |
+| DATA-02 | 10 | Real Data | Pending |
+| DATA-03 | 10 | Real Data | Pending |
 
-**Coverage:** 15/15 requirements mapped
+**Coverage:** 18/18 v1.0.1 requirements mapped. v1.0 coverage archived at [milestones/v1.0-REQUIREMENTS.md](milestones/v1.0-REQUIREMENTS.md).
 
 ---
 
 *Roadmap created: 2026-04-06*
-*Phase 1 planned: 2026-04-06 — 4 plans, 3 waves*
-*Phase 2 planned: 2026-04-06 — 4 plans, 4 waves*
-*Phase 2.5 planned: 2026-04-07 — 5 plans, 4 waves*
-*Phase 3 planned: 2026-04-10 — 4 plans, 4 waves*
-*Phase 3.5 planned: 2026-04-11 — 10 plans, 6 waves*
-*Phase 4 planned: 2026-04-11 — 3 plans, 3 waves*
-*Phase 6 planned: 2026-04-12 — 1 plan, 1 wave*
-
-### Phase 06.1: UAT Bug Fix (INSERTED)
-
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
-**Depends on:** Phase 6
-**Plans:** 1/1 plans complete
-
-Plans:
-- [x] TBD (run /gsd-plan-phase 06.1 to break down) (completed 2026-04-15)
+*v1.0 archived: 2026-04-18 — 15/15 requirements, 9 phases shipped*
+*v1.0.1 roadmap: 2026-04-18 — 4 phases (7–10), 18 requirements*

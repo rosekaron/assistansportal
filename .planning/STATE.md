@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0.1
 milestone_name: Salary Slip + Foundation Cleanup
-status: defining_requirements
+status: roadmap_complete
 last_updated: "2026-04-18T23:59:00.000Z"
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -14,29 +14,19 @@ progress:
 
 # Kalinga Assistansportal — Project State
 
-## 🚀 RESUMED 2026-04-18 22:30 — Starting v1.3
-
-User chose to pivot to **v1.3 — Schedule-Violation Warnings on Monthly**, using March 2026 data (430h across 84 shifts in `entries`) as the E2E test fixture since it contains rich known violations (48 dygnsvila breaks, 48.5h/week overtime, 60h dubbel-assistans).
-
-v1.0 stays unarchived for now (code-complete, 9/9 phases, 36/36 plans). The payroll-formula triage (H1–H6) is deferred but **still mandatory before any payroll code ships** — v1.3 scope is schedule-rule validation (ATL §5/§13/§14/§8 etc.), not payroll, so no direct conflict. See `deferred_concerns` in frontmatter.
-
-Full v1.3 design lives in [.planning/todos/pending/2026-04-18-home-notification-for-labor-law-and-fk-schedule-violations.md](todos/pending/2026-04-18-home-notification-for-labor-law-and-fk-schedule-violations.md) — promote during the milestone kick-off.
-
----
-
 **Project:** Swedish personal assistance (assistansersättning) self-management platform
-**Milestone:** v1.3 — Schedule-Violation Warnings on Monthly
-**State Updated:** 2026-04-18T22:30Z
+**Milestone:** v1.0.1 — Salary Slip + Foundation Cleanup
+**State Updated:** 2026-04-18
 
 ---
 
 ## Project Reference
 
 **Core Value:**
-The guardian can complete the full monthly compliance cycle — approve hours, generate all required forms, calculate pay — without needing an HR department or assistance company.
+The guardian can complete the full monthly cycle — approve hours, generate all required forms, calculate pay — without needing an HR department or assistance company.
 
 **Current Focus:**
-Phase 05 — scheduling-compliance-workflow
+v1.0.1 roadmap complete. Next: `/gsd-plan-phase 7` to decompose Foundation (Schema & Cleanup) into executable plans.
 
 **Tech Stack:**
 
@@ -44,144 +34,114 @@ Phase 05 — scheduling-compliance-workflow
 - Backend: Express + Drizzle ORM (TypeScript)
 - Database: PostgreSQL
 - No breaking changes to stack; TypeScript throughout
-- New libraries for v1: xmlbuilder2 (AGI XML), swedish-holidays (VAB tracking)
+- PDF libraries: pdf-lib + pdfkit (existing); no new libs for v1.0.1
 
 ---
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Not started (roadmap complete, awaiting Phase 7 plan decomposition)
 Plan: —
-Status: Defining requirements for v1.0.1
-Last activity: 2026-04-18 — Milestone v1.0.1 started (Salary Slip + Foundation Cleanup)
+Status: Roadmap complete for v1.0.1 (4 phases, 18/18 requirements mapped)
+Last activity: 2026-04-18 — Roadmap created by gsd-roadmapper (Phases 7–10)
 **Progress:** [░░░░░░░░░░] 0%
-
-## Project Reference
-
-See: .planning/PROJECT.md (updated 2026-04-18)
-
-**Core value:** The guardian can complete the full monthly cycle — approve hours, generate all required forms, calculate pay — without needing an HR department or assistance company.
-**Current focus:** v1.0.1 — Salary Slip + Foundation Cleanup (legally required lönespecifikation + absorbed schema/helper/cleanup work)
 
 ---
 
-## Phases Defined
+## Phases Defined (v1.0.1)
 
-5 phases with clear dependencies:
+4 phases with strict dependency chain:
 
 | Phase | Goal | Requirements | Status |
 |-------|------|--------------|--------|
-| 1 | Stability & Correctness (security, data isolation, calculations) | 4 | ✓ Complete |
-| 2 | Leave & Absence Foundation (track absences, exclude from billable hours) | 3 | Not started |
-| 3 | Payroll Calculation & Recording (2026 tax rates, employer contributions) | 3 | Not started |
-| 4 | Tax Reporting (AGI) (Skatteverket declarations) | 2 | Not started |
-| 5 | Scheduling & Compliance Workflow (multi-assistant grid, monthly checklist, reminders) | 3 | Not started |
+| 7 | Foundation — Schema & Cleanup (new assistants/profile columns + remove dead scheduling scaffolding) | 6 (SCHEMA-01/02/03 + CLEAN-01/02/03) | Not started |
+| 8 | Employer Representation Helper (single source of truth for FK/SKV/slip renderers) | 2 (EMP-01, EMP-02) | Not started |
+| 9 | Salary Slip — Anhörig Model (legally-required lönespec PDF, guardian + assistant download paths, audit table, Fremia/Custom scaffolding) | 7 (SLIP-01..07) | Not started |
+| 10 | Real Data Entry & End-to-End Verification (guardian enters real brukare/assistant data; clean FK/SKV/slip downloads) | 3 (DATA-01/02/03) | Not started |
 
-**Key Constraint:** Phase 1 must complete before any feature work (foundational security and data isolation).
+**Key Constraint:** Phase 7 must ship before 8 (needs `patient_requires_representative` column). Phases 7 + 8 must ship before 9 (slip needs new schema columns and uses employer helper in header). Phase 10 is last — it validates end-to-end.
 
 ---
 
 ## Critical Blockers & Risks
 
-**Blocking Phase 1:**
+**Blocking Phase 7:**
 
-- None — Phase 1 is foundational fixes, can start immediately
+- None — Phase 7 is foundation work, can start immediately
 
-**Blocking Phase 2:**
+**Blocking Phase 8:**
 
-- Phase 1 must be complete (no blocker until Phase 1 finishes)
+- Phase 7 SCHEMA-02 (patient_requires_representative column) must land
+
+**Blocking Phase 9:**
+
+- Phase 7 (salary_model enum, hourly_rate_override, payment_slips table, payroll_records snapshot columns)
+- Phase 8 (employer helper wired so slip header uses it)
+
+**Blocking Phase 10:**
+
+- Phases 7, 8, 9 all complete (end-to-end walkthrough exercises FK 3057 + SKV 4805 + lönespec on real data)
 
 **Medium-Confidence Areas (During Implementation):**
 
-- Exact AGI XML schema for 2026 requires validation against official Skatteverket technical docs
-- VAB day calculation if crossing month boundaries — needs product owner clarification
-- Preliminärskatt (preliminary tax) configuration — per-guardian, per-assistant, or per-month? Confirm with FK
+- `payment_slips.document_number` format (`LS-YYYY-MM-NNN`) — idempotency for reissue needs careful handling (replay should reuse number, not allocate new)
+- `resolveEmployerRepresentation()` — adult-with-god-man case relies on explicit `patient_requires_representative` override; no automated detection
+- Absence `GET /api/absences/balance/:assistantId/:year` — new endpoint or extension of existing balance route; needs VAB year-to-date running count
 
 ---
 
-## Decisions Made
+## Decisions Made (v1.0.1 kick-off)
 
 | Decision | Rationale | Status |
 |----------|-----------|--------|
-| Phase 1 is Stability & Correctness | Fixes existing bugs before adding features; unblocks safe extension | Approved in instructions |
-| Leave/Absence before Payroll | Billable hours = approved − absence; must be in correct order | Approved in instructions |
-| Payroll before Tax Reporting (AGI) | AGI consumes payroll records; dependency chain enforced | Approved in instructions |
-| 5 phases (standard granularity) | Balanced grouping; each phase delivers one complete capability | Derived from requirements |
-| No UI phase separation | Phases 3 and 5 have UI work, but grouped with backend for cohesion | Grouped for delivery independence |
+| Continue in same repo, not fresh project | User decision 2026-04-18 — v1.0.1 is incremental follow-on to v1.0, not a clean break | Approved |
+| Phase numbering continues from v1.0 (starts at 7) | Milestone continuity; avoids collision with shipped v1.0 phase history | Approved (GSD convention) |
+| Schema + cleanup merged into single Phase 7 | Both are DB/foundation work that blocks downstream phases; keeps milestone at ~4 phases for ~6.5 day scope | Derived from requirements |
+| EMP is its own Phase 8 (not absorbed into Phase 7) | Employer helper touches 3 existing renderers (FK 3057, FK 3059, SKV 4805) plus new slip — substantial refactor that benefits from isolated verification before slip work builds on it | Derived from dependency analysis |
+| SLIP is its own Phase 9 (7 requirements — largest phase) | Salary slip is the headline deliverable with 7 requirements spanning schema snapshot, PDF, gated endpoints, audit table, Settings scaffolding — cohesive vertical slice | Derived from requirements |
+| DATA is separated as Phase 10 (not merged with SLIP) | Real-data entry + end-to-end verification is a distinct gate — it proves the full pipeline works on live data and is a guardian-driven checkpoint, not code work | Derived from requirements |
 
 ---
-- [Phase 03-payroll-calculation-recording]: sv-SE Intl.NumberFormat used for all SEK currency display in payroll UI
-- [Phase 03-payroll-calculation-recording]: Swedish UI copy deferred for English conversion — follow-up task logged
-- [Phase 03.5-02]: assistantId always resolved server-side from JWT (getAssistantId helper) — never accepted from request body, satisfying T-3.5-04
-- [Phase 03.5-02]: Used newId() (crypto.randomBytes) for ID generation — matches existing project convention; nanoid not a dependency
-- [Phase 04]: agiUnlocked = step2Complete — Step 4 unlocks when all payroll records are approved (consistent with D-07)
-- [Phase 04]: preliminary_tax_rate stored as decimal string in settings, displayed as integer percentage in UI — conversion on read and write
-- [Phase 06.1-uat-bug-fix]: Self-registration requires name+pno+minWeeklyHours; server enforces 409 on duplicate
-- [Phase 06.1-uat-bug-fix]: BUG-004 marked Fixed (code path complete); live SMTP test required separately for delivery confirmation
-
-## Roadmap Evolution
-
-- Phase 06.1 inserted after Phase 06: UAT Bug Fix (URGENT) — 7 bugs found during Phase 6 acceptance testing logged in .planning/UAT-BUG-LOG.md
 
 ## Accumulated Context
 
-**From Research Summary:**
+**From v1.0 archive (inherited):**
 
-- **2026 Swedish Compliance Specificity:**
-  - Employer contributions: 31.42% standard rate, 10.21% for age 67+, 17.77% for ages 19–23 (April 2026+)
-  - AGI format: 2026 removed fields 062/063, added VAB day reporting
-  - FK deadlines: 5th of second following month (e.g., Jan hours → due March 5)
-  - AGI deadline: 12th of following month (e.g., Jan hours → due Feb 12)
+- v1.0 shipped 9 phases, 36 plans, 15/15 requirements (2026-04-18, tag `v1.0`)
+- Full monthly compliance cycle works end-to-end in current UI
+- Accepted known issues: flat 30% preliminärskatt, omkostnader pot not modelled, age-bracket arbetsgivaravgifter, gross-not-net outstanding balance, guardianName-as-employer (Phase 8 closes this)
 
-- **Known Bugs in Existing Codebase:**
-  1. FK 3057 uses hardcoded `day 31` — breaks for February (28 days) and 30-day months
-  2. Role middleware defined but not enforced server-side — assistants can theoretically call guardian endpoints
-  3. FK hourly rate (334 SEK) and tax rate (31.42%) hardcoded in Reports component — requires redeploy when rates change
-  4. API response types inconsistent (some camelCase, some snake_case) — silent failures in client code
-  5. Multi-tenant data isolation not enforced at query level — no guarantee data doesn't leak between guardians
+**v1.0.1-specific context:**
 
-- **Architecture Strengths:**
-  - Monorepo with clear separation (client, server)
-  - Drizzle ORM with PostgreSQL — good for multi-tenant row-level scoping
-  - JWT stateless auth — good for scaling
-  - React Query + Zustand — solid client state management
-
-- **No Test Suite Exists:**
-  - All new work should include regression tests
-  - Phase 1 must include multi-tenant data isolation test suite
-
----
-
-## Performance Metrics
-
-**Will update after Phase 1 planning:**
-
-- Lines of code to fix (Phase 1 estimate)
-- Test coverage target (currently 0%)
-- Build time (baseline)
-- API response latency (baseline)
+- Anhörig arrangement: Rose + Mikael at fixed 254.10 kr/h, no sjuk/VAB/semester pay, no pension (legal — they're the patient's parents)
+- Salary slip intentionally excludes arbetsgivaravgifter + total kostnad (guardian direction 2026-04-18)
+- Fremia/Custom scaffolding ships disabled in v1.0.1; live logic deferred to v1.4/v1.5
+- Latent bug closed by Phase 8: `form4805-utils.ts:91,120` and `pdf.ts:140,141,147,303,373` hardcode `profile.guardianName` as employer
 
 ---
 
 ## Session Continuity
 
-**Roadmap Complete:**
+**Roadmap Complete (v1.0.1):**
 
-- All 15 v1 requirements mapped to phases
-- 100% coverage validated
+- 4 phases defined (7–10)
+- 18/18 v1.0.1 requirements mapped (100% coverage)
 - Dependencies documented
-- Success criteria defined
+- Success criteria derived (2–6 observable behaviors per phase)
 
 **Next Action:**
-Run `/gsd-plan-phase 1` to decompose Phase 1 (Stability & Correctness) into executable plans.
+Run `/gsd-plan-phase 7` to decompose Phase 7 (Foundation — Schema & Cleanup) into executable plans.
 
 **Context Artifacts Available:**
 
-- `.planning/PROJECT.md` — core value and constraints
-- `.planning/REQUIREMENTS.md` — full requirement list with traceability
-- `.planning/research/SUMMARY.md` — research findings and risk analysis
-- `.planning/codebase/ARCHITECTURE.md` — system design and data flows
+- `.planning/PROJECT.md` — core value, constraints, v1.0.1 kick-off context
+- `.planning/REQUIREMENTS.md` — 18 v1.0.1 requirements + full traceability to Phases 7–10
+- `.planning/ROADMAP.md` — v1.0.1 phase details (Phases 7–10) + v1.0 retrospective + future milestones
+- `.planning/milestones/v1.0-ROADMAP.md` — shipped v1.0 phase archive
+- `.planning/milestones/v1.0-MILESTONE-AUDIT.md` — v1.0 known-issues and accepted debt
+- `.planning/todos/pending/2026-04-18-*` — v1.0.1 design inputs (slip, capture-missing-fields, minor-vs-adult)
 
 ---
 
-*State created: 2026-04-06*
+*State created: 2026-04-06 (v1.0 kickoff)*
+*v1.0.1 roadmap state updated: 2026-04-18 — 4 phases (7–10), 18 requirements, 0/0 plans (awaiting decomposition)*
