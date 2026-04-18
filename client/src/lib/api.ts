@@ -81,13 +81,6 @@ export const entriesApi = {
   delete:     (id: string) => api.delete(`/entries/${id}`),
 };
 
-// Slots
-export const slotsApi = {
-  list:   () => api.get("/slots"),
-  create: (data: Record<string, unknown>) => api.post("/slots", data),
-  delete: (id: string) => api.delete(`/slots/${id}`),
-};
-
 // Blocked
 export const blockedApi = {
   list:   () => api.get("/blocked"),
@@ -214,8 +207,6 @@ export const assistantSelfApi = {
   accept:       (id: string) => api.put(`/assistant/entries/${id}/accept`),
   reject:       (id: string) => api.put(`/assistant/entries/${id}/reject`),
   submitReport: (id: string) => api.put(`/assistant/entries/${id}/submit-report`),
-  openSlots:    () => api.get("/assistant/open-slots"),
-  selfBook:     (slotId: string) => api.post(`/assistant/self-book/${slotId}`),
 };
 
 // ── Clock API (assistant-only) ────────────────────────────────
