@@ -1,53 +1,46 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: paused_triage
-last_updated: "2026-04-18T22:00:00.000Z"
-paused_at: "2026-04-18T22:00:00.000Z"
-paused_reason: "Triage gate — do not advance phases until payroll formula discussion is resolved with guardian"
+milestone: v1.3
+milestone_name: schedule-violation-warnings
+status: planning
+last_updated: "2026-04-18T22:30:00.000Z"
+previous_milestone: v1.0
+previous_milestone_status: "code-complete, archive deferred"
+deferred_concerns:
+  - payroll_formula_triage:
+      todos:
+        - .planning/todos/pending/2026-04-18-resume-discussion-payroll-formula-hypotheses-before-any-code.md
+        - .planning/todos/pending/2026-04-18-verify-and-fix-payroll-calculation-deduct-employer-tax-and-c.md
+      note: "User chose to pivot to v1.3 before resolving. Triage still required before any payroll-formula code ships. v1.3 scope is schedule rules, not payroll, so no direct conflict."
+  - v1_0_archive:
+      note: "v1.0 milestone is code-complete but not archived. Run /gsd-complete-milestone v1.0 before shipping v1.3 if a clean tag is desired."
 progress:
-  total_phases: 9
-  completed_phases: 9
-  total_plans: 36
-  completed_plans: 36
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  percent: 0
 next_action:
-  command: /gsd-check-todos
+  command: /gsd-new-milestone v1.3
   priority_files:
-    - .planning/todos/pending/2026-04-18-resume-discussion-payroll-formula-hypotheses-before-any-code.md
-    - .planning/todos/pending/2026-04-18-triage-all-open-todos-with-guardian-before-any-implementatio.md
-    - .planning/todos/pending/2026-04-18-verify-and-fix-payroll-calculation-deduct-employer-tax-and-c.md
+    - .planning/todos/pending/2026-04-18-home-notification-for-labor-law-and-fk-schedule-violations.md
+    - .planning/compliance/2026-03-advisor-brief.md
+    - .planning/ROADMAP.md
 ---
 
 # Kalinga Assistansportal — Project State
 
-## ⏸ PAUSED — Read this first on every session resume
+## 🚀 RESUMED 2026-04-18 22:30 — Starting v1.3
 
-Milestone v1.0 code is shipped (9/9 phases complete). Do NOT auto-advance to milestone archive or the next milestone.
+User chose to pivot to **v1.3 — Schedule-Violation Warnings on Monthly**, using March 2026 data (430h across 84 shifts in `entries`) as the E2E test fixture since it contains rich known violations (48 dygnsvila breaks, 48.5h/week overtime, 60h dubbel-assistans).
 
-On 2026-04-18 the guardian flagged the payroll calculation as wrong. Investigation showed the formula is arithmetically correct, so the real issue is one of six hypotheses (H1–H6). A triage gate was established: no new implementation until the hypotheses are discussed and a fix direction is chosen.
+v1.0 stays unarchived for now (code-complete, 9/9 phases, 36/36 plans). The payroll-formula triage (H1–H6) is deferred but **still mandatory before any payroll code ships** — v1.3 scope is schedule-rule validation (ATL §5/§13/§14/§8 etc.), not payroll, so no direct conflict. See `deferred_concerns` in frontmatter.
 
-**When `/gsd-next` runs next:** route to the payroll-formula triage discussion, not phase advancement. Read:
-1. `.planning/todos/pending/2026-04-18-resume-discussion-payroll-formula-hypotheses-before-any-code.md` — the hypothesis table + resume script
-2. `.planning/todos/pending/2026-04-18-triage-all-open-todos-with-guardian-before-any-implementatio.md` — the broader backlog (8 todos) awaiting triage
-3. `.planning/todos/pending/2026-04-18-verify-and-fix-payroll-calculation-deduct-employer-tax-and-c.md` — full analysis with hypotheses H1–H6
-
-**Do not:**
-- Run `/gsd-complete-milestone` (the milestone is ready for archival but paused pending discussion)
-- Run `/gsd-plan-phase` or `/gsd-execute-phase` until a hypothesis is chosen
-- Convert todos to phases without the triage conversation first
-
-**Unpause protocol:**
-1. Ask guardian: "Last session we paused at payroll formula triage. Resume now?"
-2. If yes → walk through H1–H6 with guardian, settle on a direction
-3. Set `status: planning` (or `executing`) in frontmatter, remove this block, proceed
+Full v1.3 design lives in [.planning/todos/pending/2026-04-18-home-notification-for-labor-law-and-fk-schedule-violations.md](todos/pending/2026-04-18-home-notification-for-labor-law-and-fk-schedule-violations.md) — promote during the milestone kick-off.
 
 ---
 
 **Project:** Swedish personal assistance (assistansersättning) self-management platform
-**Milestone:** v1 — Stability, Compliance, and Core Payroll
-**State Updated:** 2026-04-18 (paused)
+**Milestone:** v1.3 — Schedule-Violation Warnings on Monthly
+**State Updated:** 2026-04-18T22:30Z
 
 ---
 
