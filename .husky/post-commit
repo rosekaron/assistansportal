@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+# GSD phase-completion auto-push
+#
+# Pushes the current branch to origin when a GSD phase-lifecycle docs commit
+# lands. Matches the main completion commit plus any follow-up doc commits
+# GSD writes at phase close (PROJECT.md evolve, UAT gap resolution, etc.).
+#
+# Commit message pattern matched:
+#   docs(phase-<number>): <anything>
+# e.g. "docs(phase-06.1): complete phase execution"
+#      "docs(phase-03): evolve PROJECT.md after phase completion"
+#
+# Silent no-op for any commit that doesn't match. Push failures are logged
+# but do not affect commit success (post-commit hooks run after-the-fact).
+
+MSG=$(git log -1 --pretty=%B)
+
+if echo "$MSG" | grep -qE '^docs\(phase-[0-9.]+\):'; then
+  BRANCH=$(git rev-parse --abbrev-ref HEAD)
+  echo "[gsd] phase docs commit detected → pushing $BRANCH to origin"
+  if git push origin "$BRANCH"; then
+    echo "[gsd] ✓ pushed $BRANCH"
+  else
+    echo "[gsd] ✗ push failed — run 'git push' manually when you're ready"
+  fi
+fi
