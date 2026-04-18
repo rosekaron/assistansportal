@@ -46,14 +46,28 @@ router.put("/:id", requireAuth, requireGuardian, async (req: AuthRequest, res) =
   const { id } = req.params;
   const data = req.body;
   const [row] = await db.update(assistants).set({
-    name:           data.name,
-    email:          data.email,
-    pno:            data.pno,
-    phone:          data.phone,
-    minWeeklyHours: data.minWeeklyHours,
-    isFlexible:     data.isFlexible,
-    color:          data.color,
-    address:        data.address ?? "",
+    name:                  data.name,
+    email:                 data.email,
+    pno:                   data.pno,
+    phone:                 data.phone,
+    minWeeklyHours:        data.minWeeklyHours,
+    isFlexible:            data.isFlexible,
+    color:                 data.color,
+    address:               data.address ?? "",                                 // existing single-line kept per D-07
+    // v1.0.1 Phase 7 additions (SCHEMA-01 / D-07, D-15, D-17)
+    addressStreet:         data.addressStreet         ?? "",
+    addressZip:            data.addressZip            ?? "",
+    addressCity:           data.addressCity           ?? "",
+    skattetabell:          data.skattetabell          ?? null,                 // integer; null OK
+    taxScheme:             data.taxScheme             ?? "a-skatt",            // D-15 default
+    bankClearing:          data.bankClearing          ?? "",
+    bankAccount:           data.bankAccount           ?? "",
+    iban:                  data.iban                  ?? "",
+    employmentStartDate:   data.employmentStartDate   || null,                 // empty string → null
+    employmentEndDate:     data.employmentEndDate     || null,
+    citizenship:           data.citizenship           ?? "",
+    residencePermitExpiry: data.residencePermitExpiry || null,
+    notes:                 data.notes                 ?? "",
   }).where(eq(assistants.id, id)).returning();
   res.json(row);
 });
