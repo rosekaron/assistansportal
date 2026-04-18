@@ -1,8 +1,28 @@
 # Kalinga — Assistansportal
 
+## Current State (2026-04-18)
+
+**Shipped:** v1.0 — Stability, Compliance, and Core Payroll
+**Git tag:** `v1.0` (archive commit on branch `milestone/v1.0-mvp`)
+**Next milestone:** v1.0.1 — Salary Slip + Foundation Cleanup (legally required; kicks off via `/gsd-new-milestone v1.0.1`)
+
+**v1.0 delivered:** 9 phases, 36 plans, 51 tasks. End-to-end monthly compliance cycle — schedule → approve → payroll → FK 3057/3059 + SKV 4805. See [.planning/MILESTONES.md](MILESTONES.md) for the full accomplishment list and [.planning/milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for phase details.
+
+**v1.0 accepted known issues** (documented, not fixed; guardian-approved deferrals):
+- Preliminärskatt uses single global flat rate (30%) instead of per-assistant skattetabell — Skatteverket accepts this fallback
+- Omkostnader pot (H5) not modelled — FK schablon 100% allocated to lönekostnader instead of Fremia ~87/8/3/2 split. Pending advisor input.
+- Age-bracket arbetsgivaravgifter (67+, 19–23) not supported — flat 31.42%
+- Monthly `outstanding` balance uses gross, not net
+
+See [.planning/milestones/v1.0-MILESTONE-AUDIT.md](milestones/v1.0-MILESTONE-AUDIT.md) for full audit with known-issues detail.
+
+---
+
 ## What This Is
 
 Kalinga is a care management platform for the Swedish personal assistance sector. It serves disabled people and their families who have chosen to self-manage their assistansersättning (personal assistance compensation from Försäkringskassan) rather than delegate to a staffing company like Humana or Attendo. The platform handles the full monthly compliance cycle: scheduling assistants, tracking hours, generating FK and Skatteverket forms, and calculating payroll — so the guardian can manage their own "micro-assistance employer" without specialist knowledge.
+
+**v1.0 delivered the full cycle.** v1.0.1 adds the missing lönespecifikation (salary slip) required by Swedish labor law, plus foundation cleanup (schema additions, dead-code removal, real data entry, employer-representation helper). See [.planning/ROADMAP.md](ROADMAP.md) for forward scope.
 
 ## Core Value
 
