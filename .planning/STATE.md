@@ -2,7 +2,7 @@
 gsd_state_version: 1.0
 milestone: v1.0.1
 milestone_name: Salary Slip + Foundation Cleanup
-status: roadmap_complete
+status: phase_7_context_ready
 last_updated: "2026-04-18T23:59:00.000Z"
 progress:
   total_phases: 4
@@ -26,7 +26,7 @@ progress:
 The guardian can complete the full monthly cycle — approve hours, generate all required forms, calculate pay — without needing an HR department or assistance company.
 
 **Current Focus:**
-v1.0.1 roadmap complete. Next: `/gsd-plan-phase 7` to decompose Foundation (Schema & Cleanup) into executable plans.
+Phase 7 discuss complete. 19 decisions locked in `.planning/phases/07-foundation-schema-cleanup/07-CONTEXT.md`. Durable compliance reference written at `docs/compliance/swedish-fk-and-labor-rules.md`. Next: `/gsd-plan-phase 7` to decompose Foundation (Schema & Cleanup) into executable plans.
 
 **Tech Stack:**
 
