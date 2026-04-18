@@ -17,6 +17,9 @@ export const paymentMethodEnum  = pgEnum("payment_method",   ["bankgiro", "swish
 export const clockTypeEnum      = pgEnum("clock_type",       ["in", "out"]);
 
 // ── Profile ───────────────────────────────────────────────────
+// NOTE: weeklyHours below = FK beslut hour entitlement (stated per week per 51 kap 9§ SFB).
+// FK does NOT set a daily cap — labor law does (ATL or Lag 1970:943).
+// See docs/compliance/swedish-fk-and-labor-rules.md for the complete rule set.
 export const profile = pgTable("profile", {
   id:            serial("id").primaryKey(),
   guardianName:  text("guardian_name").default(""),
