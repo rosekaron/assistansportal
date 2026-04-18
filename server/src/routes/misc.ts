@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../db";
-import { openSlots, blocked, invites, settings } from "../db/schema";
+import { blocked, invites, settings } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 import { newId } from "../lib/id";
@@ -11,31 +11,6 @@ const router = Router();
 // Rate constants — read from env vars at startup with fallback defaults
 const FK_HOURLY_RATE    = parseFloat(process.env.FK_HOURLY_RATE    ?? "334");
 const EMPLOYER_TAX_RATE = parseFloat(process.env.EMPLOYER_TAX_RATE ?? "0.3142");
-
-// ── Open Slots ────────────────────────────────────────────────
-router.get("/slots", requireAuth, requireGuardian, async (_req: AuthRequest, res) => {
-  const rows = await db.select().from(openSlots).orderBy(openSlots.date, openSlots.startTime);
-  res.json(rows);
-});
-
-router.post("/slots", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
-  const d = req.body;
-  const [row] = await db.insert(openSlots).values({
-    id:         newId("s"),
-    date:       d.date,
-    startTime:  d.startTime  ?? d.start_time,
-    endTime:    d.endTime    ?? d.end_time,
-    hours:      d.hours,
-    capacity:   d.capacity   ?? 1,
-    activityId: d.activityId ?? d.activity_id ?? null,
-  }).returning();
-  res.status(201).json(row);
-});
-
-router.delete("/slots/:id", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
-  await db.delete(openSlots).where(eq(openSlots.id, req.params.id));
-  res.json({ ok: true });
-});
 
 // ── Blocked ───────────────────────────────────────────────────
 router.get("/blocked", requireAuth, requireGuardian, async (_req: AuthRequest, res) => {
