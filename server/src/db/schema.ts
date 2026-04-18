@@ -242,13 +242,14 @@ export const clockEvents = pgTable("clock_events", {
   assistantId: text("assistant_id").notNull().references(() => assistants.id, { onDelete: "cascade" }),
   guardianId:  integer("guardian_id").notNull(),  // auth.id of the guardian (same pattern as absences)
   clockType:   clockTypeEnum("clock_type").notNull(),
-  timestamp:   timestamp("timestamp").defaultNow().notNull(),
+  // timestamp + created_at are timestamptz in live DB (from v0 multi-family push) — preserve.
+  timestamp:   timestamp("timestamp", { withTimezone: true }).defaultNow().notNull(),
   ip:          text("ip").default(""),
   userAgent:   text("user_agent").default(""),
   // Set to true when this clock-out event auto-created a shift report entry.
   // Allows the system to distinguish verified (clock-based) from manual entries.
   verified:    boolean("verified").default(false),
-  createdAt:   timestamp("created_at").defaultNow(),
+  createdAt:   timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
 // ── Assistant–Guardian links ───────────────────────────────────
@@ -261,7 +262,8 @@ export const assistantGuardianLinks = pgTable("assistant_guardian_links", {
   assistantId: text("assistant_id").notNull().references(() => assistants.id, { onDelete: "cascade" }),
   guardianId:  integer("guardian_id").notNull(),  // auth.id of the guardian
   active:      boolean("active").default(false).notNull(),
-  createdAt:   timestamp("created_at").defaultNow(),
+  // created_at is timestamptz in live DB (from v0 multi-family push) — preserve to avoid truncate on push.
+  createdAt:   timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
 // ── Types ─────────────────────────────────────────────────────
