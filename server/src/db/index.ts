@@ -18,9 +18,6 @@ export async function seedDefaults() {
 
   // Default settings
   const defaultSettings = [
-    { key: "allow_self_book",       value: "true" },
-    { key: "self_book_approval",    value: "require-approval" },
-    { key: "booking_window_days",   value: "14" },
     { key: "gcal_connected",        value: "false" },
     { key: "gcal_email",            value: "" },
     { key: "gcal_calendar_id",      value: "" },
