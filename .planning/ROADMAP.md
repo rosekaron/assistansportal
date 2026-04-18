@@ -25,6 +25,31 @@
 
 ## Future Milestones (planned 2026-04-18)
 
+### 🔜 v1.0.1 — Salary Slip (Anhörig) — **URGENT / legally required**
+
+**Goal:** Produce a lönespecifikation (salary slip) PDF for each assistant each month so the guardian satisfies Swedish labor-law pay-record obligations. Scoped to the anhörigassistans arrangement Rose + Mikael have today (flat hourly rate, no paid sick/VAB/vacation); Fremia and Custom models are scaffolded in the UI but not wired until v1.4 / v1.5.
+
+**Scope:**
+- New `assistants.salary_model` enum: `anhörig` (default, fully wired) | `fremia` (UI scaffolding only) | `custom` (UI scaffolding only)
+- New `assistants.hourly_rate_override` field — per-assistant rate decoupled from FK schablon (Rose + Mikael both on 254.10 kr/h as confirmed 2026-04-18)
+- New `payment_slips` table with document numbering for bokföringslag audit
+- New pure-function `payrollSlipUtils.ts` — `buildAnhorigSlip(input)`
+- New endpoints: `POST /api/pdf/lonespec` (guardian) + `GET /api/pdf/lonespec/me?month` (assistant self-download)
+- Monthly.tsx: per-assistant "Ladda ner lönespecifikation" button
+- AssistantDashboard: "Lönespecifikationer" section listing own slips
+- Settings → Assistants: salary-model dropdown + hourly-rate override field
+- Absence balance API: `GET /api/absences/balance/:assistantId/:year` → { sjuk, VAB (with /120 cap), semester, other }
+
+**Slip content (anhörig):** employer + employee ID, period, worked hours, absence summary (sick/VAB/vacation days even though 0 kr paid), grundlön (hours × rate) = bruttolön, preliminärskatt 30% = netto till bank. **No employer-side numbers** (arbetsgivaravgifter + total kostnad) — those belong on the guardian's accounting side, not on the assistant's document.
+
+**Blocked by:** brukare pno + assistant addresses being entered for real (same blocker as FK/4805 filings — see [capture-missing-fields todo](todos/pending/2026-04-18-capture-missing-assistant-and-profile-fields-for-fk-and-skat.md)).
+
+**Full design:** [.planning/todos/pending/2026-04-18-salary-slip-lonespecifikation-for-assistants.md](todos/pending/2026-04-18-salary-slip-lonespecifikation-for-assistants.md)
+
+**Estimated effort:** 5 days. Runs before v1.1 because legal obligation > feature backlog.
+
+---
+
 ### 🔜 v1.1 — Bulk Schedule Entry
 
 **Goal:** Guardian can efficiently create multi-day / multi-assistant schedule entries in one action instead of one row at a time.
@@ -76,7 +101,51 @@
 
 ---
 
-**Backlog trigger:** After v1.0 archives and the payroll triage resolves, run `/gsd-new-milestone v1.1` to promote bulk entry first (most independent). v1.2 and v1.3 depend on schema additions that v1.1 doesn't yet plan — sequence those into v1.1 scope or create a shared "v1.5 schema additions" milestone.
+### 🔜 v1.4 — Fremia Salary Model
+
+**Goal:** When a non-family assistant is hired under Fremia/Kommunal "Personlig assistans" kollektivavtal, the system produces correct payroll: OB-tillägg, helgersättning, semesterlön reserve, tjänstepension (4.5%), AFA-försäkringar, sjuklön (legal 14-day employer liability). Fremia-model assistants get a properly-computed bruttolön and a lönespecifikation that matches what a personal-assistance accounting firm would produce.
+
+**Scope:**
+- Enable `salary_model = "fremia"` in code (v1.0.1 scaffolding flipped on)
+- OB-tillägg table (evening 20%, night 40%, weekend 60% — Fremia current rates)
+- Helgersättning via red-day calendar (Swedish public holidays)
+- Semesterlön accrual 12% of gross — new `semesterlön_reserves` table
+- Tjänstepension 4.5% — new accrual + payment tracking
+- AFA-försäkringar ~0.3% — informational / accrual
+- Sjuklön rules: employer pays 80% for days 2–14, first day karensdag
+- Lönespecifikation template extended with Fremia rows (OB-breakdown, pension, sjuklön if applicable)
+- Age-bracket arbetsgivaravgifter (67+ = 10.21%, 19–23 = 17.77%) — closes H3 from v1.0 known issues
+
+**Trigger:** Hiring a third assistant on a proper Fremia/Kommunal contract. Until then no point building — YAGNI.
+
+**Depends on:** v1.0.1 (salary_model enum scaffolding), v1.1 schema additions (employment_start/end already present).
+
+---
+
+### 🔜 v1.5 — Custom Salary Model
+
+**Goal:** Edge cases that don't fit anhörig (no benefits) or Fremia (full kollektivavtal). Examples: assistant on partial benefits, assistant paid monthly salary instead of hourly, assistant with individual agreement that mixes kollektivavtal-style benefits with custom rates.
+
+**Scope:**
+- `salary_model = "custom"` with per-assistant toggles: `ob_enabled`, `pension_enabled`, `semesterlön_enabled`, `sjuklön_enabled`
+- Each enabled benefit uses the standard rate by default, per-assistant override possible
+- Supports månadslön (fixed monthly amount) vs timlön (hourly) via a `compensation_basis` field
+- Slip template adapts to show only the enabled rows
+
+**Trigger:** Unusual hiring arrangement that neither anhörig nor Fremia handles cleanly. Realistically v2.0 territory.
+
+**Depends on:** v1.4 (most Fremia building-blocks would be reused here).
+
+---
+
+**Backlog trigger:** After v1.0 archives, ship the urgent items first:
+
+1. **v1.0.1** — Salary slip (legal obligation, 5 days) → `/gsd-new-milestone v1.0.1`
+2. **v1.1** — Bulk schedule entry (convenience) → `/gsd-new-milestone v1.1`
+3. **v1.2 + v1.3** — Submission gate + schedule warnings (both depend on v1.1 schema additions)
+4. **v1.4 + v1.5** — Salary models (blocked on actually hiring a non-family assistant)
+
+Payroll-formula triage resolution (H5 omkostnader pot) may slot in as v1.1.5 if the advisor returns before v1.4 hiring trigger fires.
 
 ---
 

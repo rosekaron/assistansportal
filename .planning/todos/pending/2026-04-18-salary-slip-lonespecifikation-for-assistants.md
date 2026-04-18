@@ -1,8 +1,22 @@
 ---
 created: 2026-04-18T23:00:00Z
+updated: 2026-04-19T00:00:00Z
 title: Salary slip (lönespecifikation) for assistants
 area: ui
 priority: legally-required
+planned_milestone: v1.0.1 or v1.1 (sequenced before v1.3)
+scope_confirmed_by_guardian: 2026-04-18
+scope_notes: |
+  - Anhörigassistans model ONLY (Rose + Mikael both patient's parents, fixed
+    hourly rate 254.10, no paid sick / VAB / vacation by mutual agreement)
+  - NO employer-side info on slip (no arbetsgivaravgifter, no total kostnad)
+    — the slip is for the assistant, not for employer accounting
+  - Fremia and Custom salary models added to roadmap as FUTURE work
+    (post-v1) — scaffolding only in v1.1, live logic when needed later
+  - Absence section visible (sick/VAB/vacation/other days) even though 0 SEK
+    is paid, because it's the assistant's record of attendance
+  - Footnote explicitly states "no compensation under anhörig agreement" so
+    the zero pay is not ambiguous
 files:
   - server/src/routes/pdf.ts
   - server/src/lib/payrollSlipUtils.ts          # NEW — proposed
@@ -11,6 +25,9 @@ files:
   - server/src/db/schema.ts
   - .planning/v1.0-MILESTONE-AUDIT.md
 ---
+
+> **Scope refined (2026-04-18)**: Guardian confirmed anhörig-only model for v1.1; employer-side numbers (arbetsgivaravgifter, total kostnad) removed from slip because they belong on the employer's bookkeeping side, not on the assistant's document. Fremia + Custom salary models moved to the future-milestones roadmap as post-v1 work. The slip mock in section 6 below reflects the corrected scope.
+
 
 ## Problem
 
@@ -37,12 +54,37 @@ Absence is not "a feature gap" — it's a **statutory non-compliance** for any o
 Per assistant, per month, a **lönespecifikation PDF** with these sections:
 
 **Header block**
-- Employer: brukare name + personnummer + address (legal employer is the brukare for personal assistance)
+- Employer (arbetsgivare): brukare name + personnummer + address (legal employer is the brukare for personal assistance)
+- **If the brukare is a minor** (derived from birth year in personnummer — under 18 at the date of issue, or from an explicit `profile.patient_is_minor` flag): additionally show a "Företrädd av" (legal representative) line with the guardian's name + personnummer. The minor cannot legally act as their own employer under Swedish law; the vårdnadshavare / förmyndare signs and administers on their behalf. Required for a valid pay record when the brukare is a minor.
 - Employee: assistant name + personnummer + address
 - Period: "Mars 2026" (or `YYYY-MM` label)
 - Document type: "Lönespecifikation"
 - Payment date (configurable; default = deadline + 3 days or similar)
 - Document number (incrementing sequence per employer, for audit/bokföringslag)
+
+**Example header when brukare is a minor:**
+```
+Arbetsgivare:    [Patient name], [Patient pno]
+Företrädd av:    [Guardian name], [Guardian pno]    ← only shown if minor
+Anställd:        Rose Karon, 8011155069
+```
+
+**Example header when brukare is an adult:**
+```
+Arbetsgivare:    [Patient name], [Patient pno]
+Anställd:        Rose Karon, 8011155069
+```
+
+**Minor detection logic:**
+```
+function isMinor(pno: string, asOfDate: Date): boolean {
+  const birthYear = birthYearFromPno(pno);  // already implemented in form4805-utils
+  const ageAtDate = asOfDate.getFullYear() - birthYear
+                  - (birthdayNotYetReached(pno, asOfDate) ? 1 : 0);
+  return ageAtDate < 18;
+}
+```
+Also applies retroactively to historical slips: if a minor turned 18 during a pay period, use the status as of the slip's period end.
 
 **Earnings section**
 - Hours worked (from approved `entries` for the period, billable only per `filterBillableEntries`)
