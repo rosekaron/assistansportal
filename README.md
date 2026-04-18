@@ -1,154 +1,87 @@
-# Assistansportal
+# Kalinga Assistansportal
 
-Personal assistance hours management for Swedish FK assistansersättning.
+Swedish personal-assistance (assistansersättning) self-management platform for disabled people and their families who have chosen to self-manage the FK schablon instead of delegating to a staffing company.
 
-Manage scheduling, assistants, hour reporting, and generate FK 3057 PDF forms — all locally on your Mac.
+The platform handles the full monthly compliance cycle — scheduling assistants, tracking hours, generating Försäkringskassan and Skatteverket forms, calculating payroll — so the guardian can run their own "micro-assistance employer" without specialist knowledge.
+
+**Status:** v1.0 shipped (2026-04-18). Next milestone: [v1.0.1 Salary Slip + Foundation Cleanup](.planning/ROADMAP.md).
 
 ---
 
 ## Stack
 
-| Layer    | Technology                              |
-|----------|-----------------------------------------|
+| Layer | Technology |
+|-------|-----------|
 | Frontend | React 18 + Vite + TypeScript + Tailwind + shadcn/ui |
-| Backend  | Node.js + Express + TypeScript          |
-| ORM      | Drizzle ORM                             |
-| Database | PostgreSQL 16 (via Docker)              |
-| PDF      | pdf-lib (FK 3057 form filling)          |
+| Backend | Node.js + Express + TypeScript |
+| ORM | Drizzle |
+| Database | PostgreSQL 16 (via Docker) |
+| PDFs | pdf-lib + pdfkit (FK 3057, FK 3059, SKV 4805) |
+| Auth | JWT |
+| Integrations | Google Calendar (OAuth2) |
+
+Entirely TypeScript. Single monorepo with `client/` and `server/` workspaces.
 
 ---
 
 ## Prerequisites
 
-Install these once on your Mac:
-
-### 1. Node.js (v20+)
-```bash
-# Using nvm (recommended)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-source ~/.bashrc   # or ~/.zshrc
-nvm install 20
-nvm use 20
-
-# Or download directly from:
-# https://nodejs.org
-```
-
-### 2. Docker Desktop
-Download and install from https://docker.com/products/docker-desktop
-
-Start Docker Desktop before running the app.
+- **Node.js 20+** — install via `nvm` or from [nodejs.org](https://nodejs.org)
+- **Docker Desktop** — [docker.com](https://www.docker.com/products/docker-desktop) (runs Postgres locally)
 
 ---
 
-## First-time setup
+## Quick start
 
 ```bash
-# 1. Clone / download the project
-cd assistansportal
-
-# 2. Start the database
+# 1. Start PostgreSQL
 docker-compose up -d
 
-# 3. Install all dependencies (client + server)
+# 2. Install dependencies
 npm install
 
+# 3. Configure environment
+cp .env.sample .env
+# Edit server/.env if needed — see "Environment variables" below
+
 # 4. Push the database schema
-npm run db:push
+npm run db:push --workspace=server
 
-# 5. Start the app
+# 5. Start the dev servers
 npm run dev
 ```
 
-The app will be available at **http://localhost:5173**
+Open **http://localhost:5173**.
 
 ---
 
-## Daily use
+## What the app does
 
-```bash
-# Start database (if not already running)
-docker-compose up -d
+### Guardian workflow
 
-# Start the app
-npm run dev
-```
+1. **Home** — multi-assistant week schedule grid (sourced from Google Calendar); pending actions; FK invoice status for the current month
+2. **Monthly** — 4-step compliance stepper: approve time entries → generate payroll → approve payroll → download FK 3057 / FK 3059 / SKV 4805 PDFs
+3. **Records** — historical payroll, FK submissions, leave/absence log
+4. **Settings** — profile, assistants, rates, preliminary tax rate, notifications, Google Calendar connection
 
-Two terminals will open:
-- Server → http://localhost:3001
-- Client → http://localhost:5173
+### Assistant workflow
 
-Open **http://localhost:5173** in your browser.
+1. **Clock-in / clock-out** — verified shift reports that land on the guardian's Monthly page for approval
+2. **Multi-family support** — assistants working for multiple households pick active family context
+3. **Shift history + slips** (v1.0.1) — assistants see their own pay history and download slips
 
----
+### Outputs
 
-## First launch
-
-1. Go to http://localhost:5173
-2. Click **Register** and create your account with your email + password
-3. Complete the **4-step setup wizard**:
-   - Your details as guardian
-   - Your child's details + FK decision number + weekly hours (e.g. 129)
-   - Add your 5 assistants with their minimum weekly hours
-   - Done — enter the portal
-
----
-
-## FK PDF forms
-
-### FK 3057 (Räkning / Invoice)
-
-1. Download the official blank form from Försäkringskassan:
-   https://www.forsakringskassan.se/download/18.398e2a517628d5349875c8/1620895495452/3057.pdf
-
-2. Place it in the `forms/` folder:
-   ```
-   assistansportal/forms/fk3057.pdf
-   ```
-
-3. On the Dashboard, click **Download PDF** next to "FK 3057 — Räkning"
-
-The form is filled automatically with:
-- Guardian name + personal ID
-- Patient name + personal ID
-- Year + month (digits)
-- Total approved active hours for the month
-- Signature date + phone
-
-### FK 3059 (Tidsredovisning / Time report)
-
-Download and place at `forms/fk3059.pdf`. Support for this form is in progress.
-
----
-
-## Project structure
-
-```
-assistansportal/
-├── client/                  # React frontend
-│   ├── src/
-│   │   ├── pages/           # Dashboard, Hours, Assistants, Settings, Login, SetupWizard
-│   │   ├── components/      # Layout, shared components, shadcn UI
-│   │   ├── lib/             # API client, utilities, activity types
-│   │   └── store/           # Zustand auth store
-│   └── ...
-├── server/                  # Express backend
-│   └── src/
-│       ├── db/              # Drizzle schema + connection
-│       ├── routes/          # auth, profile, assistants, entries, misc, pdf
-│       ├── middleware/       # JWT auth
-│       └── lib/             # ID generator
-├── forms/                   # Drop FK PDF forms here
-├── uploads/                 # File uploads
-├── docker-compose.yml       # PostgreSQL
-└── package.json             # Workspace root
-```
+- **FK 3057 — Räkning** — monthly assistansersättning invoice to Försäkringskassan
+- **FK 3059 — Tidredovisning** — monthly timesheet per assistant (guardian mails signed copies to FK)
+- **SKV 4805 — Förenklad arbetsgivardeklaration** — monthly simplified employer declaration per assistant to Skatteverket (filed electronically)
+- **Lönespecifikation** — per-assistant pay slip (coming in v1.0.1)
 
 ---
 
 ## Environment variables
 
-The server reads from `server/.env`:
+`server/.env` (copy from `.env.sample` at the root):
 
 ```env
 DATABASE_URL=postgresql://assistans:assistans_local@localhost:5432/assistansportal
@@ -156,95 +89,114 @@ JWT_SECRET=change_me_to_a_long_random_string_in_production
 PORT=3001
 CLIENT_URL=http://localhost:5173
 
-# Google Calendar OAuth (optional — get from Google Cloud Console)
+# FK schablon + arbetsgivaravgifter (2026 defaults)
+FK_HOURLY_RATE=334
+EMPLOYER_TAX_RATE=0.3142
+
+# Google Calendar OAuth (optional — only needed for GCal integration)
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=http://localhost:3001/api/gcal/callback
+
+# SMTP for invite + reminder emails (optional — for local dev, use Gmail app-password)
+GMAIL_USER=
+GMAIL_APP_PASSWORD=
 ```
 
-For local development the defaults work as-is. Change `JWT_SECRET` before any real use.
+For local development the defaults work as-is. **Change `JWT_SECRET` before any real use.**
 
 ---
 
-## Database management
+## Common commands
 
 ```bash
-# View and edit data in a browser UI
-npm run db:studio
-
-# Regenerate migrations after schema changes
-npm run db:generate --workspace=server
-
-# Push schema changes directly (dev only)
-npm run db:push
+npm run dev                              # Start both client + server
+npm run db:push --workspace=server       # Apply schema changes to DB
+npm run db:studio --workspace=server     # Open Drizzle Studio
+npx tsc --noEmit --project client        # Typecheck client
+npx tsc --noEmit --project server        # Typecheck server
+npx vitest run --project server          # Run server tests
 ```
 
----
-
-## Activity types and 2-assistant capacity
-
-Activities that require 2 assistants simultaneously are pre-configured:
-
-| Activity         | Assistants |
-|------------------|-----------|
-| 🐴 Horse riding  | 2         |
-| 🏊 Swimming      | 2         |
-| 🏋️ Physiotherapy | 2         |
-| ⚡ Active time   | 2         |
-| 🛁 Bathing       | 2         |
-| 🍽️ Feeding       | 2         |
-| 🧼 Personal care | 1         |
-| 🏫 School support| 1         |
-| 💬 Companionship | 1         |
-| 🌙 Overnight     | 1         |
-
-When you create an open slot, selecting a 2-person activity automatically sets the capacity. The Available Slots tab shows a fill bar and keeps the slot open until both assistants are assigned.
-
----
-
-## Scheduling flow
-
-```
-Guardian creates open slot (with activity)
-        ↓
-Guardian proposes to assistant → tentative calendar event
-        ↓
-Assistant accepts → confirmed calendar event
-        ↓
-Month ends → guardian approves time reports
-        ↓
-Generate FK 3057 PDF → send to Försäkringskassan
-```
-
-Or assistants can self-book directly from open slots (configurable in Settings).
-
----
-
-## Stopping the app
-
+Stop:
 ```bash
-# Stop the dev servers
-Ctrl+C
-
-# Stop the database (optional — data is preserved)
-docker-compose down
-
-# Stop the database AND delete all data (destructive!)
-docker-compose down -v
+Ctrl+C                 # stop dev servers
+docker-compose down    # stop database (data preserved)
+docker-compose down -v # stop + delete all data (destructive)
 ```
 
 ---
 
-## Troubleshooting
+## Project layout
 
-**"Cannot connect to database"**
-→ Make sure Docker Desktop is running, then: `docker-compose up -d`
+```
+assistansportal/
+├── client/                   # React frontend
+│   └── src/
+│       ├── pages/            # Home, Monthly, Records, Settings, AssistantDashboard, Login, SetupWizard
+│       ├── components/       # Layout + shadcn UI primitives
+│       ├── lib/              # API client + helpers
+│       └── store/            # Zustand auth store
+├── server/                   # Express backend
+│   └── src/
+│       ├── db/               # Drizzle schema + seed
+│       ├── routes/           # auth, entries, assistants, payroll, pdf, gcal, clock, absences, ...
+│       ├── middleware/       # requireAuth, requireGuardian, requireAssistant
+│       └── lib/              # calculatePayroll, filterBillableEntries, form4805-utils, ...
+├── forms/                    # Reference Skatteverket / FK PDFs
+├── uploads/                  # Runtime uploads (empty in repo)
+├── .planning/                # Project planning + workflow (see below)
+├── docker-compose.yml        # PostgreSQL
+├── .env.sample               # Environment template
+└── package.json              # Monorepo root
+```
 
-**"Port 5432 already in use"**
-→ Another Postgres is running. Either stop it, or change the port in `docker-compose.yml` and `server/.env`.
+---
 
-**"FK PDF not found"**
-→ Place the downloaded PDF at `forms/fk3057.pdf`
+## Project planning — where the history lives
 
-**White screen / React errors**
-→ Check the browser console. Most likely a missing import — run `npm install` again.
+This project uses the [GSD (Get-Shit-Done) workflow](https://github.com/get-shit-done) for planning. All non-code context lives in `.planning/`.
+
+**Start here** (in this order):
+
+1. [`.planning/PROJECT.md`](.planning/PROJECT.md) — what the product is, core value, constraints, key decisions
+2. [`.planning/ROADMAP.md`](.planning/ROADMAP.md) — **the ONE file** a new LLM / new contributor needs to resume work. Has a HANDOFF section at the top designed for cold resumption.
+3. [`.planning/MILESTONES.md`](.planning/MILESTONES.md) — shipped-version history with accomplishments
+4. [`.planning/milestones/v1.0-MILESTONE-AUDIT.md`](.planning/milestones/v1.0-MILESTONE-AUDIT.md) — v1.0 audit + accepted known issues
+
+**Deeper:**
+
+- `.planning/phases/` — per-phase plans + summaries + verifications (114 files — full dev history)
+- `.planning/research/` — domain research artefacts
+- `.planning/codebase/` — codebase mapping
+- `.planning/compliance/` — Swedish labor-law + FK compliance notes
+- `.planning/todos/pending/` — active todos with `planned_milestone` tags
+- `.planning/UAT-BUG-LOG.md` — UAT defect tracking
+
+---
+
+## Contributing
+
+This is a personal-use platform built by and for its primary user. There's no formal contribution process. If you're reading this and want to help:
+
+1. Read `.planning/ROADMAP.md` top-to-bottom
+2. Check `.planning/todos/pending/` for tagged work
+3. Open an issue to discuss direction before any PR
+
+---
+
+## Known limitations (v1.0)
+
+See [v1.0-MILESTONE-AUDIT.md](.planning/milestones/v1.0-MILESTONE-AUDIT.md) "Accepted as v1.0 Known Issues" for the full list. Summary:
+
+- **Preliminärskatt** uses a single global flat rate (default 30%) for all assistants — Skatteverket accepts this fallback
+- **Omkostnader pot** not modelled — FK schablon is treated as 100% lönekostnader instead of the Fremia ~87/8/3/2 split. Deferred pending labor-law advisor input.
+- **Age-bracket arbetsgivaravgifter** (67+ = 10.21%, 19–23 = 17.77%) not supported — flat 31.42% for all
+- **Salary slip** missing (v1.0.1 scope — legally required)
+- **Schedule grid** reads from Google Calendar; **FK/payroll** reads from internal `entries` table — these can diverge (v2.0 reconciles)
+
+---
+
+## License
+
+See [LICENSE](LICENSE) if present, otherwise consider it personal-use only.
