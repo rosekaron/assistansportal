@@ -93,6 +93,25 @@ Documented in compliance doc §1, §2.2, §2.3, §7.
 
 ---
 
+## Round 6 — Settings UI section count revision (during plan-phase, 2026-04-18)
+
+**Trigger:** User entered `/gsd-plan-phase 7`, hit UI-SPEC gate, said "i dont understand anything. the swedish names dont make sense."
+
+**Context:** D-10 originally specified 5 collapsible sections (Personligt / Skatt & bank / Adress / Anställning / FK-beslut). User asked Claude to assess whether the grouping made sense.
+
+**Q (Claude):** How often is Skatt & bank actually edited?
+**A (analysis):** Almost never after hire. skattetabell ~ rare; tax_scheme ~ never; bank fields ~ years apart. Most assistant fields are set-once-at-hire.
+
+**Insight:** When most fields are set-and-forget, *fewer* cards = faster scan when looking for the one thing to change. 5 collapsible sections is over-engineered for ~17 fields.
+
+**Decision:** Collapse to **2 sections per dialog**:
+- Assistants: Personuppgifter (7) + Anställning & ekonomi (10)
+- Profile: Personuppgifter + FK-beslut (different field set — patient is not an employee)
+
+**Updated decisions:** D-10, D-11. D-12 (Swedish labels) unchanged.
+
+---
+
 ## Round 5 — Branch sanity check
 
 **Q (Rose):** "why am i seeing milestone/v1.0-mvp here? arent we working on version 1.0.1?"

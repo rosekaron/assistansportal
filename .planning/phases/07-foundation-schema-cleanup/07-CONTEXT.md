@@ -41,13 +41,16 @@ All new `assistants` and `profile` columns exist and are editable in Settings; d
 
 ### Settings UI organization
 
-- **D-10:** **Collapsible sections pattern** for both Settings → Profile and Settings → Assistants edit dialog. Section groups:
-  - **Personligt** (name, pno, phone, email)
-  - **Skatt & bank** (skattetabell, tax_scheme, bank_clearing, bank_account, iban)
-  - **Adress** (address_street, address_zip, address_city)
-  - **Anställning** (employment_start_date, employment_end_date, citizenship, residence_permit_expiry, notes)
-  - **FK-beslut** (profile only: fk_decision_no [existing], fk_decision_start, fk_decision_end, dubbel_assistans_approved, patient_relation_to_guardian, patient_requires_representative)
-- **D-11:** **Collapsed by default.** Guardian expands to edit; avoids cognitive overload of 16+ fields visible at once.
+- **D-10:** **Collapsible sections pattern** for both Settings → Profile and Settings → Assistants edit dialog. **Two sections** per dialog (revised 2026-04-18 — see DISCUSSION-LOG.md for rationale: most fields are set-once-at-hire, so fewer cards = faster scan when looking for the one thing to change).
+
+  **Assistants edit dialog** (17 fields, 2 sections):
+  - **Personuppgifter** (7) — name, pno, phone, email, address_street, address_zip, address_city
+  - **Anställning & ekonomi** (10) — employment_start_date, employment_end_date, citizenship, residence_permit_expiry, notes, skattetabell, tax_scheme, bank_clearing, bank_account, iban
+
+  **Profile edit** (different fields — patient is not an employee, so no skatt/bank/anställning):
+  - **Personuppgifter** — name, pno, phone, email, address (existing single-line, per D-09)
+  - **FK-beslut** — fk_decision_no [existing], fk_decision_start, fk_decision_end, dubbel_assistans_approved, patient_relation_to_guardian, patient_requires_representative
+- **D-11:** **Collapsed by default.** Guardian expands to edit; avoids cognitive overload of 17 fields visible at once.
 - **D-12:** **Swedish labels throughout.** Continuation of existing Settings.tsx convention (sv-SE locale).
 
 ### Dead-code cleanup
