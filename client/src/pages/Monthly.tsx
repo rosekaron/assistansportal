@@ -541,7 +541,14 @@ export default function MonthlyPage() {
 
   // Payroll stat chips
   const totalGross = payrollRecords.reduce((s, r) => s + r.grossPay, 0);
-  const totalEmployerCost = payrollRecords.reduce((s, r) => s + r.employerContributions, 0);
+  // totalEmployerCost = bruttolön + arbetsgivaravgifter per record (r.totalEmployerCost is
+  // already the sum of the two, snapshotted at payroll generation). Previously this summed
+  // r.employerContributions which is just the arbetsgivaravgifter slice — producing a figure
+  // smaller than totalGross and a label that lied about what it showed.
+  const totalEmployerCost = payrollRecords.reduce((s, r) => s + r.totalEmployerCost, 0);
+  // Also expose the employer-contributions (arbetsgivaravgifter) aggregate on its own so the
+  // Monthly summary can show the cascade: gross → + arbetsgivaravgifter → = total employer cost.
+  const totalEmployerContribs = payrollRecords.reduce((s, r) => s + r.employerContributions, 0);
   const outstandingPayroll = payrollRecords
     .filter(r => r.status === "draft")
     .reduce((s, r) => s + r.grossPay, 0);
@@ -941,13 +948,20 @@ export default function MonthlyPage() {
             </div>
             <div className="grid grid-cols-3 gap-4 mb-6">
               {[
-                { label: "Total gross pay",     value: formatSek(totalGross) },
-                { label: "Total employer cost",  value: formatSek(totalEmployerCost) },
-                { label: "Outstanding",          value: formatSek(outstandingPayroll) },
-              ].map(({ label, value }) => (
+                { label: "Total gross pay",     value: formatSek(totalGross),         sub: null },
+                {
+                  label: "Total employer cost",
+                  value: formatSek(totalEmployerCost),
+                  sub:   `gross ${formatSek(totalGross)} + arbetsgivaravgifter ${formatSek(totalEmployerContribs)}`,
+                },
+                { label: "Outstanding",          value: formatSek(outstandingPayroll), sub: null },
+              ].map(({ label, value, sub }) => (
                 <div key={label} className="bg-card border border-border rounded-xl p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{label}</p>
                   <p className="text-2xl font-semibold font-mono tabular-nums text-foreground">{value}</p>
+                  {sub && (
+                    <p className="text-[11px] text-muted-foreground font-mono tabular-nums mt-1">{sub}</p>
+                  )}
                 </div>
               ))}
             </div>
