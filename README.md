@@ -1,10 +1,90 @@
 # Kalinga Assistansportal
 
-Swedish personal-assistance (assistansersättning) self-management platform for disabled people and their families who have chosen to self-manage the FK schablon instead of delegating to a staffing company.
+**Note:** This project is driven by solving a personal need and a passion for wanting to solve this for people who feel the same pain. I am learning how to leverage AI to create the product I've been burning to build, making mistakes and having fun as I go.
 
-The platform handles the full monthly compliance cycle — scheduling assistants, tracking hours, generating Försäkringskassan and Skatteverket forms, calculating payroll — so the guardian can run their own "micro-assistance employer" without specialist knowledge.
+## Learn from my mistakes
 
-**Status:** v1.0 shipped (2026-04-18). Next milestone: [v1.0.1 Salary Slip + Foundation Cleanup](.planning/ROADMAP.md).
+[rose.karon.se/blog](https://rose.karon.se/blog/)
+
+MAJK, this is for you. Thank you for helping me understand my strength and resilience.
+
+---
+
+## Care management platform for personal assistance — Nordics & Europe
+
+### Problem
+
+In Sweden alone, over 17,000 people receive state-funded personal assistance under LSS. Thousands more self-arrange care outside the public system. The families, individuals, and small care companies managing this assistance spend hours every week on manual administration: tracking hours in Excel, filing reports to Försäkringskassan, managing payroll and Skatteverket forms using tools never designed for this purpose.
+
+The result: administrative burden falls on the people least equipped to carry it — caregivers and care recipients — while small operators risk compliance failures, delayed reimbursements, and staff frustration.
+
+No modern, purpose-built solution exists for this market.
+
+### Solution
+
+Assistansportal is a care management platform that digitizes and automates the core administrative workflows of personal assistance management.
+
+**Shipped in v1.0** (2026-04-18):
+
+- Digital assistance hour logging
+- Automated Försäkringskassan form generation (FK 3057, FK 3059)
+- Automated Skatteverket declaration generation (SKV 4805)
+- Payroll calculation with 2026 Swedish tax rates
+- Multi-assistant schedule grid + Google Calendar integration
+- Monthly compliance checklist with FK and AGI deadline tracking
+- Email deadline reminders
+
+**Vision — full platform:**
+
+- **Care instructions:** structured documentation from parents and primary caregivers, accessible to all assistants
+- **Knowledge base:** condition-specific guidance for rare diseases, keeping care teams informed
+- **Hjälpmedel discovery:** helping families find assistive equipment relevant to their specific diagnosis
+- **Therapy and exercise:** logging and tracking rehabilitation, physio, and daily exercise programs
+- **Activities:** planning and recording activities as part of the care plan
+- **Funding and appeals:** helping families discover additional funding sources and navigate LSS decision appeals
+- **Events:** coordinating care-related appointments, reviews, and milestones
+
+**Future roadmap:**
+
+- B2B features for care companies: staff scheduling, multi-client management, compliance reporting
+- European expansion: adapting the compliance layer to German, Dutch, and broader EU regulatory frameworks
+- API integrations with payroll providers and public sector systems
+
+### Market
+
+| Segment | Size |
+|---------|------|
+| Sweden TAM | ~€150M annually |
+| Nordic TAM | ~€400M annually |
+| Europe TAM | €2B+ annually |
+
+The personal assistance market is publicly funded, highly regulated, and structurally resistant to disruption from generic software. Compliance requirements create deep switching costs and strong retention once adopted.
+
+### Traction
+
+- Beta cohort recruited pre-launch: families self-managing personal assistance who have committed to test the platform
+- Founder has firsthand operational experience navigating the Swedish personal assistance system as a caregiver
+- v1.0 shipped 2026-04-18 — full monthly compliance cycle working end-to-end
+
+### Business Model
+
+SaaS. Tiered pricing:
+
+- **Consumer:** Individual families and self-arrangers — low monthly fee
+- **SMB:** Small care companies — per-seat or per-client pricing
+- **Enterprise:** Larger care operators — custom contracts
+
+High retention expected due to regulatory dependency and data lock-in.
+
+---
+
+## Current state
+
+**Shipped:** v1.0 — Stability, Compliance, and Core Payroll (2026-04-18). Full monthly compliance cycle working end-to-end.
+
+**Next milestone:** [v1.0.1 — Salary Slip + Foundation Cleanup](.planning/ROADMAP.md) (legally required; ~1 week).
+
+**Target users today:** disabled people and their families who have chosen to self-manage their assistansersättning (personal assistance compensation from Försäkringskassan) rather than delegate to a staffing company like Humana or Attendo. The platform handles the full monthly compliance cycle — scheduling assistants, tracking hours, generating FK and Skatteverket forms, calculating payroll — so the guardian can run their own "micro-assistance employer" without specialist knowledge.
 
 ---
 
