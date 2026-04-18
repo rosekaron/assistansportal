@@ -113,10 +113,6 @@ export default function SettingsPage() {
 
   const { data: calendarList = [] } = useQuery({ queryKey: ["gcal-calendars"], queryFn: () => gcalApi.calendars().then((r) => r.data), enabled: gcal.connected });
 
-  const [sched, setSched] = useState({
-    allowSelfBook: true, selfBookApproval: "require-approval", bookingWindowDays: "14",
-  });
-
   const [prelimTaxRate, setPrelimTaxRate] = useState("30");
   // Stored as percentage integer string in UI (e.g. "30"), saved as decimal string "0.30" to settings
 
@@ -157,11 +153,6 @@ export default function SettingsPage() {
         reminders:     settings.gcal_reminders    !== "false",
         reminderHours: settings.gcal_reminder_hours ?? "24",
       }));
-      setSched({
-        allowSelfBook:     settings.allow_self_book !== "false",
-        selfBookApproval:  settings.self_book_approval  ?? "require-approval",
-        bookingWindowDays: settings.booking_window_days ?? "14",
-      });
       // Read preliminary_tax_rate from settings (stored as "0.30" → display as "30")
       const rawPrelim = settings["preliminary_tax_rate"];
       if (rawPrelim) {
@@ -198,15 +189,6 @@ export default function SettingsPage() {
       setGcalSaved(true);
       setTimeout(() => setGcalSaved(false), 2000);
     },
-  });
-
-  const saveSched = useMutation({
-    mutationFn: () => settingsApi.update({
-      allow_self_book:     String(sched.allowSelfBook),
-      self_book_approval:  sched.selfBookApproval,
-      booking_window_days: sched.bookingWindowDays,
-    }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings"] }),
   });
 
   const savePrelimTax = useMutation({
@@ -612,57 +594,6 @@ export default function SettingsPage() {
               </ol>
             )}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* ── 3. SCHEDULING ──────────────────────────────────────────────────── */}
-      <SectionLabel>Scheduling</SectionLabel>
-      <Card className="mb-6">
-        <CardContent className="pt-5 space-y-4">
-          <ToggleRow
-            label="Allow assistants to self-book open slots"
-            sub="When enabled, assistants can see and claim available slots directly"
-            value={sched.allowSelfBook}
-            onChange={(v) => { setSched((s) => ({ ...s, allowSelfBook: v })); saveSched.mutate(); }}
-          />
-          {sched.allowSelfBook && (
-            <div className="ml-10 pl-4 border-l-2 border-border space-y-4">
-              <div className="space-y-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">When an assistant self-books</p>
-                {[
-                  { val: "require-approval", label: "Require your approval",   sub: "You review each booking before it's confirmed" },
-                  { val: "auto-confirm",     label: "Auto-confirm",            sub: "Bookings are immediately confirmed without review" },
-                ].map((opt) => (
-                  <label key={opt.val} className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                      type="radio" value={opt.val}
-                      checked={sched.selfBookApproval === opt.val}
-                      onChange={() => { setSched((s) => ({ ...s, selfBookApproval: opt.val })); saveSched.mutate(); }}
-                      className="mt-1 accent-primary"
-                    />
-                    <div>
-                      <p className="text-sm font-medium">{opt.label}</p>
-                      <p className="text-xs text-muted-foreground">{opt.sub}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-              <div className="space-y-1.5">
-                <Label>Booking window</Label>
-                <Select
-                  value={sched.bookingWindowDays}
-                  onValueChange={(v) => { setSched((s) => ({ ...s, bookingWindowDays: v })); saveSched.mutate(); }}
-                >
-                  <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {["7","14","21","28"].map((d) => (
-                      <SelectItem key={d} value={d}>Up to {d} days in advance</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
