@@ -33,9 +33,9 @@ Requirements for the v1.0.1 milestone. Each maps to exactly one roadmap phase.
 
 ### Scheduling Cleanup (CLEAN)
 
-- [ ] **CLEAN-01**: Settings "Scheduling" card removed (self-book toggle, approval mode, booking window sections deleted from `Settings.tsx` including `sched` state and `saveSched` mutation)
-- [ ] **CLEAN-02**: `openSlots` table dropped via migration; `/api/slots` (GET/POST/DELETE), `/api/assistant/self-book/:slotId`, and `/api/assistant/open-slots` endpoints removed
-- [ ] **CLEAN-03**: Client API helpers `slotsApi`, `assistantApi.selfBook`, `assistantApi.openSlots` removed; dead settings keys (`allow_self_book`, `self_book_approval`, `booking_window_days`) removed from `seedDefaults()`
+- [x] **CLEAN-01**: Settings "Scheduling" card removed (self-book toggle, approval mode, booking window sections deleted from `Settings.tsx` including `sched` state and `saveSched` mutation)
+- [x] **CLEAN-02**: `openSlots` table dropped via migration; `/api/slots` (GET/POST/DELETE), `/api/assistant/self-book/:slotId`, and `/api/assistant/open-slots` endpoints removed
+- [x] **CLEAN-03**: Client API helpers `slotsApi`, `assistantApi.selfBook`, `assistantApi.openSlots` removed; dead settings keys (`allow_self_book`, `self_book_approval`, `booking_window_days`) removed from `seedDefaults()`
 
 ### Real Data (DATA)
 
@@ -113,9 +113,9 @@ Each v1.0.1 requirement maps to exactly one phase.
 | SCHEMA-01 | 7 | Complete |
 | SCHEMA-02 | 7 | Complete |
 | SCHEMA-03 | 7 | Pending |
-| CLEAN-01 | 7 | Pending |
-| CLEAN-02 | 7 | Pending |
-| CLEAN-03 | 7 | Pending |
+| CLEAN-01 | 7 | Complete |
+| CLEAN-02 | 7 | Complete |
+| CLEAN-03 | 7 | Complete |
 | DATA-01 | 10 | Pending |
 | DATA-02 | 10 | Pending |
 | DATA-03 | 10 | Pending |
