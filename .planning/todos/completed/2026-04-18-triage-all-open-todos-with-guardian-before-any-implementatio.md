@@ -1,3 +1,7 @@
+> **CLOSED (2026-04-18)**
+>
+> Triage executed this session. All 11 todos reviewed against the roadmap; 4 superseded (this + 3 others), 2 gaps identified (calendar drift routed to v2.0, login bug confirmed already-fixed), foundation schema todo absorbed into v1.0.1, 1 external (advisor review). ROADMAP.md now holds the full handoff context.
+
 ---
 created: 2026-04-18T00:00:00Z
 title: Triage all open todos with guardian before any implementation

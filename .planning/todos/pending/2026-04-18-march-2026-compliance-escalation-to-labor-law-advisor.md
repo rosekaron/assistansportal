@@ -2,12 +2,16 @@
 created: 2026-04-18T00:00:00Z
 title: March 2026 compliance escalation to labor-law advisor
 area: compliance
+planned_milestone: external (not a code change)
 files:
   - .planning/compliance/2026-03-advisor-brief.md
   - server/src/lib/payroll-utils.ts
   - server/src/lib/form4805-utils.ts
   - server/src/routes/pdf.ts
 ---
+
+> **External track (2026-04-18)** — This todo requires human legal/kollektivavtal advisor review, not code work. Deferred indefinitely pending guardian's advisor consultation. Advisor brief lives at [.planning/compliance/2026-03-advisor-brief.md](../../compliance/2026-03-advisor-brief.md). Not blocking any shippable milestone — v1.0.1 through v1.5 can proceed independently.
+
 
 ## Problem
 

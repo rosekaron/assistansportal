@@ -1,3 +1,7 @@
+> **CLOSED (2026-04-18)**
+>
+> Closed 2026-04-18: Triage gate executed this session. H1 (label bug) fixed in commit 51cb7bb. H5 (omkostnader pot) + H3 (per-assistant tax rate) captured as v1.0 Accepted Known Issues in v1.0-MILESTONE-AUDIT.md. H4/H6 also documented. This gate todo has served its purpose.
+
 ---
 created: 2026-04-18T00:00:00Z
 title: Resume discussion — payroll formula hypotheses before any code change

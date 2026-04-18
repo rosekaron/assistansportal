@@ -2,6 +2,7 @@
 created: 2026-04-18T00:00:00Z
 title: Capture missing assistant and profile fields for FK and Skatteverket compliance
 area: database
+planned_milestone: v1.0.1 (absorbed)
 files:
   - server/src/db/schema.ts:20       # profile table
   - server/src/db/schema.ts:69       # assistants table
@@ -9,6 +10,9 @@ files:
   - .planning/compliance/2026-03-advisor-brief.md
   - server/src/lib/form4805-utils.ts
 ---
+
+> **Absorbed into v1.0.1 (2026-04-18)** — All schema additions (Section B of this todo) ship as part of the v1.0.1 salary-slip milestone because v1.0.1 is already touching `assistants` + `profile` for the salary-model/rate-override work. Doing it once avoids schema drift across v1.0.1 / v1.2 / v1.3. Data-entry (Section A) is also part of v1.0.1's acceptance criteria. See ROADMAP.md v1.0.1 "Scope — Capture-Missing-Fields schema (absorbed)" section for the full column list.
+
 
 ## Problem
 

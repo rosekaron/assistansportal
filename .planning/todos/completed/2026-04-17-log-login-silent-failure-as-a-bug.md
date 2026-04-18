@@ -1,3 +1,7 @@
+> **CLOSED (2026-04-18)**
+>
+> Closed 2026-04-18: code review + live /api/auth/login test confirmed error message already displays inline (Login.tsx:169-173). Bug was fixed during Phase 02.5-05 UI consistency pass before this todo was filed. No further action.
+
 ---
 created: "2026-04-17T19:39:28.193Z"
 title: Log login silent failure as a bug

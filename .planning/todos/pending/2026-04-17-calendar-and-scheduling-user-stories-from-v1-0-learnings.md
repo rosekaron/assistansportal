@@ -2,6 +2,7 @@
 created: 2026-04-17T21:44:44.169Z
 title: Calendar and scheduling user stories from v1.0 learnings
 area: planning
+planned_milestone: v2.0
 files:
   - client/src/pages/Home.tsx
   - server/src/routes/gcal.ts
@@ -11,6 +12,9 @@ files:
   - server/src/routes/misc.ts:69
   - client/src/pages/Settings.tsx:303
 ---
+
+> **Routed to v2.0 (2026-04-18)** — GCal/entries drift is a structural issue with no small-scope fix. Full bidirectional reconciliation becomes its own milestone. See ROADMAP.md v2.0 section. Triggered when the drift causes a concrete billing problem (e.g. scheduled in GCal, zero on FK invoice).
+
 
 ## Problem
 

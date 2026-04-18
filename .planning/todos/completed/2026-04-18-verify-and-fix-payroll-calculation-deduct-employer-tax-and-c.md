@@ -1,3 +1,7 @@
+> **CLOSED (2026-04-18)**
+>
+> Walkthrough completed with guardian. H1 label bug shipped in commit 51cb7bb. H5 omkostnader pot + H3 per-assistant tax rate + H4 net-pay UX + H6 schablon breakdown all captured as v1.0 Accepted Known Issues. H5 deferred pending advisor input; H3 deferred to v1.4 (Fremia model).
+
 ---
 created: 2026-04-18T00:00:00Z
 title: Verify and fix payroll calculation — deduct employer tax and costs from FK allocation correctly
