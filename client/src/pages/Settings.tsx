@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { profileApi, settingsApi, assistantsApi, invitesApi, gcalApi } from "@/lib/api";
@@ -11,7 +11,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageHeader, SectionLabel, AssistantAvatar, EmptyState } from "@/components/shared";
 import { cn } from "@/lib/utils";
-import { UserPlus, X, Pencil, ChevronRight, Users } from "lucide-react";
+import { UserPlus, X, Pencil, ChevronRight, ChevronDown, Users } from "lucide-react";
 
 // ── These components are defined OUTSIDE SettingsPage so React doesn't
 // ── recreate them on every render (which causes the one-letter-at-a-time bug)
@@ -20,6 +20,48 @@ interface FormState {
   guardianName: string; guardianPno: string; guardianEmail: string; guardianPhone: string;
   patientName: string;  patientPno: string;  address: string; city: string; zip: string;
   fkDecisionNo: string; weeklyHours: string;
+  // v1.0.1 Phase 7 additions (SCHEMA-02)
+  fkDecisionStart: string;
+  fkDecisionEnd: string;
+  patientRelationToGuardian: string;
+  dubbelAssistansApproved: boolean;
+  patientRequiresRepresentative: boolean;
+}
+
+const TAX_SCHEME_OPTIONS = [
+  { value: "a-skatt", label: "A-skatt" },
+  { value: "f-skatt", label: "F-skatt" },
+];
+
+const PATIENT_RELATION_OPTIONS = [
+  { value: "parent-child",    label: "Förälder → barn"     },
+  { value: "spouse",          label: "Make/maka"           },
+  { value: "adult-child",     label: "Barn → vuxet barn"   },
+  { value: "god_man",         label: "God man"             },
+  { value: "legal-guardian",  label: "Förvaltare"          },
+  { value: "other",           label: "Annan"               },
+];
+
+function CollapsibleSection({
+  title, open, onToggle, children,
+}: {
+  title: string; open: boolean; onToggle: () => void; children: React.ReactNode;
+}) {
+  const ChevronIcon = open ? ChevronDown : ChevronRight;
+  return (
+    <div className="border-t border-border first:border-t-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="w-full flex items-center gap-2 py-3 px-4 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <ChevronIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+        <span className="text-xs uppercase tracking-wide font-semibold text-muted-foreground">{title}</span>
+      </button>
+      {open && <div className="px-4 pb-4 space-y-3">{children}</div>}
+    </div>
+  );
 }
 
 function SettingsField({
@@ -80,7 +122,18 @@ export default function SettingsPage() {
   const [inviteOpen,    setInviteOpen]    = useState(false);
   const [removeId,      setRemoveId]      = useState<string | null>(null);
   const [editTarget,    setEditTarget]    = useState<Assistant | null>(null);
-  const [editForm,      setEditForm]      = useState({ name: "", pno: "", phone: "", minWeeklyHours: "", isFlexible: false, address: "" });
+  const [editForm,      setEditForm]      = useState({
+    name: "", pno: "", phone: "", minWeeklyHours: "", isFlexible: false, address: "",
+    addressStreet: "", addressZip: "", addressCity: "",
+    employmentStartDate: "", employmentEndDate: "",
+    citizenship: "", residencePermitExpiry: "",
+    notes: "",
+    skattetabell: "",
+    taxScheme: "a-skatt",
+    bankClearing: "", bankAccount: "", iban: "",
+    email: "",
+  });
+  const [editSectionOpen, setEditSectionOpen] = useState({ person: true, employment: false });  // D-11: Personuppgifter open by default
   const [inviteForm,    setInviteForm]    = useState({ name: "", email: "", minWeeklyHours: "", isFlexible: false, message: "" });
   const [inviteSent,    setInviteSent]    = useState(false);
   const [selfOpen,      setSelfOpen]      = useState(false);
@@ -104,7 +157,12 @@ export default function SettingsPage() {
     guardianName: "", guardianPno: "", guardianEmail: "", guardianPhone: "",
     patientName:  "", patientPno:  "", address: "",       city: "",        zip: "",
     fkDecisionNo: "", weeklyHours: "129",
+    fkDecisionStart: "", fkDecisionEnd: "",
+    patientRelationToGuardian: "parent-child",
+    dubbelAssistansApproved: false,
+    patientRequiresRepresentative: false,
   });
+  const [profileSectionOpen, setProfileSectionOpen] = useState({ person: true, fk: false });  // D-11: Personuppgifter open by default
 
   const [gcal, setGcal] = useState({
     connected: false, email: "", calendarId: "",
@@ -138,6 +196,11 @@ export default function SettingsPage() {
         zip:           profile.zip           ?? "",
         fkDecisionNo:  profile.fkDecisionNo  ?? "",
         weeklyHours:   String(profile.weeklyHours ?? 129),
+        fkDecisionStart:               profile.fkDecisionStart ?? "",
+        fkDecisionEnd:                 profile.fkDecisionEnd   ?? "",
+        patientRelationToGuardian:     profile.patientRelationToGuardian ?? "parent-child",
+        dubbelAssistansApproved:       Boolean(profile.dubbelAssistansApproved ?? false),
+        patientRequiresRepresentative: Boolean(profile.patientRequiresRepresentative ?? false),
       });
     }
   }, [profile]);
@@ -248,13 +311,28 @@ export default function SettingsPage() {
 
   function openEdit(a: Assistant) {
     setEditForm({
-      name:           (a.name as string) ?? "",
-      pno:            (a.pno  as string) ?? "",
-      phone:          (a.phone as string) ?? "",
-      minWeeklyHours: String(a.minWeeklyHours ?? 0),
-      isFlexible:     (a.isFlexible as boolean) ?? false,
-      address:        (a.address as string) ?? "",
+      name:                  String(a.name ?? ""),
+      pno:                   String(a.pno ?? ""),
+      phone:                 String(a.phone ?? ""),
+      minWeeklyHours:        String(a.minWeeklyHours ?? 0),
+      isFlexible:            Boolean(a.isFlexible ?? false),
+      address:               String(a.address ?? ""),
+      addressStreet:         String(a.addressStreet ?? ""),
+      addressZip:            String(a.addressZip ?? ""),
+      addressCity:           String(a.addressCity ?? ""),
+      employmentStartDate:   String(a.employmentStartDate ?? ""),
+      employmentEndDate:     String(a.employmentEndDate ?? ""),
+      citizenship:           String(a.citizenship ?? ""),
+      residencePermitExpiry: String(a.residencePermitExpiry ?? ""),
+      notes:                 String(a.notes ?? ""),
+      skattetabell:          a.skattetabell == null ? "" : String(a.skattetabell),
+      taxScheme:             String(a.taxScheme ?? "a-skatt"),
+      bankClearing:          String(a.bankClearing ?? ""),
+      bankAccount:           String(a.bankAccount ?? ""),
+      iban:                  String(a.iban ?? ""),
+      email:                 String(a.email ?? ""),
     });
+    setEditSectionOpen({ person: true, employment: false }); // reset per-open
     setEditTarget(a);
   }
 
@@ -802,46 +880,152 @@ export default function SettingsPage() {
 
       {/* Edit assistant dialog */}
       <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Edit assistant</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5"><Label>Full name *</Label><Input value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} /></div>
-            <div className="grid grid-cols-2 gap-3">
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Redigera assistent</DialogTitle></DialogHeader>
+          <div className="-mx-6">
+            <CollapsibleSection
+              title="Personuppgifter"
+              open={editSectionOpen.person}
+              onToggle={() => setEditSectionOpen(s => ({ ...s, person: !s.person }))}
+            >
               <div className="space-y-1.5">
-                <Label>Personnummer</Label>
-                <Input placeholder="ÅÅMMDD-XXXX" value={editForm.pno} onChange={(e) => setEditForm((f) => ({ ...f, pno: e.target.value }))} />
+                <Label>Fullständigt namn *</Label>
+                <Input value={editForm.name} onChange={(e) => setEditForm(f => ({ ...f, name: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Personnummer</Label>
+                  <Input pattern="\d{6,8}-?\d{4}" placeholder="ÅÅÅÅMMDD-XXXX" value={editForm.pno} onChange={(e) => setEditForm(f => ({ ...f, pno: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Telefon</Label>
+                  <Input type="tel" placeholder="07X-XXX XX XX" value={editForm.phone} onChange={(e) => setEditForm(f => ({ ...f, phone: e.target.value }))} />
+                </div>
               </div>
               <div className="space-y-1.5">
-                <Label>Phone</Label>
-                <Input placeholder="07X-XXX XX XX" value={editForm.phone} onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))} />
+                <Label>E-post</Label>
+                <Input type="email" placeholder="assistent@exempel.se" value={editForm.email} onChange={(e) => setEditForm(f => ({ ...f, email: e.target.value }))} />
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Min hours/week</Label>
-              <div className="relative">
-                <Input type="number" className="pr-8" value={editForm.minWeeklyHours} onChange={(e) => setEditForm((f) => ({ ...f, minWeeklyHours: e.target.value }))} />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">h</span>
+              <div className="space-y-1.5">
+                <Label>Gatuadress</Label>
+                <Input placeholder="Storgatan 1" value={editForm.addressStreet} onChange={(e) => setEditForm(f => ({ ...f, addressStreet: e.target.value }))} />
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Address</Label>
-              <Input
-                placeholder="Storgatan 1, 123 45 Stad"
-                value={editForm.address}
-                onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
-              />
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
-              <input type="checkbox" checked={editForm.isFlexible} onChange={(e) => setEditForm((f) => ({ ...f, isFlexible: e.target.checked }))} className="rounded" />
-              <span>Flexible — can take hours from the shared pool</span>
-            </label>
-            <div className="flex justify-end gap-2 mt-2">
-              <Button variant="ghost" onClick={() => setEditTarget(null)}>Cancel</Button>
-              <Button disabled={!editForm.name || updateAssistant.isPending}
-                onClick={() => updateAssistant.mutate({ id: editTarget!.id as string, data: { name: editForm.name, pno: editForm.pno, phone: editForm.phone, minWeeklyHours: parseInt(editForm.minWeeklyHours), isFlexible: editForm.isFlexible, address: editForm.address } })}>
-                Save changes
-              </Button>
-            </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Postnummer</Label>
+                  <Input pattern="\d{3}\s?\d{2}" placeholder="123 45" value={editForm.addressZip} onChange={(e) => setEditForm(f => ({ ...f, addressZip: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Ort</Label>
+                  <Input placeholder="Stockholm" value={editForm.addressCity} onChange={(e) => setEditForm(f => ({ ...f, addressCity: e.target.value }))} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Min timmar/vecka</Label>
+                <div className="relative">
+                  <Input type="number" className="pr-8" value={editForm.minWeeklyHours} onChange={(e) => setEditForm(f => ({ ...f, minWeeklyHours: e.target.value }))} />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">h</span>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input type="checkbox" checked={editForm.isFlexible} onChange={(e) => setEditForm(f => ({ ...f, isFlexible: e.target.checked }))} className="rounded" />
+                <span>Flexibel — kan ta timmar från den delade poolen</span>
+              </label>
+            </CollapsibleSection>
+
+            <CollapsibleSection
+              title="Anställning & ekonomi"
+              open={editSectionOpen.employment}
+              onToggle={() => setEditSectionOpen(s => ({ ...s, employment: !s.employment }))}
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Anställningsstart</Label>
+                  <Input type="date" value={editForm.employmentStartDate} onChange={(e) => setEditForm(f => ({ ...f, employmentStartDate: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Anställning slutar</Label>
+                  <Input type="date" placeholder="Lämna tomt om tillsvidare" value={editForm.employmentEndDate} onChange={(e) => setEditForm(f => ({ ...f, employmentEndDate: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Medborgarskap</Label>
+                  <Input placeholder="Svenskt" value={editForm.citizenship} onChange={(e) => setEditForm(f => ({ ...f, citizenship: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Uppehållstillstånd giltigt t.o.m.</Label>
+                  <Input type="date" placeholder="Endast om icke-EU/EES" value={editForm.residencePermitExpiry} onChange={(e) => setEditForm(f => ({ ...f, residencePermitExpiry: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Skattetabell</Label>
+                  <Input type="number" min={29} max={40} placeholder="Lämna tomt — schablon 30% används" value={editForm.skattetabell} onChange={(e) => setEditForm(f => ({ ...f, skattetabell: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Skatteform</Label>
+                  <Select value={editForm.taxScheme} onValueChange={(v) => setEditForm(f => ({ ...f, taxScheme: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {TAX_SCHEME_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Clearingnummer</Label>
+                  <Input pattern="\d{4,5}" placeholder="1234" value={editForm.bankClearing} onChange={(e) => setEditForm(f => ({ ...f, bankClearing: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Kontonummer</Label>
+                  <Input placeholder="12 34 56 78" value={editForm.bankAccount} onChange={(e) => setEditForm(f => ({ ...f, bankAccount: e.target.value }))} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>IBAN</Label>
+                <Input pattern="[A-Z]{2}\d{2}.*" placeholder="SE00 0000 0000 0000 0000 0000" value={editForm.iban} onChange={(e) => setEditForm(f => ({ ...f, iban: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Anteckningar</Label>
+                <Textarea rows={3} placeholder="Fri text — synlig endast för guardian" value={editForm.notes} onChange={(e) => setEditForm(f => ({ ...f, notes: e.target.value }))} />
+              </div>
+            </CollapsibleSection>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4 px-1">
+            <Button variant="ghost" onClick={() => setEditTarget(null)}>Avbryt</Button>
+            <Button
+              disabled={!editForm.name || updateAssistant.isPending}
+              onClick={() => updateAssistant.mutate({
+                id: editTarget!.id as string,
+                data: {
+                  name:                  editForm.name,
+                  pno:                   editForm.pno,
+                  phone:                 editForm.phone,
+                  email:                 editForm.email,
+                  minWeeklyHours:        parseInt(editForm.minWeeklyHours) || 0,
+                  isFlexible:            editForm.isFlexible,
+                  address:               editForm.address,
+                  addressStreet:         editForm.addressStreet,
+                  addressZip:            editForm.addressZip,
+                  addressCity:           editForm.addressCity,
+                  employmentStartDate:   editForm.employmentStartDate || null,
+                  employmentEndDate:     editForm.employmentEndDate   || null,
+                  citizenship:           editForm.citizenship,
+                  residencePermitExpiry: editForm.residencePermitExpiry || null,
+                  notes:                 editForm.notes,
+                  skattetabell:          editForm.skattetabell === "" ? null : parseInt(editForm.skattetabell, 10),
+                  taxScheme:             editForm.taxScheme,
+                  bankClearing:          editForm.bankClearing,
+                  bankAccount:           editForm.bankAccount,
+                  iban:                  editForm.iban,
+                },
+              })}
+            >
+              Spara ändringar
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
