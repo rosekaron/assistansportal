@@ -480,7 +480,7 @@ Current shipping order:
 - [x] 07-02-PLAN.md — Route whitelist extensions (profile.ts PUT + assistants.ts PUT) for new columns
 - [x] 07-03-PLAN.md — Dead scheduling scaffolding removal (routes + client API helpers + Settings Scheduling card) — CLEAN-01/02/03
 - [x] 07-04-PLAN.md — Settings collapsible sections: Assistants edit dialog (17 fields, 2 sections) + Profile FK-beslut section (5 new fields)
-- [ ] 07-05-PLAN.md — SetupWizard minimal first-time-setup prompts (3 fields: fk_decision_start/end + patient_relation_to_guardian)
+- [x] 07-05-PLAN.md — SetupWizard minimal first-time-setup prompts (3 fields: fk_decision_start/end + patient_relation_to_guardian)
 
 **UI hint**: yes
 
