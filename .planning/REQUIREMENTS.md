@@ -29,7 +29,7 @@ Requirements for the v1.0.1 milestone. Each maps to exactly one roadmap phase.
 
 - [x] **SCHEMA-01**: `assistants` table gains: skattetabell (int), tax_scheme enum (`a-skatt` | `f-skatt`), bank_clearing/bank_account/iban (text), split address (address_street/address_zip/address_city), employment_start_date/employment_end_date (date), citizenship (text), residence_permit_expiry (date), notes (text)
 - [x] **SCHEMA-02**: `profile` table gains: patient_requires_representative (bool), patient_relation_to_guardian enum (`parent-child` | `spouse` | `adult-child` | `legal-guardian` | `god_man` | `other`), fk_decision_start/fk_decision_end (date), fk_decision_hours_per_day (int), dubbel_assistans_approved (bool), split household vs patient vs guardian addresses
-- [ ] **SCHEMA-03**: Settings → Profile + Settings → Assistants expose all new fields for editing with Swedish labels and appropriate input types
+- [x] **SCHEMA-03**: Settings → Profile + Settings → Assistants expose all new fields for editing with Swedish labels and appropriate input types
 
 ### Scheduling Cleanup (CLEAN)
 
@@ -112,7 +112,7 @@ Each v1.0.1 requirement maps to exactly one phase.
 | EMP-02 | 8 | Pending |
 | SCHEMA-01 | 7 | Complete |
 | SCHEMA-02 | 7 | Complete |
-| SCHEMA-03 | 7 | Pending |
+| SCHEMA-03 | 7 | Complete |
 | CLEAN-01 | 7 | Complete |
 | CLEAN-02 | 7 | Complete |
 | CLEAN-03 | 7 | Complete |
