@@ -475,7 +475,13 @@ Current shipping order:
 4. Settings → Scheduling card no longer appears; navigating to `/api/slots`, `/api/assistant/self-book/:id`, or `/api/assistant/open-slots` returns 404; `open_slots` table is dropped from the database
 5. Fresh-DB boot (`seedDefaults()`) does not write the dead keys `allow_self_book`, `self_book_approval`, or `booking_window_days`
 
-**Plans:** TBD
+**Plans:** 5 plans
+- [ ] 07-01-PLAN.md — Schema additions (assistants + profile + payrollRecords new columns + enums) + CLEAN-03 seedDefaults cleanup + [BLOCKING] db:push
+- [ ] 07-02-PLAN.md — Route whitelist extensions (profile.ts PUT + assistants.ts PUT) for new columns
+- [ ] 07-03-PLAN.md — Dead scheduling scaffolding removal (routes + client API helpers + Settings Scheduling card) — CLEAN-01/02/03
+- [ ] 07-04-PLAN.md — Settings collapsible sections: Assistants edit dialog (17 fields, 2 sections) + Profile FK-beslut section (5 new fields)
+- [ ] 07-05-PLAN.md — SetupWizard minimal first-time-setup prompts (3 fields: fk_decision_start/end + patient_relation_to_guardian)
+
 **UI hint**: yes
 
 ---
