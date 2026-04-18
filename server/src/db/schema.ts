@@ -1,12 +1,13 @@
 import {
   pgTable, text, integer, real, boolean,
-  timestamp, serial, pgEnum
+  timestamp, serial, pgEnum, date
 } from "drizzle-orm/pg-core";
 
 // ── Enums ─────────────────────────────────────────────────────
 export const reqStatusEnum    = pgEnum("req_status",    ["pending","approved","rejected","cancelled"]);
 export const repStatusEnum    = pgEnum("rep_status",    ["draft","pending","approved","rejected"]);
 export const calStatusEnum    = pgEnum("cal_status",    ["tentative","confirmed"]);
+// NOTE: "self_book" value retained per D-14 — used by clock.ts as clock-origin marker, NOT for self-booking UX (removed in CLEAN-01).
 export const sourceEnum       = pgEnum("source",        ["proposal","self_book"]);
 export const inviteStatusEnum = pgEnum("invite_status", ["pending","accepted","declined","revoked"]);
 export const roleEnum         = pgEnum("role",          ["guardian","assistant"]);
@@ -15,6 +16,11 @@ export const absenceTypeEnum  = pgEnum("absence_type",  ["sjukfrånvaro","vab","
 export const payrollStatusEnum  = pgEnum("payroll_status",   ["draft", "approved"]);
 export const paymentMethodEnum  = pgEnum("payment_method",   ["bankgiro", "swish", "kontant"]);
 export const clockTypeEnum      = pgEnum("clock_type",       ["in", "out"]);
+
+// v1.0.1 Phase 7 additions
+export const taxSchemeEnum           = pgEnum("tax_scheme",           ["a-skatt", "f-skatt"]);                                                               // D-15
+export const patientRelationEnum     = pgEnum("patient_relation",     ["parent-child", "spouse", "adult-child", "legal-guardian", "god_man", "other"]);       // D-16
+export const salaryModelSnapshotEnum = pgEnum("salary_model_snapshot", ["anhörig", "fremia", "custom"]);                                                      // for payroll_records snapshot; live logic ships Phase 9
 
 // ── Profile ───────────────────────────────────────────────────
 // NOTE: weeklyHours below = FK beslut hour entitlement (stated per week per 51 kap 9§ SFB).
@@ -32,6 +38,18 @@ export const profile = pgTable("profile", {
   city:          text("city").default(""),
   zip:           text("zip").default(""),
   fkDecisionNo:  text("fk_decision_no").default(""),
+  // v1.0.1 Phase 7 additions (SCHEMA-02 / D-02, D-03, D-07 (split address), D-09, D-16, D-17)
+  // Split household address columns added alongside existing `address` (D-07 fallback).
+  // weeklyHours stays as the single source of truth for FK hour entitlement (D-01, D-04).
+  // See docs/compliance/swedish-fk-and-labor-rules.md §7.3 for why fk_decision_hours_per_day is NOT added.
+  addressStreet:                 text("address_street").default(""),
+  addressZip:                    text("address_zip").default(""),
+  addressCity:                   text("address_city").default(""),
+  fkDecisionStart:               date("fk_decision_start"),                                                     // D-02
+  fkDecisionEnd:                 date("fk_decision_end"),                                                       // D-02
+  dubbelAssistansApproved:       boolean("dubbel_assistans_approved").default(false),                           // D-03
+  patientRelationToGuardian:     patientRelationEnum("patient_relation_to_guardian").default("parent-child"),   // D-16
+  patientRequiresRepresentative: boolean("patient_requires_representative").default(false),                     // SCHEMA-02 / Phase 8 dependency
   weeklyHours:   integer("weekly_hours").default(129),
   setupDone:     boolean("setup_done").default(false),
   createdAt:     timestamp("created_at").defaultNow(),
@@ -82,6 +100,20 @@ export const assistants = pgTable("assistants", {
   inviteStatus:   inviteStatusEnum("invite_status").default("pending"),
   authId:         integer("auth_id"),
   address:        text("address").default(""),
+  // v1.0.1 Phase 7 additions (SCHEMA-01 / D-07, D-15, D-17)
+  addressStreet:         text("address_street").default(""),            // D-07 — new split address; existing single-line `address` kept for fallback
+  addressZip:            text("address_zip").default(""),
+  addressCity:           text("address_city").default(""),
+  skattetabell:          integer("skattetabell"),                        // D-17 — null OK; flat 30% remains until v1.4 closes H3
+  taxScheme:             taxSchemeEnum("tax_scheme").default("a-skatt"), // D-15
+  bankClearing:          text("bank_clearing").default(""),              // D-17
+  bankAccount:           text("bank_account").default(""),
+  iban:                  text("iban").default(""),
+  employmentStartDate:   date("employment_start_date"),                  // D-17 — null OK until guardian fills it
+  employmentEndDate:     date("employment_end_date"),                    // null = tillsvidare
+  citizenship:           text("citizenship").default(""),
+  residencePermitExpiry: date("residence_permit_expiry"),                // null for EU/EES medborgare
+  notes:                 text("notes").default(""),                      // D-17 — free-form
   createdAt:      timestamp("created_at").defaultNow(),
 });
 
@@ -106,18 +138,6 @@ export const entries = pgTable("entries", {
   // Plan 06 reads this flag to show the "Verified" badge on the Monthly page.
   // Manual entries (proposals, guardian-created) remain verified=false.
   verified:    boolean("verified").default(false),
-});
-
-// ── Open slots ────────────────────────────────────────────────
-export const openSlots = pgTable("open_slots", {
-  id:         text("id").primaryKey(),
-  date:       text("date").notNull(),
-  startTime:  text("start_time").notNull(),
-  endTime:    text("end_time").notNull(),
-  hours:      real("hours").notNull(),
-  capacity:   integer("capacity").default(1),
-  activityId: text("activity_id"),
-  createdAt:  timestamp("created_at").defaultNow(),
 });
 
 // ── Blocked time ──────────────────────────────────────────────
@@ -188,6 +208,9 @@ export const payrollRecords = pgTable("payroll_records", {
   hourlyRateSnapshot:    real("hourly_rate_snapshot").notNull(),  // snapshotted from FK_HOURLY_RATE at generation (D-02)
   taxRateSnapshot:       real("tax_rate_snapshot").notNull(),     // snapshotted from EMPLOYER_TAX_RATE at generation (D-02)
   prelimTaxRateSnapshot: real("prelim_tax_rate_snapshot").default(0),  // snapshotted preliminary tax rate at generation (D-05)
+  // v1.0.1 Phase 7 additions — snapshot at generation time; live logic in Phase 9 (SLIP-07)
+  salaryModelUsed:       salaryModelSnapshotEnum("salary_model_used").default("anhörig"),
+  hourlyRateUsed:        real("hourly_rate_used").default(0),
   grossPay:              real("gross_pay").notNull(),
   employerContributions: real("employer_contributions").notNull(),
   totalEmployerCost:     real("total_employer_cost").notNull(),
@@ -246,7 +269,6 @@ export type Profile           = typeof profile.$inferSelect;
 export type Auth              = typeof auth.$inferSelect;
 export type Assistant         = typeof assistants.$inferSelect;
 export type Entry             = typeof entries.$inferSelect;
-export type OpenSlot          = typeof openSlots.$inferSelect;
 export type Blocked           = typeof blocked.$inferSelect;
 export type Invite            = typeof invites.$inferSelect;
 export type EmailVerification = typeof emailVerifications.$inferSelect;
