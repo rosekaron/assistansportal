@@ -4,7 +4,8 @@
 
 **Shipped:** v1.0 — Stability, Compliance, and Core Payroll
 **Git tag:** `v1.0` (archive commit on branch `milestone/v1.0-mvp`)
-**Next milestone:** v1.0.1 — Salary Slip + Foundation Cleanup (legally required; kicks off via `/gsd-new-milestone v1.0.1`)
+**Active milestone:** v1.0.1 — Salary Slip + Foundation Cleanup (branch `milestone/v1.0.1`)
+**v1.0.1 progress:** Phase 7 complete (2026-04-18, 22/22 must-haves). Phases 8/9/10 remaining (EMP, SLIP, DATA).
 
 **v1.0 delivered:** 9 phases, 36 plans, 51 tasks. End-to-end monthly compliance cycle — schedule → approve → payroll → FK 3057/3059 + SKV 4805. See [.planning/MILESTONES.md](MILESTONES.md) for the full accomplishment list and [.planning/milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for phase details.
 
@@ -62,9 +63,22 @@ The guardian can complete the full monthly cycle — approve hours, generate all
 - ✓ Multi-family assistant support (assistant-guardian links + family selector) — v1.0 / Phase 3.5
 - ✓ B2B-ready design system across guardian + assistant views — v1.0 / Phase 2.5
 
+<!-- v1.0.1 Phase 7 shipped (2026-04-18) -->
+
+- ✓ `assistants` schema gained 13 new columns (skattetabell, tax_scheme, bank clearing/account/iban, split address, employment_start/end_date, citizenship, residence_permit_expiry, notes) — v1.0.1 / Phase 7 (SCHEMA-01)
+- ✓ `profile` schema gained 8 new columns (split address, fk_decision_start/end, dubbel_assistans_approved, patient_relation_to_guardian, patient_requires_representative) — v1.0.1 / Phase 7 (SCHEMA-02)
+- ✓ `payroll_records` snapshots `salary_model_used` + `hourly_rate_used` at generation time — v1.0.1 / Phase 7 (SCHEMA-03)
+- ✓ Settings → Profile card refactored into collapsible Personuppgifter + FK-beslut sections with all new editable fields — v1.0.1 / Phase 7
+- ✓ Settings → Assistants edit dialog widened to max-w-lg with collapsible Personuppgifter + Anställning & ekonomi sections (17 guardian-editable fields) — v1.0.1 / Phase 7
+- ✓ SetupWizard captures fk_decision_start/end + patient_relation_to_guardian on first-time setup — v1.0.1 / Phase 7
+- ✓ Settings "Scheduling" card removed (self-book toggle, approval mode, booking window) — v1.0.1 / Phase 7 (CLEAN-01)
+- ✓ `openSlots` table dropped; `/api/slots` + `/api/assistant/self-book` + `/api/assistant/open-slots` endpoints removed — v1.0.1 / Phase 7 (CLEAN-02)
+- ✓ Dead settings keys (`allow_self_book`, `self_book_approval`, `booking_window_days`) removed from `seedDefaults()`; client helpers `slotsApi` / `assistantApi.selfBook` / `assistantApi.openSlots` removed — v1.0.1 / Phase 7 (CLEAN-03)
+- ✓ Resolved pre-existing v1.0 schema drift (7 orphaned columns on entries/assistants/profile, timestamptz declaration mismatch on 3 columns) — v1.0.1 / Phase 7
+
 ### Active
 
-<!-- v1.0.1 milestone scope -->
+<!-- v1.0.1 milestone scope remaining: Phases 8/9/10 -->
 
 #### Salary Slip (Lönespecifikation)
 - [ ] Guardian can generate and download a monthly salary slip PDF per approved assistant per month
@@ -80,16 +94,10 @@ The guardian can complete the full monthly cycle — approve hours, generate all
 - [ ] `profile.patient_requires_representative` boolean override exists for adult-without-capacity (god man) case
 
 #### Schema Additions (unblocks v1.2 + v1.3)
-- [ ] `assistants` schema gains: skattetabell, tax_scheme, bank fields (clearing/account/iban), split address, employment_start/end_date, citizenship + residence_permit_expiry, notes, hourly_rate_override
-- [ ] `profile` schema gains: fk_decision_start/end, fk_decision_hours_per_day, dubbel_assistans_approved, patient_relation_to_guardian, patient_requires_representative
-- [ ] Settings → Profile + Settings → Assistants expose all new fields for editing
-- [ ] `payroll_records` snapshots `salary_model_used` + `hourly_rate_used` at generation time
+✓ Shipped in Phase 7 — see Validated section above. `hourly_rate_override` and `fk_decision_hours_per_day` intentionally deferred per 07-CONTEXT D-01 (weeklyHours remains single source of truth per FK 51 kap 9§ SFB) and D-18 (rate decoupling moved to v1.4 with Fremia model).
 
 #### Scheduling Scaffolding Removal
-- [ ] Settings "Scheduling" card removed (self-book toggle, approval mode, booking window)
-- [ ] `openSlots` table dropped; `/api/slots` + `/api/assistant/self-book` + `/api/assistant/open-slots` endpoints removed
-- [ ] Dead settings keys (`allow_self_book`, `self_book_approval`, `booking_window_days`) removed from `seedDefaults()`
-- [ ] Client API helpers (`slotsApi`, `assistantApi.selfBook`, `assistantApi.openSlots`) removed
+✓ Shipped in Phase 7 — see Validated section above.
 
 #### Real Data Entry
 - [ ] Guardian enters real patient pno, patient name, patient address (no placeholder "TBD" or "000000-0000" remaining)
@@ -146,7 +154,7 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-18 — v1.0.1 milestone kick-off (Salary Slip + Foundation Cleanup)*
+*Last updated: 2026-04-18 — v1.0.1 Phase 7 (Foundation — Schema & Cleanup) complete, 22/22 must-haves verified. Next: Phase 8 (Employer Representation Helper).*
 
 ## Core Value Proposition (Clarified 2026-04-10)
 

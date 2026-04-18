@@ -34,6 +34,13 @@ Assistansportal is a care management platform that digitizes and automates the c
 - Monthly compliance checklist with FK and AGI deadline tracking
 - Email deadline reminders
 
+**v1.0.1 in progress** (branch `milestone/v1.0.1`):
+
+- ✓ Phase 7 — Foundation: Schema & Cleanup (2026-04-18). Schema extended with 23 new columns + 3 enums on `assistants`/`profile`/`payroll_records` for FK-beslut metadata, bank details, tax scheme, split address, employment dates, patient-representation override, and salary-model snapshots. Dead scheduling scaffolding removed (`open_slots` table, `/api/slots` + self-book endpoints, Settings Scheduling card, `slotsApi` client helpers). Settings UI rebuilt with 2-section collapsibles for Profile (Personuppgifter / FK-beslut) and Assistants edit dialog (Personuppgifter / Anställning & ekonomi). SetupWizard captures minimum fields for downstream phases.
+- ☐ Phase 8 — Employer Representation Helper (next). Single `resolveEmployerRepresentation()` helper to replace hardcoded `guardianName` in FK 3057/3059, SKV 4805, and the upcoming salary slip.
+- ☐ Phase 9 — Salary Slip (anhörig model) — legally required per Swedish labor law.
+- ☐ Phase 10 — Real Data Entry & End-to-End Verification.
+
 **Vision — full platform:**
 
 - **Care instructions:** structured documentation from parents and primary caregivers, accessible to all assistants
@@ -82,7 +89,7 @@ High retention expected due to regulatory dependency and data lock-in.
 
 **Shipped:** v1.0 — Stability, Compliance, and Core Payroll (2026-04-18). Full monthly compliance cycle working end-to-end.
 
-**Next milestone:** [v1.0.1 — Salary Slip + Foundation Cleanup](.planning/ROADMAP.md) (legally required; ~1 week).
+**Active milestone:** [v1.0.1 — Salary Slip + Foundation Cleanup](.planning/ROADMAP.md) on branch `milestone/v1.0.1`. Phase 7 (Foundation — Schema & Cleanup) complete as of 2026-04-18 with 22/22 must-haves verified. Phases 8 (Employer Representation), 9 (Salary Slip), and 10 (Real Data Entry) remaining.
 
 **Target users today:** disabled people and their families who have chosen to self-manage their assistansersättning (personal assistance compensation from Försäkringskassan) rather than delegate to a staffing company like Humana or Attendo. The platform handles the full monthly compliance cycle — scheduling assistants, tracking hours, generating FK and Skatteverket forms, calculating payroll — so the guardian can run their own "micro-assistance employer" without specialist knowledge.
 

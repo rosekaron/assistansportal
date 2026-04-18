@@ -14,6 +14,7 @@ If you're a new session / new LLM and have never seen this project before, **rea
 
 - **v1.0 is shipped and archived** (2026-04-18). 9 phases shipped, 36 plans summarised, 15/15 requirements satisfied in code. Git tag `v1.0`. Branch `milestone/v1.0-mvp` on `origin`. Full archive at [.planning/milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md).
 - **v1.0.1 is the active milestone** (kicked off 2026-04-18). 4 phases (7–10), 18 requirements, ~6.5 days of work. Scope: legally-required salary slip (lönespec) for anhörig-model assistants, employer-representation helper, absorbed schema cleanup, scheduling scaffolding removal, real-data entry.
+- **Phase 7 is complete** (2026-04-18). Foundation — Schema & Cleanup shipped on branch `milestone/v1.0.1`: all new `assistants` + `profile` columns live in Postgres, PUT whitelists extended (no new endpoints), dead scheduling scaffolding excised (routes + client helpers + Settings Scheduling card), Settings 2-section collapsibles with 15 new guardian-editable fields, SetupWizard captures 3 minimum first-time-setup fields. Verifier score: 22/22 must-haves. SCHEMA-01/02/03 + CLEAN-01/02/03 all Complete. **Next up: Phase 8 — Employer Representation Helper.**
 - **The app itself works end-to-end** — guardian can run the full monthly compliance cycle (schedule, approve, payroll, FK 3057, FK 3059, SKV 4805) in the current UI. v1.0 accepted-known-issues and deferred items are catalogued in [.planning/milestones/v1.0-MILESTONE-AUDIT.md](milestones/v1.0-MILESTONE-AUDIT.md).
 
 ### The essential facts about this product
@@ -58,8 +59,9 @@ Eight concrete decisions that bind future work:
 
 For the next session / new LLM:
 
-1. **If user says "continue v1.0.1":** read the v1.0.1 phase section below, then `cat .planning/STATE.md` to see current phase/plan position, then run `/gsd-plan-phase <N>` on the current phase if plans aren't decomposed, or `/gsd-execute-plan <N-M>` to keep implementing.
+1. **If user says "continue v1.0.1":** Phase 7 is complete — pick up Phase 8 (Employer Representation Helper). Read `.planning/phases/07-foundation-schema-cleanup/07-VERIFICATION.md` for the foundation that's in place, then the Phase 8 section below, then run `/gsd-discuss-phase 8` (if no 08-CONTEXT.md exists) or `/gsd-plan-phase 8`.
 2. **If user asks a specific question about any decision:** the session decisions list above has the reasoning. Cross-references point to the audit, compliance brief, or todo files with full context.
+3. **If user asks about the schema or current Settings UI:** it's the state after Phase 7 — 23 new columns + 3 new enums live in Postgres, Settings has 2-section collapsibles for Profile (Personuppgifter / FK-beslut) and Assistants edit (Personuppgifter / Anställning & ekonomi) with `max-w-lg` dialog. Read `.planning/phases/07-foundation-schema-cleanup/07-01-SUMMARY.md` for the exact column list.
 
 ### Artifacts that together tell the full story
 
@@ -156,7 +158,7 @@ Full detail in [milestones/v1.0-MILESTONE-AUDIT.md](milestones/v1.0-MILESTONE-AU
 
 ### Phases (v1.0.1)
 
-- [ ] **Phase 7: Foundation — Schema & Cleanup** — Add all new `assistants` + `profile` columns and remove dead scheduling scaffolding so downstream phases build on a clean, complete schema
+- [x] **Phase 7: Foundation — Schema & Cleanup** — Shipped 2026-04-18. All new `assistants` + `profile` columns live, PUT whitelists extended, dead scheduling scaffolding removed, Settings 2-section UI + SetupWizard additions verified. 22/22 must-haves passed.
 - [ ] **Phase 8: Employer Representation Helper** — Extract single `resolveEmployerRepresentation()` helper and refactor FK 3057, FK 3059, SKV 4805 renderers to use it so the employer-name bug is closed and the slip renderer has a clean input
 - [ ] **Phase 9: Salary Slip (Anhörig Model)** — Ship the legally-required lönespec PDF with guardian + assistant download paths, payroll-approval gate, audit table, and scaffolding for Fremia/Custom (v1.4/v1.5)
 - [ ] **Phase 10: Real Data Entry & End-to-End Verification** — Guardian enters real brukare/guardian/assistant data in Settings and downloads clean FK 3057 + SKV 4805 + lönespec PDFs with zero placeholder text
@@ -712,12 +714,12 @@ Phase 10: Real Data Entry & End-to-End Verification  (exercises the full pipelin
 | SLIP-07 | 9 | Salary Slip | Pending |
 | EMP-01 | 8 | Employer Representation | Pending |
 | EMP-02 | 8 | Employer Representation | Pending |
-| SCHEMA-01 | 7 | Schema Additions | Pending |
-| SCHEMA-02 | 7 | Schema Additions | Pending |
-| SCHEMA-03 | 7 | Schema Additions | Pending |
-| CLEAN-01 | 7 | Scheduling Cleanup | Pending |
-| CLEAN-02 | 7 | Scheduling Cleanup | Pending |
-| CLEAN-03 | 7 | Scheduling Cleanup | Pending |
+| SCHEMA-01 | 7 | Schema Additions | Complete |
+| SCHEMA-02 | 7 | Schema Additions | Complete |
+| SCHEMA-03 | 7 | Schema Additions | Complete |
+| CLEAN-01 | 7 | Scheduling Cleanup | Complete |
+| CLEAN-02 | 7 | Scheduling Cleanup | Complete |
+| CLEAN-03 | 7 | Scheduling Cleanup | Complete |
 | DATA-01 | 10 | Real Data | Pending |
 | DATA-02 | 10 | Real Data | Pending |
 | DATA-03 | 10 | Real Data | Pending |
@@ -729,3 +731,4 @@ Phase 10: Real Data Entry & End-to-End Verification  (exercises the full pipelin
 *Roadmap created: 2026-04-06*
 *v1.0 archived: 2026-04-18 — 15/15 requirements, 9 phases shipped*
 *v1.0.1 roadmap: 2026-04-18 — 4 phases (7–10), 18 requirements*
+*v1.0.1 progress: 2026-04-18 — Phase 7 complete (22/22 must-haves), 6/18 requirements closed, 3 phases remaining (8/9/10)*
