@@ -5,6 +5,7 @@ import { db } from "../db";
 import { entries, assistants, profile, absences, payrollRecords } from "../db/schema";
 import { eq, and, gte, lte, or, isNull } from "drizzle-orm";
 import { buildForm4805Fields, Form4805Input } from "../lib/form4805-utils";
+import { resolveEmployerRepresentation } from "../lib/employer-representation";
 import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 import { filterBillableEntries } from "../lib/absence-utils";
 import path from "path";
@@ -113,6 +114,15 @@ router.post("/fk3059", requireAuth, requireGuardian, async (req: AuthRequest, re
 
     const billableEntries = filterBillableEntries(monthEntries, monthAbsences);
 
+    // Resolve employer / representative per D-01 (asOfDate = last day of report period).
+    // `end` above is already YYYY-MM-DD for the last day of the month.
+    const rep = resolveEmployerRepresentation(prof ?? {
+      patientName: null, patientPno: null,
+      guardianName: null, guardianPno: null,
+      patientRequiresRepresentative: null,
+      address: null, addressStreet: null, addressZip: null, addressCity: null,
+    }, new Date(end));
+
     // ── Build field map ───────────────────────────────────────
     const fields: Record<string, string> = {};
 
@@ -136,8 +146,8 @@ router.post("/fk3059", requireAuth, requireGuardian, async (req: AuthRequest, re
     fields["form1[0].#subform[0].flt_datmod6_1[0]"] = start;
     fields["form1[0].#subform[0].flt_datmod6_2[0]"] = end;
 
-    // Section 5: Guardian / employer
-    fields["form1[0].#subform[0].flt_txtNamnAnordnaren[0]"] = prof?.guardianName  ?? "";
+    // Section 5: Employer (Anordnaren = patient per EMP-02) + contact (guardian per D-09)
+    fields["form1[0].#subform[0].flt_txtNamnAnordnaren[0]"] = rep.arbetsgivare.name;
     fields["form1[0].#subform[0].flt_txtKontaktperson[0]"]  = prof?.guardianName  ?? "";
     fields["form1[0].#subform[0].flt_txtTelefon1[0]"]       = prof?.guardianPhone ?? "";
 
@@ -376,6 +386,13 @@ router.post("/4805", requireAuth, requireGuardian, async (req: AuthRequest, res)
         address:       prof?.address       ?? "",
         city:          prof?.city          ?? "",
         zip:           prof?.zip           ?? "",
+        // Phase 8 — patient identity for employer-representation helper
+        patientName:                    prof?.patientName                    ?? "",
+        patientPno:                     prof?.patientPno                     ?? "",
+        patientRequiresRepresentative:  prof?.patientRequiresRepresentative  ?? false,
+        addressStreet:                  prof?.addressStreet                  ?? "",
+        addressZip:                     prof?.addressZip                     ?? "",
+        addressCity:                    prof?.addressCity                    ?? "",
       },
       assistant: {
         name:    asst.name,
