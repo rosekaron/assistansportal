@@ -516,19 +516,19 @@ Note this implies a second route `GET /api/assistant/slips` for the JSON listing
 | A4 | `drizzle-kit push` will add 3 `assistants` columns + 1 `profile` column + 1 new `payment_slips` table in a single interactive run without prompting for a destructive change | Pitfall 4 | Very low — changes are purely additive. Phase 7 did 23+ additive columns via push without issue. |
 | A5 | `req.assistantId` is populated by `requireAuth` when the JWT payload includes `assistantId`, and the existing invite-acceptance flow issues assistant JWTs with that field set | Pitfall 6, Pitfall 7 | Low — verified against `middleware/auth.ts:17–23` which copies `payload.assistantId` onto the request. Existing `assistant.ts:14` uses the same field. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should historical slip generation (D-11) fall back to `assistant.hourlyRateOverride` when `payroll_records.hourlyRateUsed` is 0, or refuse and require re-approval?**
+1. **RESOLVED:** Fall back to `assistant.hourlyRateOverride` when `payroll_records.hourlyRateUsed = 0` (or null). Implemented in Plan 02 Test 16 (builder-level fallback) and Plan 03 handler logic (endpoint-level rate-NULL gate per D-12 runs against `assistants.hourlyRateOverride`, not the snapshot). **Should historical slip generation (D-11) fall back to `assistant.hourlyRateOverride` when `payroll_records.hourlyRateUsed` is 0, or refuse and require re-approval?**
    - What we know: D-12 guarantees override is non-null at generation time. D-11 allows historical slips. Pre-SLIP-07 records may have `hourlyRateUsed = 0`.
    - What's unclear: Which value wins when they disagree (override = 254.10, snapshot = 0).
    - Recommendation: Plan a small decision step — my suggestion is "fall back to override" because (a) override is the user's intent, (b) SLIP-07 was a migration gap not a policy shift, (c) refusing would be user-hostile for the March 2026 retroactive filing thread. This should be captured as a planner decision in the PLAN.md.
 
-2. **Does the JSON listing for AssistantDashboard slip rows live on `/api/assistant/slips` or `/api/pdf/lonespec/me` (GET without `month` query)?**
+2. **RESOLVED:** Separate `GET /api/assistant/slips` endpoint returning `PaymentSlip[]` for the JWT-bound assistant, ordered reportMonth DESC then issuedAt DESC. Shipped in Plan 03 Task 2 (handler added to `server/src/routes/assistant.ts`). Clean separation preserved: `/pdf/*` streams PDFs, `/assistant/*` returns JSON. **Does the JSON listing for AssistantDashboard slip rows live on `/api/assistant/slips` or `/api/pdf/lonespec/me` (GET without `month` query)?**
    - What we know: D-08 defines `/pdf/lonespec/me?month=YYYY-MM` as the PDF download endpoint. The list is separate data.
    - What's unclear: CONTEXT doesn't explicitly specify the listing endpoint.
    - Recommendation: `GET /api/assistant/slips` returning `PaymentSlip[]` for the JWT-bound assistant, ordered newest-first (reportMonth DESC, issuedAt DESC per UI-SPEC). Clean separation: `/pdf/*` streams PDFs, `/assistant/*` returns JSON. Planner should confirm.
 
-3. **Does the Monthly.tsx Lönespec download row live as a sibling section to the existing "AGI (blankett 4805)" section, or as sub-rows under a renamed "Månadsdokument" section?**
+3. **RESOLVED:** Option B — new sibling `Lönespecifikation` section on Monthly.tsx, adjacent to (not nested under) the existing AGI 4805 section. Implemented in Plan 04 Task 2. **Does the Monthly.tsx Lönespec download row live as a sibling section to the existing "AGI (blankett 4805)" section, or as sub-rows under a renamed "Månadsdokument" section?**
    - What we know: 09-UI-SPEC.md Copywriting leaves this as executor's discretion (Option A vs Option B).
    - What's unclear: User's preference.
    - Recommendation: Option B (new sibling section titled "Lönespecifikation") for v1.0.1 — less invasive, no rename of the existing tested 4805 section, and cleaner visual hierarchy for the numbered-step Monthly layout.

@@ -525,7 +525,11 @@ Current shipping order:
 5. Each successful slip generation writes a row to `payment_slips` with a unique document number (format `LS-YYYY-MM-NNN`), issued-at timestamp, pay method, and pay date — a replay of the same month reuses the stored document number
 6. Settings → Assistants edit dialog exposes a salary-model dropdown with "Anhörigassistans" enabled, "Fremia" and "Custom" disabled with "(Kommer i v1.4/v1.5)" label, plus a per-assistant hourly_rate_override numeric field
 
-**Plans:** TBD
+**Plans:** 4 plans
+- [ ] 09-01-schema-and-whitelists-PLAN.md — Schema additions (payment_slips table + 3 assistants columns + default_pay_day) + PUT whitelist extensions + [BLOCKING] drizzle db:push
+- [ ] 09-02-slip-builder-and-renderer-PLAN.md — Pure buildAnhorigSlip() builder + pdfkit renderer + Vitest unit tests (SLIP-03/04/07)
+- [ ] 09-03-endpoints-and-allocation-PLAN.md — POST /api/pdf/lonespec (guardian) + GET /api/pdf/lonespec/me (assistant) + GET /api/assistant/slips (listing) + issueOrReuseSlip helper + integration tests (SLIP-01/02/05)
+- [ ] 09-04-ui-surfaces-PLAN.md — Monthly Lönespec button (SLIP-01) + AssistantDashboard Lönespecifikationer section (SLIP-02) + Settings fields (SLIP-06) + human-verify checkpoint
 **UI hint**: yes
 
 ---
@@ -680,7 +684,7 @@ Current shipping order:
 | 6.1. UAT Bug Fix (inserted) | 1/1 | Complete | 2026-04-15 |
 | 7. Foundation — Schema & Cleanup | 0/TBD | Not started | — |
 | 8. Employer Representation Helper | 0/1 | Not started | — |
-| 9. Salary Slip (Anhörig Model) | 0/TBD | Not started | — |
+| 9. Salary Slip (Anhörig Model) | 0/4 | Not started | — |
 | 10. Real Data Entry & End-to-End Verification | 0/TBD | Not started | — |
 
 ---
