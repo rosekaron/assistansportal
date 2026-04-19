@@ -2,13 +2,24 @@
 // No DB imports. All inputs are plain objects.
 // Field names confirmed via direct PDF inspection.
 
+import { resolveEmployerRepresentation } from "./employer-representation";
+
 export type Form4805Profile = {
+  // Guardian identity — used for signature / contact / Namnfortydl (D-09)
   guardianName:  string;
   guardianPno:   string;
   guardianPhone: string;
+  // Patient identity — NEW (Phase 8): consumed by employer-representation helper
+  patientName:   string;
+  patientPno:    string;
+  patientRequiresRepresentative: boolean;
+  // Address: legacy single-line + Phase 7 split columns (helper chooses)
   address:       string;
   city:          string;
   zip:           string;
+  addressStreet: string;
+  addressZip:    string;
+  addressCity:   string;
 };
 
 export type Form4805Assistant = {
@@ -73,11 +84,11 @@ export function buildForm4805Fields(input: Form4805Input): Record<string, string
   const taxWithheld    = Math.round(grossPay * prelimTaxRateSnapshot);
   const summaToBePaid  = Math.round(employerContributions + grossPay * prelimTaxRateSnapshot);
 
-  // Employer address: "{address}, {zip} {city}"
-  const guardianAddress = [
-    profile.address,
-    [profile.zip, profile.city].filter(Boolean).join(" "),
-  ].filter(Boolean).join(", ").trim();
+  // Compute report period end-date for helper (D-01: asOfDate = last day of period).
+  // `yearMonth` is "YYYY-MM"; new Date(year, month, 0) = day 0 of NEXT month = last day of THIS month.
+  const [ymYear, ymMonth] = yearMonth.split("-").map(Number);
+  const lastDayOfPeriod = new Date(ymYear, ymMonth, 0);
+  const rep = resolveEmployerRepresentation(profile, lastDayOfPeriod);
 
   const birthYear = birthYearFromPno(assistant.pno);
 
@@ -87,10 +98,11 @@ export function buildForm4805Fields(input: Form4805Input): Record<string, string
   fields["txtManad[0]"]         = swMonthName(yearMonth);
   fields["txtRattelseDatum[0]"] = "";
 
-  // Employer (guardian) — caller fills index [0] of duplicate-named fields
-  fields["__employer__txtNamn[0]"]   = profile.guardianName;
-  fields["__employer__txtPersNr[0]"] = profile.guardianPno;
-  fields["__employer__txtAdress[0]"] = guardianAddress;
+  // Employer — the PATIENT (per Phase 8 EMP-02); helper resolves identity + address.
+  // Guardian identity still appears on the SIGNATURE block below (txtNamnfortydl) per D-09.
+  fields["__employer__txtNamn[0]"]   = rep.arbetsgivare.name;
+  fields["__employer__txtPersNr[0]"] = rep.arbetsgivare.pno;
+  fields["__employer__txtAdress[0]"] = rep.arbetsgivare.address;
 
   // Recipient (assistant) — caller fills index [1] of duplicate-named fields
   fields["__recipient__txtNamn[0]"]   = assistant.name;

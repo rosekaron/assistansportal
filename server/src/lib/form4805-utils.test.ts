@@ -10,12 +10,22 @@ import {
 } from "./form4805-utils";
 
 const baseProfile = {
+  // Guardian identity (signature / contact)
   guardianName:  "Anna Svensson",
   guardianPno:   "197001011234",
   guardianPhone: "0701234567",
+  // Legacy single-line address (kept for regression coverage; helper prefers split below)
   address:       "Storgatan 1",
   city:          "Stockholm",
   zip:           "11111",
+  // Phase 8 additions — patient identity (used as employer by helper)
+  patientName:                    "Liam Karon",
+  patientPno:                     "201501011234",   // MINOR pno
+  patientRequiresRepresentative:  false,
+  // Phase 7 split columns — helper prefers these per D-07
+  addressStreet:                  "Storgatan 1",
+  addressZip:                     "11111",
+  addressCity:                    "Stockholm",
 };
 
 const baseAssistant = {
@@ -156,11 +166,18 @@ describe("buildForm4805Fields", () => {
     expect(fields["txtRattelseDatum[0]"]).toBe("");
   });
 
-  it("populates employer (guardian) fields using __employer__ prefix", () => {
+  it("populates employer (PATIENT per Phase 8 EMP-02) fields using __employer__ prefix", () => {
     const fields = buildForm4805Fields(makeInput());
-    expect(fields["__employer__txtNamn[0]"]).toBe("Anna Svensson");
-    expect(fields["__employer__txtPersNr[0]"]).toBe("197001011234");
+    // Phase 8: employer is the patient, not the guardian. Helper resolves identity.
+    expect(fields["__employer__txtNamn[0]"]).toBe("Liam Karon");
+    expect(fields["__employer__txtPersNr[0]"]).toBe("201501011234");
     expect(fields["__employer__txtAdress[0]"]).toBe("Storgatan 1, 11111 Stockholm");
+  });
+
+  it("EMP-02 canary: employer name is patientName, NOT guardianName", () => {
+    const fields = buildForm4805Fields(makeInput());
+    expect(fields["__employer__txtNamn[0]"]).toBe("Liam Karon");
+    expect(fields["__employer__txtNamn[0]"]).not.toBe("Anna Svensson");
   });
 
   it("populates recipient (assistant) fields using __recipient__ prefix", () => {
