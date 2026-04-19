@@ -1,6 +1,6 @@
 import {
   pgTable, text, integer, real, boolean,
-  timestamp, serial, pgEnum, date
+  timestamp, serial, pgEnum, date, uniqueIndex, index
 } from "drizzle-orm/pg-core";
 
 // ── Enums ─────────────────────────────────────────────────────
@@ -51,6 +51,8 @@ export const profile = pgTable("profile", {
   patientRelationToGuardian:     patientRelationEnum("patient_relation_to_guardian").default("parent-child"),   // D-16
   patientRequiresRepresentative: boolean("patient_requires_representative").default(false),                     // SCHEMA-02 / Phase 8 dependency
   weeklyHours:   integer("weekly_hours").default(129),
+  // v1.0.1 Phase 9 addition (SLIP-05 pay-date derivation / D-07, D-09)
+  defaultPayDay:       integer("default_pay_day").default(25),   // 1–28; range enforced client-side per D-09
   setupDone:     boolean("setup_done").default(false),
   createdAt:     timestamp("created_at").defaultNow(),
   updatedAt:     timestamp("updated_at").defaultNow(),
@@ -114,6 +116,10 @@ export const assistants = pgTable("assistants", {
   citizenship:           text("citizenship").default(""),
   residencePermitExpiry: date("residence_permit_expiry"),                // null for EU/EES medborgare
   notes:                 text("notes").default(""),                      // D-17 — free-form
+  // v1.0.1 Phase 9 additions (SLIP-06 / D-07)
+  salaryModel:         salaryModelSnapshotEnum("salary_model").default("anhörig"),
+  hourlyRateOverride:  real("hourly_rate_override"),                              // nullable, no default — D-12 gate
+  paymentMethod:       paymentMethodEnum("payment_method").default("bankgiro"),
   createdAt:      timestamp("created_at").defaultNow(),
 });
 
@@ -232,6 +238,29 @@ export const payments = pgTable("payments", {
   method:          paymentMethodEnum("method").notNull(),
   createdAt:       timestamp("created_at").defaultNow(),
 });
+
+// ── Payment slips ─────────────────────────────────────────────
+// Metadata-only audit table for issued lönespecifikationer (D-05, D-06).
+// PDF is rebuilt on every download from snapshots — this table freezes only the
+// identifying information (documentNumber, issuedAt, payDate, payMethod) so a
+// re-download produces the same header.
+// Unique (assistantId, reportMonth, sequence) enforces one row per slip issue;
+// sequence reserves future supersede semantics (always 1 in v1.0.1).
+export const paymentSlips = pgTable("payment_slips", {
+  id:              text("id").primaryKey(),
+  payrollRecordId: text("payroll_record_id").notNull().references(() => payrollRecords.id, { onDelete: "cascade" }),
+  assistantId:     text("assistant_id").notNull().references(() => assistants.id, { onDelete: "cascade" }),  // denormalised (mirrors payments:229)
+  reportMonth:     text("report_month").notNull(),                       // YYYY-MM, denormalised from payrollRecords for unique-index
+  documentNumber:  text("document_number").notNull(),                    // "LS-YYYY-MM-NNN"
+  sequence:        integer("sequence").notNull().default(1),             // NNN portion — always 1 in v1.0.1
+  issuedAt:        timestamp("issued_at").defaultNow().notNull(),
+  payDate:         text("pay_date").notNull(),                           // YYYY-MM-DD, frozen at issue (D-09)
+  payMethod:       paymentMethodEnum("pay_method").notNull(),            // frozen at issue (D-10)
+  createdAt:       timestamp("created_at").defaultNow(),
+}, (t) => ({
+  uniqAssistantMonthSeq: uniqueIndex("payment_slips_assistant_month_seq_uniq").on(t.assistantId, t.reportMonth, t.sequence),
+  idxAssistantMonth:     index("payment_slips_assistant_month_idx").on(t.assistantId, t.reportMonth),
+}));
 
 // ── Clock events ──────────────────────────────────────────────
 // One row per clock-in or clock-out action by an assistant.
