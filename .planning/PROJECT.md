@@ -1,11 +1,11 @@
 # Kalinga — Assistansportal
 
-## Current State (2026-04-18)
+## Current State (2026-04-19)
 
 **Shipped:** v1.0 — Stability, Compliance, and Core Payroll
 **Git tag:** `v1.0` (archive commit on branch `milestone/v1.0-mvp`)
 **Active milestone:** v1.0.1 — Salary Slip + Foundation Cleanup (branch `milestone/v1.0.1`)
-**v1.0.1 progress:** Phase 7 complete (2026-04-18, 22/22 must-haves). Phases 8/9/10 remaining (EMP, SLIP, DATA).
+**v1.0.1 progress:** Phases 7 + 8 complete (2026-04-19, EMP-01 + EMP-02 validated). Phases 9/10 remaining (SLIP, DATA).
 
 **v1.0 delivered:** 9 phases, 36 plans, 51 tasks. End-to-end monthly compliance cycle — schedule → approve → payroll → FK 3057/3059 + SKV 4805. See [.planning/MILESTONES.md](MILESTONES.md) for the full accomplishment list and [.planning/milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) for phase details.
 
@@ -76,6 +76,12 @@ The guardian can complete the full monthly cycle — approve hours, generate all
 - ✓ Dead settings keys (`allow_self_book`, `self_book_approval`, `booking_window_days`) removed from `seedDefaults()`; client helpers `slotsApi` / `assistantApi.selfBook` / `assistantApi.openSlots` removed — v1.0.1 / Phase 7 (CLEAN-03)
 - ✓ Resolved pre-existing v1.0 schema drift (7 orphaned columns on entries/assistants/profile, timestamptz declaration mismatch on 3 columns) — v1.0.1 / Phase 7
 
+<!-- v1.0.1 Phase 8 shipped (2026-04-19) -->
+
+- ✓ `resolveEmployerRepresentation(profile, asOfDate)` helper returns structured arbetsgivare (always patient) + företrädare (guardian when minor-by-pno or adult with `patient_requires_representative = true`, else null) — v1.0.1 / Phase 8 (EMP-01)
+- ✓ FK 3057, FK 3059, and SKV 4805 employer fields resolve via the helper — zero `guardianName` references for employer across `server/src/` (D-14 grep gate); signatures/contact remain guardian-sourced per D-09 — v1.0.1 / Phase 8 (EMP-02)
+- ✓ Helper contract locked for Phase 9 salary slip consumer: 16 unit tests cover minor-by-pno, adult-with-override, adult-without-override, turns-18 boundary, malformed pno, and address fallback — v1.0.1 / Phase 8
+
 ### Active
 
 <!-- v1.0.1 milestone scope remaining: Phases 8/9/10 -->
@@ -89,9 +95,7 @@ The guardian can complete the full monthly cycle — approve hours, generate all
 - [ ] Settings → Assistants exposes `salary_model` dropdown (anhörig wired; fremia/custom disabled with "(Kommer i v1.4/v1.5)")
 
 #### Employer Representation Helper
-- [ ] `resolveEmployerRepresentation()` helper returns correct arbetsgivare + företrädare based on brukare minor-status + explicit override flag
-- [ ] FK 3057, FK 3059, SKV 4805, and salary slip all use the helper (no direct `guardianName` references for employer field)
-- [ ] `profile.patient_requires_representative` boolean override exists for adult-without-capacity (god man) case
+✓ Shipped in Phase 8 — see Validated section below. Salary slip consumer lands in Phase 9 against the same helper contract.
 
 #### Schema Additions (unblocks v1.2 + v1.3)
 ✓ Shipped in Phase 7 — see Validated section above. `hourly_rate_override` and `fk_decision_hours_per_day` intentionally deferred per 07-CONTEXT D-01 (weeklyHours remains single source of truth per FK 51 kap 9§ SFB) and D-18 (rate decoupling moved to v1.4 with Fremia model).
@@ -154,7 +158,7 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-18 — v1.0.1 Phase 7 (Foundation — Schema & Cleanup) complete, 22/22 must-haves verified. Next: Phase 8 (Employer Representation Helper).*
+*Last updated: 2026-04-19 — v1.0.1 Phase 8 (Employer Representation Helper) complete, EMP-01 + EMP-02 validated, 4 human visual-PDF UAT items persisted for Phase 10 DATA-01. Next: Phase 9 (Salary Slip).*
 
 ## Core Value Proposition (Clarified 2026-04-10)
 
