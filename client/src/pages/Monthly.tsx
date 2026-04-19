@@ -12,7 +12,7 @@ import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import {
   FileDown, ChevronLeft, ChevronRight, CheckCircle2, Clock,
-  FileText, AlertCircle, Trash2, Pencil, Plus
+  FileText, AlertCircle, Trash2, Pencil, Plus, Download
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -632,6 +632,39 @@ export default function MonthlyPage() {
     }
   }
 
+  // ── Lönespec download handler ────────────────────────────────────────────
+  // v1.0.1 Phase 9 (SLIP-01) — mirrors download4805 shape; maps known server errors
+  // to UI-SPEC §Copywriting Swedish strings. Body is a Blob on error because
+  // responseType=blob, so we parse it as JSON when present.
+  async function downloadLonespec(assistantId: string, assistantName: string) {
+    try {
+      const res = await pdfApi.lonespec(String(year), pad(month + 1), assistantId);
+      const url = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `lonespec-${year}-${pad(month + 1)}-${assistantName.replace(/\s+/g, "-")}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      let message = "Kunde inte generera lönespecifikation. Försök igen.";
+      try {
+        const e = err as { response?: { status?: number; data?: Blob } };
+        const status = e?.response?.status;
+        const blob = e?.response?.data;
+        const text = blob ? await blob.text() : null;
+        const parsed = text ? (JSON.parse(text) as { error?: string }) : null;
+        if (status === 409) {
+          message = "Lönekörningen är inte godkänd för denna månad.";
+        } else if (status === 400 && parsed?.error) {
+          message = parsed.error;
+        }
+      } catch {
+        /* fall through to generic */
+      }
+      alert(message);
+    }
+  }
+
   // ── Month navigation ──────────────────────────────────────────────────────
   function goToPrevMonth() {
     if (month === 0) { setMonth(11); setYear(y => y - 1); }
@@ -1130,6 +1163,79 @@ export default function MonthlyPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ════════════════════════════════════════════════════════════
+          SECTION 5 — Lönespecifikation (v1.0.1 Phase 9 / SLIP-01)
+      ════════════════════════════════════════════════════════════ */}
+      <div className="mb-10 mt-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className={cn(
+            "w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0",
+            agiUnlocked ? "bg-primary" : "bg-muted"
+          )}>
+            <FileText className={cn("w-3.5 h-3.5", agiUnlocked ? "text-primary-foreground" : "text-muted-foreground")} />
+          </div>
+          <h2 className="text-base font-semibold text-foreground">Lönespecifikation</h2>
+        </div>
+        <p className="text-sm text-muted-foreground mb-3">
+          Ladda ner månadens lönespecifikation per assistent. Kräver godkänd lönekörning.
+        </p>
+        <div className="grid lg:grid-cols-2 gap-3">
+          {(assistants as Assistant[]).map((a) => {
+            const record = payrollRecords.find(r => r.assistantId === (a.id as string));
+            const isApproved = record?.status === "approved";
+            const rawAssistant = a as unknown as Record<string, unknown>;
+            const rateSet = rawAssistant.hourlyRateOverride != null;
+
+            let buttonLabel: string;
+            let tooltip: string;
+            let variant: "default" | "outline" = "outline";
+            let disabled = true;
+            if (!isApproved) {
+              buttonLabel = "Lönekörning ej godkänd";
+              tooltip = "Godkänn lönekörning först för att ladda ner lönespecifikationen.";
+            } else if (!rateSet) {
+              buttonLabel = "Timlön saknas";
+              tooltip = "Sätt timlön i Inställningar → Assistenter";
+            } else {
+              buttonLabel = "Ladda ner lönespec";
+              tooltip = "Ladda ner lönespecifikation (PDF)";
+              variant = "default";
+              disabled = false;
+            }
+
+            return (
+              <Card key={a.id as string}>
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <AssistantAvatar name={a.name as string} initials={a.initials as string} color={a.color as string} size={36} />
+                      <div>
+                        <p className="font-semibold text-sm">{a.name as string}</p>
+                        {record && isApproved && (
+                          <p className="text-xs text-muted-foreground">
+                            Brutto: {formatSek(record.grossPay)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={variant}
+                      disabled={disabled}
+                      title={tooltip}
+                      onClick={() => !disabled && downloadLonespec(a.id as string, a.name as string)}
+                    >
+                      {!disabled && <Download className="w-4 h-4" />}
+                      {buttonLabel}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Edit entry modal ────────────────────────────────────────────────── */}
