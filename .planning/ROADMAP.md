@@ -400,6 +400,7 @@ Not a code change — a guardian data-entry pass in Settings once the new fields
 - AFA-försäkringar ~0.3% — informational / accrual
 - Sjuklön rules: employer pays 80% for days 2–14, first day karensdag
 - Lönespecifikation template extended with Fremia rows (OB-breakdown, pension, sjuklön if applicable)
+- Lönespecifikation shows per-assistant **skattetabell** number in the header once per-assistant skattetabell lookup replaces the flat 30% preliminärskatt (captured in v1.0.1 but not displayed until here)
 - Age-bracket arbetsgivaravgifter (67+ = 10.21%, 19–23 = 17.77%) — closes H3 from v1.0 known issues
 
 **Trigger:** Hiring a third assistant on a proper Fremia/Kommunal contract. Until then no point building — YAGNI.
@@ -417,6 +418,7 @@ Not a code change — a guardian data-entry pass in Settings once the new fields
 - Each enabled benefit uses the standard rate by default, per-assistant override possible
 - Supports månadslön (fixed monthly amount) vs timlön (hourly) via a `compensation_basis` field
 - Slip template adapts to show only the enabled rows
+- Slip header shows **skattetabell** number per assistant (shared with v1.4 once per-assistant skattetabell lookup is live)
 
 **Trigger:** Unusual hiring arrangement that neither anhörig nor Fremia handles cleanly. Realistically v2.0 territory.
 
