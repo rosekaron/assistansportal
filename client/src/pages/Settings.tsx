@@ -26,6 +26,8 @@ interface FormState {
   patientRelationToGuardian: string;
   dubbelAssistansApproved: boolean;
   patientRequiresRepresentative: boolean;
+  // v1.0.1 Phase 9 addition (D-07, D-09) — default pay day 1–28
+  defaultPayDay: number;
 }
 
 const TAX_SCHEME_OPTIONS = [
@@ -122,7 +124,21 @@ export default function SettingsPage() {
   const [inviteOpen,    setInviteOpen]    = useState(false);
   const [removeId,      setRemoveId]      = useState<string | null>(null);
   const [editTarget,    setEditTarget]    = useState<Assistant | null>(null);
-  const [editForm,      setEditForm]      = useState({
+  const [editForm,      setEditForm]      = useState<{
+    name: string; pno: string; phone: string; minWeeklyHours: string; isFlexible: boolean; address: string;
+    addressStreet: string; addressZip: string; addressCity: string;
+    employmentStartDate: string; employmentEndDate: string;
+    citizenship: string; residencePermitExpiry: string;
+    notes: string;
+    skattetabell: string;
+    taxScheme: string;
+    bankClearing: string; bankAccount: string; iban: string;
+    email: string;
+    // v1.0.1 Phase 9 additions (SLIP-06 / D-07)
+    salaryModel: "anhörig" | "fremia" | "custom";
+    hourlyRateOverride: number | null;
+    paymentMethod: "bankgiro" | "swish" | "kontant";
+  }>({
     name: "", pno: "", phone: "", minWeeklyHours: "", isFlexible: false, address: "",
     addressStreet: "", addressZip: "", addressCity: "",
     employmentStartDate: "", employmentEndDate: "",
@@ -132,6 +148,9 @@ export default function SettingsPage() {
     taxScheme: "a-skatt",
     bankClearing: "", bankAccount: "", iban: "",
     email: "",
+    salaryModel: "anhörig",
+    hourlyRateOverride: null,
+    paymentMethod: "bankgiro",
   });
   const [editSectionOpen, setEditSectionOpen] = useState({ person: true, employment: false });  // D-11: Personuppgifter open by default
   const [inviteForm,    setInviteForm]    = useState({ name: "", email: "", minWeeklyHours: "", isFlexible: false, message: "" });
@@ -161,6 +180,7 @@ export default function SettingsPage() {
     patientRelationToGuardian: "parent-child",
     dubbelAssistansApproved: false,
     patientRequiresRepresentative: false,
+    defaultPayDay: 25,
   });
   const [profileSectionOpen, setProfileSectionOpen] = useState({ person: true, fk: false });  // D-11: Personuppgifter open by default
 
@@ -201,6 +221,7 @@ export default function SettingsPage() {
         patientRelationToGuardian:     profile.patientRelationToGuardian ?? "parent-child",
         dubbelAssistansApproved:       Boolean(profile.dubbelAssistansApproved ?? false),
         patientRequiresRepresentative: Boolean(profile.patientRequiresRepresentative ?? false),
+        defaultPayDay:                 typeof profile.defaultPayDay === "number" ? profile.defaultPayDay : 25,
       });
     }
   }, [profile]);
@@ -241,6 +262,7 @@ export default function SettingsPage() {
       patientRelationToGuardian:     form.patientRelationToGuardian,
       dubbelAssistansApproved:       form.dubbelAssistansApproved,
       patientRequiresRepresentative: form.patientRequiresRepresentative,
+      defaultPayDay:                 form.defaultPayDay,
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["profile"] });
@@ -318,6 +340,8 @@ export default function SettingsPage() {
   });
 
   function openEdit(a: Assistant) {
+    const salaryModel = (a.salaryModel === "fremia" || a.salaryModel === "custom" ? a.salaryModel : "anhörig") as "anhörig" | "fremia" | "custom";
+    const paymentMethod = (a.paymentMethod === "swish" || a.paymentMethod === "kontant" ? a.paymentMethod : "bankgiro") as "bankgiro" | "swish" | "kontant";
     setEditForm({
       name:                  String(a.name ?? ""),
       pno:                   String(a.pno ?? ""),
@@ -339,6 +363,10 @@ export default function SettingsPage() {
       bankAccount:           String(a.bankAccount ?? ""),
       iban:                  String(a.iban ?? ""),
       email:                 String(a.email ?? ""),
+      // v1.0.1 Phase 9 (SLIP-06 / D-07)
+      salaryModel,
+      hourlyRateOverride:    typeof a.hourlyRateOverride === "number" ? a.hourlyRateOverride : null,
+      paymentMethod,
     });
     setEditSectionOpen({ person: true, employment: false }); // reset per-open
     setEditTarget(a);
@@ -791,6 +819,32 @@ export default function SettingsPage() {
               onChange={(v) => setForm(f => ({ ...f, patientRequiresRepresentative: v }))}
             />
           </CollapsibleSection>
+
+          {/* v1.0.1 Phase 9 addition (D-07, D-09) — default pay day */}
+          <div className="border-t border-border px-4 py-4 space-y-3">
+            <h3 className="text-xs uppercase tracking-wide font-semibold text-muted-foreground">Lön</h3>
+            <div className="space-y-1.5">
+              <Label htmlFor="defaultPayDay">Utbetalningsdag (varje månad)</Label>
+              <Input
+                id="defaultPayDay"
+                type="number"
+                min="1"
+                max="28"
+                step="1"
+                value={form.defaultPayDay}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  setForm(f => ({
+                    ...f,
+                    defaultPayDay: Number.isFinite(n) ? Math.min(Math.max(n, 1), 28) : 25,
+                  }));
+                }}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Dag i månaden efter rapportmånaden då lönen betalas ut. 1–28. Gäller alla lönespecifikationer som skapas efter ändringen.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -1022,6 +1076,63 @@ export default function SettingsPage() {
                 <Label>IBAN</Label>
                 <Input pattern="[A-Z]{2}\d{2}.*" placeholder="SE00 0000 0000 0000 0000 0000" value={editForm.iban} onChange={(e) => setEditForm(f => ({ ...f, iban: e.target.value }))} />
               </div>
+
+              {/* v1.0.1 Phase 9 additions (SLIP-06 / D-07) — salary model + rate + payment method */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="salaryModel">Avtalsmodell</Label>
+                  <Select
+                    value={editForm.salaryModel}
+                    onValueChange={(v) => setEditForm(f => ({ ...f, salaryModel: v as "anhörig" | "fremia" | "custom" }))}
+                  >
+                    <SelectTrigger id="salaryModel"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="anhörig">Anhörigassistans</SelectItem>
+                      <SelectItem value="fremia" disabled className="text-muted-foreground">
+                        Fremia (Kommer i v1.4)
+                      </SelectItem>
+                      <SelectItem value="custom" disabled className="text-muted-foreground">
+                        Custom (Kommer i v1.5)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="paymentMethod">Utbetalningssätt</Label>
+                  <Select
+                    value={editForm.paymentMethod}
+                    onValueChange={(v) => setEditForm(f => ({ ...f, paymentMethod: v as "bankgiro" | "swish" | "kontant" }))}
+                  >
+                    <SelectTrigger id="paymentMethod"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="bankgiro">Bankgiro</SelectItem>
+                      <SelectItem value="swish">Swish</SelectItem>
+                      <SelectItem value="kontant">Kontant</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="hourlyRateOverride">Timlön (kr/tim)</Label>
+                <Input
+                  id="hourlyRateOverride"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="254,10"
+                  value={editForm.hourlyRateOverride ?? ""}
+                  onChange={(e) =>
+                    setEditForm(f => ({
+                      ...f,
+                      hourlyRateOverride: e.target.value === "" ? null : Number(e.target.value),
+                    }))
+                  }
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Lämna tomt blockerar lönespecifikation. Anhörigmodellen: 254,10 kr/tim.
+                </p>
+              </div>
+
               <div className="space-y-1.5">
                 <Label>Anteckningar</Label>
                 <Textarea rows={3} placeholder="Fri text — synlig endast för guardian" value={editForm.notes} onChange={(e) => setEditForm(f => ({ ...f, notes: e.target.value }))} />
@@ -1056,6 +1167,10 @@ export default function SettingsPage() {
                   bankClearing:          editForm.bankClearing,
                   bankAccount:           editForm.bankAccount,
                   iban:                  editForm.iban,
+                  // v1.0.1 Phase 9 (SLIP-06 / D-07, D-10, D-12)
+                  salaryModel:           editForm.salaryModel,
+                  hourlyRateOverride:    editForm.hourlyRateOverride,
+                  paymentMethod:         editForm.paymentMethod,
                 },
               })}
             >
