@@ -39,6 +39,10 @@ router.put("/", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
         patientRequiresRepresentative: data.patientRequiresRepresentative ?? false,
         weeklyHours:                   data.weeklyHours                   ?? 129,
         setupDone:                     data.setupDone                     ?? false,
+        // v1.0.1 Phase 9 addition (D-07, D-09)
+        defaultPayDay: typeof data.defaultPayDay === "number" && data.defaultPayDay >= 1 && data.defaultPayDay <= 28
+          ? data.defaultPayDay
+          : 25,
         updatedAt:                     new Date(),
       })
       .returning();

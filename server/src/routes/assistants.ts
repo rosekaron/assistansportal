@@ -68,6 +68,10 @@ router.put("/:id", requireAuth, requireGuardian, async (req: AuthRequest, res) =
     citizenship:           data.citizenship           ?? "",
     residencePermitExpiry: data.residencePermitExpiry || null,
     notes:                 data.notes                 ?? "",
+    // v1.0.1 Phase 9 additions (SLIP-06 / D-07)
+    salaryModel:        data.salaryModel        ?? "anhörig",           // D-07: default "anhörig"; Fremia/Custom scaffold-only in v1.0.1
+    hourlyRateOverride: data.hourlyRateOverride === "" || data.hourlyRateOverride == null ? null : Number(data.hourlyRateOverride),  // D-12 gate: NULL override → 400 in Plan 03
+    paymentMethod:      data.paymentMethod      ?? "bankgiro",           // D-10: default "bankgiro"
   }).where(eq(assistants.id, id)).returning();
   res.json(row);
 });
