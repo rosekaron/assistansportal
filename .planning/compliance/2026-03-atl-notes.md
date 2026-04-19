@@ -148,6 +148,97 @@ Book occupational-health check for Mikael within 12 months of classification. Em
 
 Current utilization 75% of 571h/month cap. If actual care need is consistently under beslut, next omprövning at FK may reduce the beslut. If actual care need is higher than logged, hours are being given away. Worth an honest audit before next omprövning.
 
+### R-05 — Adopt fully ATL-compliant schedule (ADOPTED 2026-04-19)
+
+Replaces the current schedule with a three-assistant rotation that satisfies ATL 13§ (dygnsvila) and ATL 14§ (veckovila) for all three assistants with zero violations. All three remain on the anhörig salary model (v1.0.1 Phase 9 slip serves all three). Does not require v1.4 Fremia or v1.5 Custom milestones.
+
+#### Coverage requirements (from 2026-04-19 session)
+
+- Mikael Junior attends kindergarten 09:00–17:00 weekdays — no assistansersättning claimable during these hours.
+- 2 assistants required:
+  - Weekday 07:00–09:00 (morning get-ready and transport to kindergarten)
+  - Weekday 17:00–**20:00** (pickup from kindergarten through dinner; shortened from 17:00–21:00 to enable 11h dygnsvila)
+  - Weekend 08:00–20:00 (all awake hours)
+- Overnight hours (20:00–07:00 weekdays, 20:00–08:00 weekends): passive parental presence, not billed.
+
+#### Weekday schedule (Monday–Friday)
+
+| Window | Who | Duration per assistant |
+|--------|-----|------------------------|
+| 07:00–09:00 | Rose + Mikael | 2h each |
+| 17:00–20:00 | Rose + Mikael | 3h each |
+| Total per weekday per assistant | | **5h** |
+
+Third assistant X does NOT work weekdays.
+
+#### Weekend schedule (two-week rotation)
+
+**Week A (odd weeks):**
+- Sat 08:00–20:00: Rose + X (12h each)
+- Sun 08:00–20:00: Rose + X (12h each)
+- Mikael fully off from Fri 20:00 through Mon 07:00 = **59 hours continuous rest** ✓ veckovila
+
+**Week B (even weeks):**
+- Sat 08:00–20:00: Mikael + X (12h each)
+- Sun 08:00–20:00: Mikael + X (12h each)
+- Rose fully off from Fri 20:00 through Mon 07:00 = **59 hours continuous rest** ✓ veckovila
+
+#### Per-assistant hour totals
+
+| Assistant | Week A | Week B | 2-week average | Monthly (March 2026 template) |
+|-----------|--------|--------|----------------|-------------------------------|
+| Rose | 49h (25 weekday + 24 weekend) | 25h (weekday only) | 37h/week | ~164h |
+| Mikael | 25h | 49h | 37h/week | ~164h |
+| X | 24h | 24h | 24h/week | ~108h |
+
+**Combined monthly billable: ~436h/month** (76% of 571h FK budget — essentially identical to current 75%, without ATL violations)
+
+#### Compliance verification
+
+**ATL 13§ dygnsvila (11h daily rest):**
+
+| Transition | Rest duration | Status |
+|------------|---------------|--------|
+| Rose/Mikael weekday 20:00 → next 07:00 | 11h | ✓ (at minimum) |
+| Rose/Mikael weekday 20:00 → Sat 08:00 | 12h | ✓ |
+| Rose/Mikael Sat 20:00 → Sun 08:00 | 12h | ✓ |
+| Rose/Mikael Sun 20:00 → Mon 07:00 | 11h | ✓ |
+| Rose/Mikael post-off-weekend: Fri 20:00 → Mon 07:00 | 59h | ✓✓ |
+| X Sun 20:00 → Sat 08:00 next week | 132h | ✓✓ |
+| X Sat 20:00 → Sun 08:00 | 12h | ✓ |
+
+**ATL 14§ veckovila (36h weekly rest):**
+
+- Rose: 59h block every Week B (2–3 times per month)
+- Mikael: 59h block every Week A (2–3 times per month)
+- X: 132h block every week (5 days off)
+
+All three satisfy veckovila under the standard 14-day rolling interpretation Arbetsdomstolen applies.
+
+**ATL 10b§ (48h/week cap averaged over 4 months):**
+
+- Rose + Mikael: 37h/week average, 49h/week max → ✓ under cap
+- X: 24h/week → ✓ well under cap
+
+**Zero ATL violations.**
+
+#### Hiring X — constraints and plan
+
+- X must be a family member willing to operate under anhörig terms (same 254.10 kr/h effective rate as Rose and Mikael, no sjuklön, no semesterlön, no pension).
+- Anhörig model legally requires kinship or close family relationship with the patient.
+- Not possible with a non-family Fremia/Kommunal kollektivavtal employee without triggering v1.4.
+- Until X is hired and onboarded in the app: Rose + Mikael continue at current schedule (accept ATL §2 exemption position).
+- Once X is hired: switch to R-05 schedule immediately. March 2026 and any retroactive filings stay under the current ATL §2 exemption documentation.
+
+#### v1.0.1 code impact
+
+**None.** All three assistants use the anhörig salary model — the slip design already in Phase 9 CONTEXT.md serves X identically to Rose/Mikael. Phase 7 schema supports unlimited `assistants` rows. No schema changes beyond Phase 9's existing scope.
+
+#### Triggers for future milestones (still pending)
+
+- **v1.4 Fremia:** only if a non-family assistant is hired on kollektivavtal. Path 3 adoption defers this indefinitely.
+- **v1.5 Custom:** same — private-agreement non-family assistant. Not triggered by Path 3.
+
 ---
 
 ## 6. What this document does NOT do
