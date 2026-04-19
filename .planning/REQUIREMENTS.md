@@ -22,8 +22,8 @@ Requirements for the v1.0.1 milestone. Each maps to exactly one roadmap phase.
 
 ### Employer Representation (EMP)
 
-- [ ] **EMP-01**: `resolveEmployerRepresentation()` helper returns correct `{arbetsgivareName, arbetsgivarePno, företrädareName, företrädarePno, isMinor}` based on minor-status derived from patient pno + `patient_requires_representative` override
-- [ ] **EMP-02**: FK 3057, FK 3059, SKV 4805, and salary slip renderers all use the helper — zero direct `profile.guardianName` references for the employer field
+- [x] **EMP-01**: `resolveEmployerRepresentation()` helper returns correct `{arbetsgivareName, arbetsgivarePno, företrädareName, företrädarePno, isMinor}` based on minor-status derived from patient pno + `patient_requires_representative` override
+- [x] **EMP-02**: FK 3057, FK 3059, SKV 4805, and salary slip renderers all use the helper — zero direct `profile.guardianName` references for the employer field
 
 ### Schema Additions (SCHEMA)
 
@@ -108,8 +108,8 @@ Each v1.0.1 requirement maps to exactly one phase.
 | SLIP-05 | 9 | Pending |
 | SLIP-06 | 9 | Pending |
 | SLIP-07 | 9 | Pending |
-| EMP-01 | 8 | Pending |
-| EMP-02 | 8 | Pending |
+| EMP-01 | 8 | Complete |
+| EMP-02 | 8 | Complete |
 | SCHEMA-01 | 7 | Complete |
 | SCHEMA-02 | 7 | Complete |
 | SCHEMA-03 | 7 | Complete |

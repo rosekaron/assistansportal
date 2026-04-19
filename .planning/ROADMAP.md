@@ -502,7 +502,8 @@ Current shipping order:
 3. No source file under `server/src/` references `profile.guardianName` for the employer-name field — the helper is the only source of truth (grep check passes)
 4. A unit test covers minor-by-pno, adult-with-override, and adult-without-override cases for the helper
 
-**Plans:** TBD
+**Plans:** 1 plan
+- [x] 08-01-employer-representation-helper-PLAN.md — Create `resolveEmployerRepresentation()` helper + Vitest unit tests (D-13 coverage), refactor SKV 4805 `__employer__` block (form4805-utils.ts) and FK 3059 `flt_txtNamnAnordnaren[0]` (pdf.ts) to resolve to patient identity; signature/contact fields remain guardian per D-09; grep absence gate closes EMP-02
 
 ---
 
@@ -676,7 +677,7 @@ Current shipping order:
 | 6. Google Calendar Integration | 1/1 | Complete | 2026-04-15 |
 | 6.1. UAT Bug Fix (inserted) | 1/1 | Complete | 2026-04-15 |
 | 7. Foundation — Schema & Cleanup | 0/TBD | Not started | — |
-| 8. Employer Representation Helper | 0/TBD | Not started | — |
+| 8. Employer Representation Helper | 0/1 | Not started | — |
 | 9. Salary Slip (Anhörig Model) | 0/TBD | Not started | — |
 | 10. Real Data Entry & End-to-End Verification | 0/TBD | Not started | — |
 
