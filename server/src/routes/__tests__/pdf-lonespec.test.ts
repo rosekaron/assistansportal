@@ -160,7 +160,7 @@ function insertChain(tbl: any) {
       if (!t) return Promise.resolve([]);
       const inserted: Row[] = [];
       for (const v of pendingValues) {
-        const row = { issuedAt: new Date(), createdAt: new Date(), ...v };
+        const row: Row = { issuedAt: new Date(), createdAt: new Date(), ...v };
         // Enforce unique index (assistantId, reportMonth, sequence) on paymentSlips
         if (tbl.__name === "paymentSlips") {
           const collision = t.rows.find(r =>
@@ -632,12 +632,10 @@ describe("SLIP-02 GET /api/assistant/slips", () => {
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body).toHaveLength(3);
-    // verify Mikael not present
-    for (const r of res.body) {
-      expect(r.documentNumber).not.toBe("LS-2026-03-001"); // may still be Rose's own LS-2026-03-001 though
-    }
-    // Actually — both Rose and Mikael have LS-2026-03-001. The guarantee we test is
-    // sort order + count.
+    // Mikael's seeded row (s4) must not appear in Rose's listing.
+    const ids = res.body.map((r: any) => r.id);
+    expect(ids).not.toContain("s4");
+    // Sort order: reportMonth DESC then issuedAt DESC (both Rose-owned months).
     expect(res.body.map((r: any) => r.reportMonth)).toEqual(["2026-03", "2026-02", "2026-01"]);
   });
 

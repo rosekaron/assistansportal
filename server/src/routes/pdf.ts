@@ -2,12 +2,15 @@ import { Router } from "express";
 import { PDFDocument } from "pdf-lib";
 import { spawnSync } from "child_process";
 import { db } from "../db";
-import { entries, assistants, profile, absences, payrollRecords } from "../db/schema";
+import { entries, assistants, profile, absences, payrollRecords, paymentSlips } from "../db/schema";
 import { eq, and, gte, lte, or, isNull } from "drizzle-orm";
 import { buildForm4805Fields, Form4805Input } from "../lib/form4805-utils";
 import { resolveEmployerRepresentation } from "../lib/employer-representation";
-import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
+import { requireAuth, requireGuardian, requireAssistantAccess, AuthRequest } from "../middleware/auth";
 import { filterBillableEntries } from "../lib/absence-utils";
+import { newId } from "../lib/id";
+import { buildAnhorigSlip, type SlipFields } from "../lib/payrollSlipUtils";
+import { renderAnhorigSlipPdf } from "../lib/pdfSlipRenderer";
 import path from "path";
 import fs from "fs";
 import os from "os";
@@ -443,6 +446,248 @@ router.post("/4805", requireAuth, requireGuardian, async (req: AuthRequest, res)
 
   } catch (e) {
     console.error("[pdf] 4805 error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── Salary slip (lönespecifikation) helpers + endpoints ───────────────────
+// D-04: document number format LS-${params.reportMonth}-NNN (3-digit padded)
+// D-05: re-download reuses the existing payment_slips row (idempotent)
+// D-09: payDate frozen on first issue from profile.defaultPayDay
+// D-12: POST returns 400 when assistants.hourlyRateOverride IS NULL
+
+async function issueOrReuseSlip(params: {
+  assistantId: string;
+  reportMonth: string;              // "YYYY-MM"
+  payrollRecordId: string;
+  payDate: string;                  // "YYYY-MM-DD"
+  payMethod: "bankgiro" | "swish" | "kontant";
+}): Promise<{
+  id: string;
+  documentNumber: string;
+  payDate: string;
+  payMethod: "bankgiro" | "swish" | "kontant";
+  issuedAt: Date;
+}> {
+  // 1. Reuse existing row if one already exists for (assistant, month).
+  const existing = await db.select().from(paymentSlips).where(and(
+    eq(paymentSlips.assistantId, params.assistantId),
+    eq(paymentSlips.reportMonth, params.reportMonth),
+  )).limit(1);
+  if (existing.length > 0) {
+    const row = existing[0];
+    return {
+      id: row.id,
+      documentNumber: row.documentNumber,
+      payDate: row.payDate,
+      payMethod: row.payMethod as "bankgiro" | "swish" | "kontant",
+      issuedAt: row.issuedAt,
+    };
+  }
+  // 2. Compute next sequence (always 1 in v1.0.1 per D-05; defensive anyway).
+  const peers = await db.select().from(paymentSlips).where(and(
+    eq(paymentSlips.assistantId, params.assistantId),
+    eq(paymentSlips.reportMonth, params.reportMonth),
+  ));
+  const nextSeq = peers.length === 0 ? 1 : Math.max(...peers.map(p => p.sequence)) + 1;
+  const padded  = String(nextSeq).padStart(3, "0");
+  const documentNumber = `LS-${params.reportMonth}-${padded}`;
+  // 3. Insert; on 23505 (unique_violation) re-select.
+  try {
+    const [row] = await db.insert(paymentSlips).values({
+      id: newId("slip"),
+      payrollRecordId: params.payrollRecordId,
+      assistantId: params.assistantId,
+      reportMonth: params.reportMonth,
+      documentNumber,
+      sequence: nextSeq,
+      payDate: params.payDate,
+      payMethod: params.payMethod,
+    }).returning();
+    return {
+      id: row.id,
+      documentNumber: row.documentNumber,
+      payDate: row.payDate,
+      payMethod: row.payMethod as "bankgiro" | "swish" | "kontant",
+      issuedAt: row.issuedAt,
+    };
+  } catch (err: any) {
+    if (err?.code === "23505") {
+      const [again] = await db.select().from(paymentSlips).where(and(
+        eq(paymentSlips.assistantId, params.assistantId),
+        eq(paymentSlips.reportMonth, params.reportMonth),
+      )).limit(1);
+      if (again) {
+        return {
+          id: again.id,
+          documentNumber: again.documentNumber,
+          payDate: again.payDate,
+          payMethod: again.payMethod as "bankgiro" | "swish" | "kontant",
+          issuedAt: again.issuedAt,
+        };
+      }
+    }
+    throw err;
+  }
+}
+
+function computePayDate(reportMonth: string, defaultPayDay: number): string {
+  // reportMonth "2026-03" → "2026-04-25" (next month, default_pay_day clamped 1..28).
+  const [y, m]   = reportMonth.split("-").map(n => parseInt(n, 10));
+  const payYear  = m === 12 ? y + 1 : y;
+  const payMonth = m === 12 ? 1     : m + 1;
+  const day      = Math.min(Math.max(defaultPayDay || 25, 1), 28);
+  return `${payYear}-${String(payMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+// Build a safe filename segment from assistant.name — strips path-traversal chars.
+function safeNameSegment(name: string): string {
+  return name.replace(/\s+/g, "-").replace(/[^\w\-.]/g, "");
+}
+
+// ── POST /api/pdf/lonespec (guardian) ─────────────────────────────────────
+// SLIP-01 guardian path; gates 409 (not approved) + 400 (rate NULL).
+router.post("/lonespec", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
+  try {
+    const { year, month, assistantId } = req.body as {
+      year?: string; month?: string; assistantId?: string;
+    };
+
+    if (!assistantId || !/^[a-zA-Z0-9_-]+$/.test(assistantId)) {
+      return res.status(400).json({ error: "Invalid assistantId" });
+    }
+    if (!year || !/^\d{4}$/.test(year) || !month || !/^\d{1,2}$/.test(month)) {
+      return res.status(400).json({ error: "Invalid year or month" });
+    }
+
+    const mm        = month.padStart(2, "0");
+    const yearMonth = `${year}-${mm}`;
+
+    const [asst] = await db.select().from(assistants).where(eq(assistants.id, assistantId));
+    if (!asst) return res.status(404).json({ error: "Assistant not found" });
+
+    // D-12: rate-NULL gate before approval check — the guardian's action is to
+    // set the rate, not to re-approve payroll.
+    if (asst.hourlyRateOverride == null) {
+      return res.status(400).json({
+        error: `Timlön saknas för ${asst.name}. Sätt timlönen i Inställningar → Assistenter.`,
+      });
+    }
+
+    // D-08: approval gate.
+    const [pr] = await db.select().from(payrollRecords).where(and(
+      eq(payrollRecords.assistantId, assistantId),
+      eq(payrollRecords.month, yearMonth),
+      eq(payrollRecords.status, "approved"),
+    ));
+    if (!pr) {
+      return res.status(409).json({ error: "Lönekörningen är inte godkänd för denna månad." });
+    }
+
+    const [prof] = await db.select().from(profile).limit(1);
+    if (!prof) return res.status(500).json({ error: "Profile not found" });
+    const absenceRows = await db.select().from(absences);
+
+    const payDate   = computePayDate(yearMonth, prof.defaultPayDay ?? 25);
+    const payMethod = (asst.paymentMethod ?? "bankgiro") as "bankgiro" | "swish" | "kontant";
+
+    const slipMeta = await issueOrReuseSlip({
+      assistantId,
+      reportMonth: yearMonth,
+      payrollRecordId: pr.id,
+      payDate,
+      payMethod,
+    });
+
+    const fields: SlipFields = buildAnhorigSlip({
+      profile: prof,
+      assistant: asst,
+      payrollRecord: pr,
+      absences: absenceRows.map((a: any) => ({
+        assistantId: a.assistantId,
+        startDate:   a.startDate,
+        endDate:     a.endDate,
+        absenceType: a.absenceType,
+      })),
+      documentNumber: slipMeta.documentNumber,
+      payDate:        slipMeta.payDate,
+      payMethod:      slipMeta.payMethod,
+    });
+    const pdfBuffer = await renderAnhorigSlipPdf(fields);
+
+    const filename = `lonespec-${yearMonth}-${safeNameSegment(asst.name)}.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(pdfBuffer);
+  } catch (e) {
+    console.error("[pdf] lonespec error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── GET /api/pdf/lonespec/me (assistant, JWT-scoped) ──────────────────────
+// SLIP-02 assistant path. Pitfall 6 + 7: derive assistantId from req.assistantId
+// ONLY; never read from req.query or req.body.
+router.get("/lonespec/me", requireAuth, requireAssistantAccess, async (req: AuthRequest, res) => {
+  try {
+    const assistantId = req.assistantId;
+    if (!assistantId) {
+      return res.status(400).json({ error: "No assistant linked to this account" });
+    }
+
+    const month = String(req.query.month ?? "");
+    if (!/^\d{4}-\d{2}$/.test(month)) {
+      return res.status(400).json({ error: "Invalid month" });
+    }
+
+    const [asst] = await db.select().from(assistants).where(eq(assistants.id, assistantId));
+    if (!asst) return res.status(404).json({ error: "Assistant not found" });
+
+    if (asst.hourlyRateOverride == null) {
+      return res.status(400).json({
+        error: `Timlön saknas för ${asst.name}. Sätt timlönen i Inställningar → Assistenter.`,
+      });
+    }
+
+    const [pr] = await db.select().from(payrollRecords).where(and(
+      eq(payrollRecords.assistantId, assistantId),
+      eq(payrollRecords.month, month),
+      eq(payrollRecords.status, "approved"),
+    ));
+    if (!pr) {
+      return res.status(409).json({ error: "Lönekörningen är inte godkänd för denna månad." });
+    }
+
+    const [prof] = await db.select().from(profile).limit(1);
+    if (!prof) return res.status(500).json({ error: "Profile not found" });
+    const absenceRows = await db.select().from(absences);
+
+    const payDate   = computePayDate(month, prof.defaultPayDay ?? 25);
+    const payMethod = (asst.paymentMethod ?? "bankgiro") as "bankgiro" | "swish" | "kontant";
+    const slipMeta  = await issueOrReuseSlip({
+      assistantId, reportMonth: month, payrollRecordId: pr.id, payDate, payMethod,
+    });
+
+    const fields: SlipFields = buildAnhorigSlip({
+      profile: prof, assistant: asst, payrollRecord: pr,
+      absences: absenceRows.map((a: any) => ({
+        assistantId: a.assistantId,
+        startDate:   a.startDate,
+        endDate:     a.endDate,
+        absenceType: a.absenceType,
+      })),
+      documentNumber: slipMeta.documentNumber,
+      payDate:        slipMeta.payDate,
+      payMethod:      slipMeta.payMethod,
+    });
+    const pdfBuffer = await renderAnhorigSlipPdf(fields);
+
+    const filename = `lonespec-${month}-${safeNameSegment(asst.name)}.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(pdfBuffer);
+  } catch (e) {
+    console.error("[pdf] lonespec/me error:", e);
     res.status(500).json({ error: "Internal server error" });
   }
 });
