@@ -111,6 +111,21 @@ export const pdfApi = {
     api.post("/pdf/fk3059", { year, month, assistantId }, { responseType: "blob" }),
   form4805: (year: string, month: string, assistantId: string) =>
     api.post("/pdf/4805", { year, month, assistantId }, { responseType: "blob" }),
+  // v1.0.1 Phase 9 (SLIP-01, SLIP-02)
+  lonespec: (year: string, month: string, assistantId: string) =>
+    api.post("/pdf/lonespec", { year, month, assistantId }, { responseType: "blob" }),
+  lonespecMe: (month: string) =>
+    api.get(`/pdf/lonespec/me?month=${encodeURIComponent(month)}`, { responseType: "blob" }),
+};
+
+// v1.0.1 Phase 9 (SLIP-02) — listing response row for assistant /slips endpoint
+export type PaymentSlipListRow = {
+  id: string;
+  reportMonth: string;        // "YYYY-MM"
+  documentNumber: string;     // "LS-YYYY-MM-NNN"
+  issuedAt: string;           // ISO 8601
+  payDate: string;            // "YYYY-MM-DD"
+  payMethod: "bankgiro" | "swish" | "kontant";
 };
 
 // Costs
@@ -207,6 +222,8 @@ export const assistantSelfApi = {
   accept:       (id: string) => api.put(`/assistant/entries/${id}/accept`),
   reject:       (id: string) => api.put(`/assistant/entries/${id}/reject`),
   submitReport: (id: string) => api.put(`/assistant/entries/${id}/submit-report`),
+  // v1.0.1 Phase 9 (SLIP-02)
+  slips:        () => api.get<PaymentSlipListRow[]>("/assistant/slips"),
 };
 
 // ── Clock API (assistant-only) ────────────────────────────────
