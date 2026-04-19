@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
-import { entries, assistants, profile, absences } from "../db/schema";
-import { eq, and, gte, lte, or, isNull } from "drizzle-orm";
+import { entries, assistants, profile, absences, paymentSlips } from "../db/schema";
+import { eq, and, gte, lte, or, isNull, desc } from "drizzle-orm";
 import { requireAuth, requireAssistantAccess, AuthRequest } from "../middleware/auth";
 import { newId } from "../lib/id";
 import { getCalendarClient } from "./gcal";
@@ -107,6 +107,30 @@ router.put("/entries/:id/reject", async (req: AuthRequest, res) => {
     res.json(updated);
   } catch (e) {
     console.error("[assistant] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── SLIP-02: list the JWT-bound assistant's issued salary slips ──────────
+// IDOR guard: WHERE assistantId = req.assistantId (never query/body).
+router.get("/slips", async (req: AuthRequest, res) => {
+  try {
+    if (!req.assistantId) {
+      return res.status(400).json({ error: "No assistant linked to this account" });
+    }
+    const rows = await db.select().from(paymentSlips)
+      .where(eq(paymentSlips.assistantId, req.assistantId))
+      .orderBy(desc(paymentSlips.reportMonth), desc(paymentSlips.issuedAt));
+    res.json(rows.map((r: any) => ({
+      id:             r.id,
+      reportMonth:    r.reportMonth,
+      documentNumber: r.documentNumber,
+      issuedAt:       r.issuedAt,
+      payDate:        r.payDate,
+      payMethod:      r.payMethod,
+    })));
+  } catch (e) {
+    console.error("[assistant] slips error:", e);
     res.status(500).json({ error: "Internal server error" });
   }
 });
