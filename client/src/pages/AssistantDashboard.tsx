@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth";
-import { assistantSelfApi, clockApi, guardianLinksApi } from "@/lib/api";
-import type { GuardianLink } from "@/lib/api";
+import { assistantSelfApi, clockApi, guardianLinksApi, pdfApi } from "@/lib/api";
+import type { GuardianLink, PaymentSlipListRow } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/inputs";
@@ -11,7 +11,49 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/contro
 import { ActivityPill, EmptyState } from "@/components/shared";
 import { formatDate, formatDateLong, getWeekDates } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { LogOut, ChevronLeft, ChevronRight, Download, FileText } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { sv } from "date-fns/locale";
+
+// ── v1.0.1 Phase 9 (SLIP-02) — Lönespec helpers ──────────────────────────
+/** "2026-03" → "Mars 2026" (Swedish, capitalised first letter) */
+function formatMonthSv(reportMonth: string): string {
+  const [y, m] = reportMonth.split("-").map((n) => parseInt(n, 10));
+  const d = new Date(y, m - 1, 1);
+  const raw = format(d, "MMMM yyyy", { locale: sv });
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+/** ISO 8601 → "5 apr 2026" (sv-SE short date) */
+function formatShortDateSv(iso: string): string {
+  return format(parseISO(iso), "d MMM yyyy", { locale: sv });
+}
+
+async function downloadMyLonespec(reportMonth: string) {
+  try {
+    const res = await pdfApi.lonespecMe(reportMonth);
+    const url = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `lonespec-${reportMonth}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err: unknown) {
+    let message = "Kunde inte generera lönespecifikation. Försök igen.";
+    try {
+      const e = err as { response?: { status?: number; data?: Blob } };
+      const status = e?.response?.status;
+      const blob = e?.response?.data;
+      const text = blob ? await blob.text() : null;
+      const parsed = text ? (JSON.parse(text) as { error?: string }) : null;
+      if (status === 409) message = "Lönekörningen är inte godkänd för denna månad.";
+      else if (status === 400 && parsed?.error) message = parsed.error;
+    } catch {
+      /* fall through to generic */
+    }
+    alert(message);
+  }
+}
 
 type Entry = Record<string, string | number | null | undefined>;
 
@@ -81,6 +123,12 @@ export default function AssistantDashboard() {
     queryFn: () => clockApi.status(selectedGuardianId!).then((r) => r.data),
     enabled: !!selectedGuardianId,
     refetchInterval: 30_000,
+  });
+
+  // v1.0.1 Phase 9 (SLIP-02) — assistant's issued salary slips
+  const slipsQuery = useQuery<PaymentSlipListRow[]>({
+    queryKey: ["assistant", "slips"],
+    queryFn: () => assistantSelfApi.slips().then((r) => r.data),
   });
 
   // ── Family selection logic ────────────────────────────────────
@@ -437,6 +485,60 @@ export default function AssistantDashboard() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* ── Lönespecifikationer (v1.0.1 Phase 9 / SLIP-02) ──────────────── */}
+        <Card className="mt-6 md:mt-8">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h2 className="text-xl font-semibold">Lönespecifikationer</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Dina månatliga lönespecifikationer. Du kan ladda ner PDF för arkivering.
+                </p>
+              </div>
+            </div>
+
+            {slipsQuery.isLoading ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-muted animate-pulse h-14 rounded-md" />
+                ))}
+              </div>
+            ) : slipsQuery.isError ? (
+              <p className="text-sm text-destructive">
+                Kunde inte hämta lönespecifikationer. Försök ladda om sidan.
+              </p>
+            ) : (slipsQuery.data ?? []).length === 0 ? (
+              <div className="flex flex-col items-center py-8 text-center">
+                <FileText className="h-8 w-8 text-muted-foreground mb-2" />
+                <h3 className="text-sm font-semibold">Inga lönespecifikationer ännu</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Din första lönespecifikation skapas när guardian godkänt månadens lönekörning.
+                </p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border">
+                {slipsQuery.data!.map((slip) => (
+                  <li key={slip.id} className="py-3.5 flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium">{formatMonthSv(slip.reportMonth)}</div>
+                      <div className="text-xs text-muted-foreground font-mono">
+                        {slip.documentNumber} · utfärdat {formatShortDateSv(slip.issuedAt)}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => downloadMyLonespec(slip.reportMonth)}
+                    >
+                      <Download className="mr-2 h-4 w-4" /> Ladda ner
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
 
       </div>
 
