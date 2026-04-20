@@ -1,8 +1,8 @@
 # Kalinga Assistansportal — Roadmap
 
 **Project:** Swedish personal assistance (assistansersättning) self-management platform with compliance and payroll integration
-**Current milestone:** v1.0.1 — Salary Slip + Foundation Cleanup (active)
-**Last updated:** 2026-04-18
+**Current milestone:** v1.0.1 — Salary Slip + Foundation Cleanup (PAUSED 2026-04-20 — 75% complete; Phase 10 pending)
+**Last updated:** 2026-04-20
 
 ---
 
@@ -10,12 +10,14 @@
 
 If you're a new session / new LLM and have never seen this project before, **read this section, then PROJECT.md, then the detailed milestone sections below. Skip nothing.**
 
-### Where the project stands (as of 2026-04-18)
+### Where the project stands (as of 2026-04-20 — PAUSED)
 
+- **Status: PAUSED.** User paused development 2026-04-20 with everything committed and pushed. See [STATE.md](STATE.md) and [HANDOFF.md](HANDOFF.md) for the full cold-start briefing. Resume with `/gsd-plan-phase 10`.
 - **v1.0 is shipped and archived** (2026-04-18). 9 phases shipped, 36 plans summarised, 15/15 requirements satisfied in code. Git tag `v1.0`. Branch `milestone/v1.0-mvp` on `origin`. Full archive at [.planning/milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md).
-- **v1.0.1 is the active milestone** (kicked off 2026-04-18). 4 phases (7–10), 18 requirements, ~6.5 days of work. Scope: legally-required salary slip (lönespec) for anhörig-model assistants, employer-representation helper, absorbed schema cleanup, scheduling scaffolding removal, real-data entry.
-- **Phase 7 is complete** (2026-04-18). Foundation — Schema & Cleanup shipped on branch `milestone/v1.0.1`: all new `assistants` + `profile` columns live in Postgres, PUT whitelists extended (no new endpoints), dead scheduling scaffolding excised (routes + client helpers + Settings Scheduling card), Settings 2-section collapsibles with 15 new guardian-editable fields, SetupWizard captures 3 minimum first-time-setup fields. Verifier score: 22/22 must-haves. SCHEMA-01/02/03 + CLEAN-01/02/03 all Complete. **Next up: Phase 8 — Employer Representation Helper.**
-- **The app itself works end-to-end** — guardian can run the full monthly compliance cycle (schedule, approve, payroll, FK 3057, FK 3059, SKV 4805) in the current UI. v1.0 accepted-known-issues and deferred items are catalogued in [.planning/milestones/v1.0-MILESTONE-AUDIT.md](milestones/v1.0-MILESTONE-AUDIT.md).
+- **v1.0.1 is the active milestone** (kicked off 2026-04-18). 4 phases (7–10), 18 requirements. Branch `milestone/v1.0.1` on `origin` — HEAD `850ecbb`. **Phases 7, 8, 9 all complete and UAT-verified. Phase 10 context captured, ready for planning.** No PR is open against `main`; strategy is to hold the PR until Phase 10 ships and then open the full v1.0.1 merge.
+- **Phase 9 (Salary Slip) shipped 2026-04-20** — lönespec PDF pipeline live end-to-end. 4 plans summarised (schema+whitelists, builder+renderer, endpoints+allocation, UI surfaces). UAT: 9/9 tests passed automatically (cold start, Settings persistence, PDF download guardian + /me, disabled-state server gates, IDOR, replay idempotency, pay-date freeze D-09, PDF content Swedish locale). Evidence at `.planning/phases/09-salary-slip/09-UAT.md`.
+- **Phase 10 (Real Data Entry & E2E Verification) is next** — data-entry phase, not code-heavy. Context captured at `.planning/phases/10-real-data-entry/10-CONTEXT.md` (D-01..D-07 locked). Planning has not been authored. Resume action: `/gsd-plan-phase 10`.
+- **The app itself works end-to-end** — guardian can run the full monthly compliance cycle (schedule, approve, payroll, FK 3057, FK 3059, SKV 4805, now also salary slip) in the current UI. v1.0 accepted-known-issues and deferred items are catalogued in [.planning/milestones/v1.0-MILESTONE-AUDIT.md](milestones/v1.0-MILESTONE-AUDIT.md).
 
 ### The essential facts about this product
 
@@ -159,9 +161,9 @@ Full detail in [milestones/v1.0-MILESTONE-AUDIT.md](milestones/v1.0-MILESTONE-AU
 ### Phases (v1.0.1)
 
 - [x] **Phase 7: Foundation — Schema & Cleanup** — Shipped 2026-04-18. All new `assistants` + `profile` columns live, PUT whitelists extended, dead scheduling scaffolding removed, Settings 2-section UI + SetupWizard additions verified. 22/22 must-haves passed.
-- [ ] **Phase 8: Employer Representation Helper** — Extract single `resolveEmployerRepresentation()` helper and refactor FK 3057, FK 3059, SKV 4805 renderers to use it so the employer-name bug is closed and the slip renderer has a clean input
-- [ ] **Phase 9: Salary Slip (Anhörig Model)** — Ship the legally-required lönespec PDF with guardian + assistant download paths, payroll-approval gate, audit table, and scaffolding for Fremia/Custom (v1.4/v1.5)
-- [ ] **Phase 10: Real Data Entry & End-to-End Verification** — Guardian enters real brukare/guardian/assistant data in Settings and downloads clean FK 3057 + SKV 4805 + lönespec PDFs with zero placeholder text
+- [x] **Phase 8: Employer Representation Helper** — Shipped + UAT clean. `resolveEmployerRepresentation()` helper extracted; FK 3057, FK 3059, SKV 4805 renderers refactored; employer-name bug closed; slip renderer consumes helper via report-period-end date.
+- [x] **Phase 9: Salary Slip (Anhörig Model)** — Shipped 2026-04-20 (`ad13a6a`). 4 plans summarised. Lönespec PDF live: guardian POST, assistant GET /me, slip listing endpoint, pdfkit renderer, 23 unit tests + 21 integration tests. UAT 9/9 passed (cold start, 4 Settings fields persist, guardian download, disabled-state gates, AssistantDashboard self-service, IDOR block, replay idempotency, D-09 pay-date freeze, Swedish locale PDF content). Fremia/Custom scaffolding disabled per v1.4/v1.5 deferral.
+- [ ] **Phase 10: Real Data Entry & End-to-End Verification** — 🔄 CONTEXT captured (`850ecbb`). Guardian enters real brukare/guardian/assistant data via existing Settings surfaces (Claude-driven API writes per D-01; Profile → Assistants → Verify order per D-03), then UAT walkthrough verifies Rose's FK 3057 + SKV 4805 + lönespec for 2026-03 contain zero placeholder strings. Resume with `/gsd-plan-phase 10`.
 
 ---
 
@@ -712,15 +714,15 @@ Phase 10: Real Data Entry & End-to-End Verification  (exercises the full pipelin
 
 | Requirement | Phase | Category | Status |
 |-------------|-------|----------|--------|
-| SLIP-01 | 9 | Salary Slip | Pending |
-| SLIP-02 | 9 | Salary Slip | Pending |
-| SLIP-03 | 9 | Salary Slip | Pending |
-| SLIP-04 | 9 | Salary Slip | Pending |
-| SLIP-05 | 9 | Salary Slip | Pending |
-| SLIP-06 | 9 | Salary Slip | Pending |
-| SLIP-07 | 9 | Salary Slip | Pending |
-| EMP-01 | 8 | Employer Representation | Pending |
-| EMP-02 | 8 | Employer Representation | Pending |
+| SLIP-01 | 9 | Salary Slip | Complete |
+| SLIP-02 | 9 | Salary Slip | Complete |
+| SLIP-03 | 9 | Salary Slip | Complete |
+| SLIP-04 | 9 | Salary Slip | Complete |
+| SLIP-05 | 9 | Salary Slip | Complete |
+| SLIP-06 | 9 | Salary Slip | Complete |
+| SLIP-07 | 9 | Salary Slip | Complete |
+| EMP-01 | 8 | Employer Representation | Complete |
+| EMP-02 | 8 | Employer Representation | Complete |
 | SCHEMA-01 | 7 | Schema Additions | Complete |
 | SCHEMA-02 | 7 | Schema Additions | Complete |
 | SCHEMA-03 | 7 | Schema Additions | Complete |

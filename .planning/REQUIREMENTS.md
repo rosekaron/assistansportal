@@ -12,10 +12,10 @@ Requirements for the v1.0.1 milestone. Each maps to exactly one roadmap phase.
 
 ### Salary Slip (SLIP)
 
-- [ ] **SLIP-01**: Guardian can download a salary slip PDF per approved assistant per month from Monthly page (gated on payroll approval; server returns 409 otherwise)
-- [ ] **SLIP-02**: Assistant can list and download their own past salary slips from AssistantDashboard (JWT-scoped to own records only)
-- [ ] **SLIP-03**: Salary slip (anhörig model) shows arbetstid section (worked hours + absence days with running VAB year-to-date), lön breakdown (bruttolön → preliminärskatt 30% → netto), and excludes all employer-side numbers (no arbetsgivaravgifter, no total kostnad)
-- [ ] **SLIP-04**: Salary slip header shows correct employer representation: `arbetsgivare = patient`, plus `företrädd av = guardian` only when patient is a minor
+- [x] **SLIP-01**: Guardian can download a salary slip PDF per approved assistant per month from Monthly page (gated on payroll approval; server returns 409 otherwise)
+- [x] **SLIP-02**: Assistant can list and download their own past salary slips from AssistantDashboard (JWT-scoped to own records only)
+- [x] **SLIP-03**: Salary slip (anhörig model) shows arbetstid section (worked hours + absence days with running VAB year-to-date), lön breakdown (bruttolön → preliminärskatt 30% → netto), and excludes all employer-side numbers (no arbetsgivaravgifter, no total kostnad)
+- [x] **SLIP-04**: Salary slip header shows correct employer representation: `arbetsgivare = patient`, plus `företrädd av = guardian` only when patient is a minor
 - [x] **SLIP-05**: Each issued slip is recorded in a `payment_slips` audit table with document number, issued-at timestamp, pay method, and pay date
 - [x] **SLIP-06**: Settings → Assistants exposes `salary_model` dropdown with "Anhörigassistans" (wired), "Fremia" and "Custom" (scaffolding only, disabled with "(Kommer i v1.4/v1.5)"), plus a per-assistant `hourly_rate_override` field
 - [x] **SLIP-07**: `payroll_records` captures `salary_model_used` + `hourly_rate_used` snapshots at generation time so historical slips reproduce identical numbers
@@ -101,10 +101,10 @@ Each v1.0.1 requirement maps to exactly one phase.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SLIP-01 | 9 | Pending |
-| SLIP-02 | 9 | Pending |
-| SLIP-03 | 9 | Pending |
-| SLIP-04 | 9 | Pending |
+| SLIP-01 | 9 | Complete |
+| SLIP-02 | 9 | Complete |
+| SLIP-03 | 9 | Complete |
+| SLIP-04 | 9 | Complete |
 | SLIP-05 | 9 | Complete |
 | SLIP-06 | 9 | Complete |
 | SLIP-07 | 9 | Complete |
