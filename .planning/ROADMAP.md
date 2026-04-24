@@ -549,7 +549,11 @@ Current shipping order:
 2. Settings → Assistants lists both Rose and Mikael with valid Swedish pno, real street/zip/city addresses, tax_scheme set to `a-skatt`, and populated bank clearing/account (or IBAN) fields
 3. A fresh download of FK 3057 (for the reporting month), a fresh download of SKV 4805 per assistant, and a fresh download of the salary slip per assistant for a recent approved month each contain zero placeholder text when visually inspected — verified by the guardian during a walkthrough checkpoint
 
-**Plans:** TBD
+**Plans:** 3 plans
+- [ ] 10-01-PLAN.md — Profile data entry via PUT /api/profile (real household address split + FK decision number/start/end; DATA-01; Wave 1)
+- [ ] 10-02-PLAN.md — Assistants data entry via PUT /api/assistants/:id (Rose + Mikael: split address, tax_scheme=a-skatt, bank clearing/account or IBAN; preserves Phase 9 lock-in for Rose; DATA-02; Wave 2)
+- [ ] 10-03-PLAN.md — 10-UAT.md with 3 tests (FK 3057 2026-03, Rose SKV 4805, Rose lönespec LS-2026-03-001 re-download with D-06 rebuild + freeze invariants); pdftotext grep of D-07 placeholder set; DATA-03; Wave 3
+
 **UI hint**: yes
 
 ---
@@ -687,7 +691,7 @@ Current shipping order:
 | 7. Foundation — Schema & Cleanup | 0/TBD | Not started | — |
 | 8. Employer Representation Helper | 0/1 | Not started | — |
 | 9. Salary Slip (Anhörig Model) | 0/4 | Not started | — |
-| 10. Real Data Entry & End-to-End Verification | 0/TBD | Not started | — |
+| 10. Real Data Entry & End-to-End Verification | 0/3 | Planned | — |
 
 ---
 
