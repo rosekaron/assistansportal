@@ -1,8 +1,8 @@
 # Kalinga Assistansportal — Roadmap
 
 **Project:** Swedish personal assistance (assistansersättning) self-management platform with compliance and payroll integration
-**Current milestone:** v1.0.1 — Salary Slip + Foundation Cleanup (PAUSED 2026-04-20 — 75% complete; Phase 10 pending)
-**Last updated:** 2026-04-20
+**Current milestone:** v1.0.1 — Salary Slip + Foundation Cleanup (EXECUTING; 85% — Phase 10 in-flight, plan 10-01 closed 2026-04-24)
+**Last updated:** 2026-04-24
 
 ---
 
@@ -163,7 +163,7 @@ Full detail in [milestones/v1.0-MILESTONE-AUDIT.md](milestones/v1.0-MILESTONE-AU
 - [x] **Phase 7: Foundation — Schema & Cleanup** — Shipped 2026-04-18. All new `assistants` + `profile` columns live, PUT whitelists extended, dead scheduling scaffolding removed, Settings 2-section UI + SetupWizard additions verified. 22/22 must-haves passed.
 - [x] **Phase 8: Employer Representation Helper** — Shipped + UAT clean. `resolveEmployerRepresentation()` helper extracted; FK 3057, FK 3059, SKV 4805 renderers refactored; employer-name bug closed; slip renderer consumes helper via report-period-end date.
 - [x] **Phase 9: Salary Slip (Anhörig Model)** — Shipped 2026-04-20 (`ad13a6a`). 4 plans summarised. Lönespec PDF live: guardian POST, assistant GET /me, slip listing endpoint, pdfkit renderer, 23 unit tests + 21 integration tests. UAT 9/9 passed (cold start, 4 Settings fields persist, guardian download, disabled-state gates, AssistantDashboard self-service, IDOR block, replay idempotency, D-09 pay-date freeze, Swedish locale PDF content). Fremia/Custom scaffolding disabled per v1.4/v1.5 deferral.
-- [ ] **Phase 10: Real Data Entry & End-to-End Verification** — 🔄 CONTEXT captured (`850ecbb`). Guardian enters real brukare/guardian/assistant data via existing Settings surfaces (Claude-driven API writes per D-01; Profile → Assistants → Verify order per D-03), then UAT walkthrough verifies Rose's FK 3057 + SKV 4805 + lönespec for 2026-03 contain zero placeholder strings. Resume with `/gsd-plan-phase 10`.
+- [ ] **Phase 10: Real Data Entry & End-to-End Verification** — 🔄 Executing. Plan **10-01 closed 2026-04-24** (address-split fields + legacy D-02 sync populated via PUT /api/profile; FK decision number/start/end DEFERRED to new gap-closure plan 10-04 per guardian checkpoint decision). Plans **10-02 Assistants** and **10-03 PDF UAT** still pending. **Plan 10-04 (new)** will close the deferred FK fields and finish DATA-01 after the main flow.
 
 ---
 
@@ -549,10 +549,11 @@ Current shipping order:
 2. Settings → Assistants lists both Rose and Mikael with valid Swedish pno, real street/zip/city addresses, tax_scheme set to `a-skatt`, and populated bank clearing/account (or IBAN) fields
 3. A fresh download of FK 3057 (for the reporting month), a fresh download of SKV 4805 per assistant, and a fresh download of the salary slip per assistant for a recent approved month each contain zero placeholder text when visually inspected — verified by the guardian during a walkthrough checkpoint
 
-**Plans:** 3 plans
-- [ ] 10-01-PLAN.md — Profile data entry via PUT /api/profile (real household address split + FK decision number/start/end; DATA-01; Wave 1)
+**Plans:** 3 plans (+ 1 gap-closure plan planned)
+- [x] 10-01-PLAN.md — Profile data entry via PUT /api/profile — **PARTIAL (2026-04-24):** split-address fields + legacy D-02 sync populated; FK decision fields (fk_decision_no / start / end) DEFERRED to new plan 10-04 per guardian decision; DATA-01 still OPEN until 10-04 ships; Wave 1
 - [ ] 10-02-PLAN.md — Assistants data entry via PUT /api/assistants/:id (Rose + Mikael: split address, tax_scheme=a-skatt, bank clearing/account or IBAN; preserves Phase 9 lock-in for Rose; DATA-02; Wave 2)
-- [ ] 10-03-PLAN.md — 10-UAT.md with 3 tests (FK 3057 2026-03, Rose SKV 4805, Rose lönespec LS-2026-03-001 re-download with D-06 rebuild + freeze invariants); pdftotext grep of D-07 placeholder set; DATA-03; Wave 3
+- [ ] 10-03-PLAN.md — 10-UAT.md with 3 tests (FK 3057 2026-03, Rose SKV 4805, Rose lönespec LS-2026-03-001 re-download with D-06 rebuild + freeze invariants); pdftotext grep of D-07 placeholder set; DATA-03; Wave 3. NOTE: the FK 3057 header test will flag the deferred fk_decision_no placeholder — hit routes to 10-04, not a regression.
+- [ ] 10-04-PLAN.md (to be created) — Gap-closure: collect real fk_decision_no + start/end from guardian and issue second PUT; reruns 10-03 FK 3057 header grep; finishes DATA-01.
 
 **UI hint**: yes
 
@@ -733,7 +734,7 @@ Phase 10: Real Data Entry & End-to-End Verification  (exercises the full pipelin
 | CLEAN-01 | 7 | Scheduling Cleanup | Complete |
 | CLEAN-02 | 7 | Scheduling Cleanup | Complete |
 | CLEAN-03 | 7 | Scheduling Cleanup | Complete |
-| DATA-01 | 10 | Real Data | Pending |
+| DATA-01 | 10 | Real Data | Partial (address done 2026-04-24 in 10-01; FK decision fields deferred to plan 10-04) |
 | DATA-02 | 10 | Real Data | Pending |
 | DATA-03 | 10 | Real Data | Pending |
 

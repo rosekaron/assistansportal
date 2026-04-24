@@ -39,7 +39,7 @@ Requirements for the v1.0.1 milestone. Each maps to exactly one roadmap phase.
 
 ### Real Data (DATA)
 
-- [ ] **DATA-01**: Guardian enters real patient pno/name/address, FK beslutsnummer, decision start/end, and hours-per-day entitlement in Settings → Profile (zero `TBD` or `000000-0000` placeholders remain)
+- [ ] **DATA-01** (partial, 2026-04-24): Guardian enters real patient pno/name/address, FK beslutsnummer, decision start/end, and hours-per-day entitlement in Settings → Profile (zero `TBD` or `000000-0000` placeholders remain). **Status:** address-split + legacy D-02 sync closed by plan 10-01; FK decision number/start/end deferred to new plan 10-04 per guardian decision; patient/guardian pno already populated from prior phases.
 - [ ] **DATA-02**: Both assistants (Rose + Mikael) have valid pno, real addresses, A-skatt scheme set, and bank details in Settings → Assistants
 - [ ] **DATA-03**: One clean download each of FK 3057, SKV 4805, and salary slip for a recent month contains zero placeholder text (visual/QA check)
 
@@ -116,7 +116,7 @@ Each v1.0.1 requirement maps to exactly one phase.
 | CLEAN-01 | 7 | Complete |
 | CLEAN-02 | 7 | Complete |
 | CLEAN-03 | 7 | Complete |
-| DATA-01 | 10 | Pending |
+| DATA-01 | 10 | Partial (address done 10-01; FK decision fields deferred to 10-04) |
 | DATA-02 | 10 | Pending |
 | DATA-03 | 10 | Pending |
 
