@@ -4,7 +4,7 @@ milestone: v1.0.1
 milestone_name: Salary Slip + Foundation Cleanup
 status: executing
 last_updated: "2026-04-24T19:39:00.000Z"
-last_activity: 2026-04-24 -- Phase 10 Plan 01 complete (address-only subset of DATA-01 closed via PUT /api/profile; FK decision fields deferred to new plan 10-04 per guardian decision)
+last_activity: 2026-04-24 -- Phase 10 mid-flight mode switch to guardian-driven manual E2E verification; plan 10-01 stays (address PUT was useful), 10-02 superseded by direct Settings UI entry, 10-03 pending --interactive run during E2E session
 progress:
   total_phases: 4
   completed_phases: 3
@@ -41,13 +41,13 @@ Phase 10 — Real Data Entry & End-to-End Verification
 
 ## Current Position
 
-Phase: 10 (Real Data Entry & End-to-End Verification) — EXECUTING
-Plan: 2 of 3 (10-01 complete 2026-04-24; 10-02 next)
+Phase: 10 (Real Data Entry & End-to-End Verification) — EXECUTING (mode switched to guardian-driven manual E2E + `--interactive` UAT)
 **Phase:** 10 — Real Data Entry & End-to-End Verification
-**Status:** Executing Phase 10
-**Last activity:** 2026-04-24 — Plan 10-01 closed. Address-only subset of DATA-01 populated via PUT /api/profile (split fields + legacy sync per D-02). FK decision fields (fkDecisionNo / fkDecisionStart / fkDecisionEnd) explicitly deferred to new gap-closure plan 10-04 per guardian decision during Task 2 checkpoint. DATA-01 remains OPEN until 10-04 ships.
-**Progress:** [████████░░] 85% of v1.0.1 (3 of 4 phases + 1 of 3 Phase-10 plans complete)
-**Branch:** `milestone/v1.0.1` on `origin` — 10-01 work local; push deferred until plan-close commit lands
+**Status:** Phase 10 paused between waves pending guardian's E2E session
+**Last activity:** 2026-04-24 — Mid-flight mode switch. The agentic PUT pipeline was judged over-engineered for what Phase 10 is actually proving; guardian will now do assistant data entry via the Settings UI during an end-to-end test session, then run `/gsd-execute-phase 10 --interactive --wave 3` to step through the PDF UAT inline. 10-01 stays (address PUT was genuinely useful, commit `fe95419`). 10-02 is superseded (no executor run, field list kept as reference). 10-03 pending. FK decision fields + 10-04 still deferred.
+**Progress:** [████████░░] 85% of v1.0.1 (3 of 4 phases + 1 of 3 Phase-10 plans committed; 10-02 superseded rather than run)
+**Branch:** `milestone/v1.0.1` on `origin` — 10-01 work local; push deferred until phase closes
+**Resume action:** when guardian is ready for E2E, run `/gsd-execute-phase 10 --interactive --wave 3` — steps through 10-03's PDF UAT inline, no subagents, guardian drives each test.
 
 ---
 

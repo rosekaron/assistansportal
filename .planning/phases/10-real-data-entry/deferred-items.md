@@ -5,6 +5,19 @@ current plan and need to be addressed in a follow-up.
 
 ---
 
+## Mode switch 2026-04-24 (mid-phase pivot)
+
+Phase 10 was paused between Wave 1 and Wave 2 after the guardian observed that the agentic PUT pipeline was over-engineered for what this phase is actually proving. Decision:
+
+- **10-01** keeps its result (address + legacy sync committed via PUT; useful either way).
+- **10-02** is SUPERSEDED — guardian will enter assistant data (Rose + Mikael addresses, tax_scheme, bank details) via the live Settings UI as part of their end-to-end test session. The plan's field list stands as reference documentation but no executor run will happen.
+- **10-03** will run in `--interactive` mode during the guardian's E2E session (`/gsd-execute-phase 10 --interactive --wave 3`) — inline step-through of the PDF UAT, no subagent spawning. The PDF placeholder grep remains the actual regression-value step.
+- **10-04** (gap-closure for FK decision fields) may be merged with the E2E session too — guardian can enter the FK beslutsnummer/start/end directly via the Settings UI at the same time as the assistant data.
+
+The idle executor at checkpoint `a298abb1a45430316` is abandoned — it will idle out.
+
+---
+
 ## Items logged by plan 10-01
 
 ### 1. Pre-existing PII leak in HANDOFF.md (guardian decision needed)
