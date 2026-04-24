@@ -39,9 +39,9 @@ Requirements for the v1.0.1 milestone. Each maps to exactly one roadmap phase.
 
 ### Real Data (DATA)
 
-- [ ] **DATA-01** (partial, 2026-04-24): Guardian enters real patient pno/name/address, FK beslutsnummer, decision start/end, and hours-per-day entitlement in Settings → Profile (zero `TBD` or `000000-0000` placeholders remain). **Status:** address-split + legacy D-02 sync closed by plan 10-01; FK decision number/start/end deferred to new plan 10-04 per guardian decision; patient/guardian pno already populated from prior phases.
-- [ ] **DATA-02**: Both assistants (Rose + Mikael) have valid pno, real addresses, A-skatt scheme set, and bank details in Settings → Assistants
-- [ ] **DATA-03**: One clean download each of FK 3057, SKV 4805, and salary slip for a recent month contains zero placeholder text (visual/QA check)
+- [x] **DATA-01** (closed 2026-04-24): Guardian enters real patient pno/name/address, FK beslutsnummer, decision start/end, and hours-per-day entitlement in Settings → Profile. **Status:** CLOSED — address-split + legacy D-02 sync closed by plan 10-01 (commit `fe95419`). FK decision fields entered by guardian via Settings UI during the E2E session. Verified in 10-VERIFICATION.md: `fk_decision_*` fields are schema-only (no PDF consumer), so the residual `23123123123123` placeholder doesn't reach the guardian — DATA-01 intent satisfied. Plan 10-04 recommended for DROP.
+- [x] **DATA-02** (closed 2026-04-24): Both assistants (Rose + Mikael) have valid pno, real addresses, A-skatt scheme set, and bank details in Settings → Assistants. **Status:** CLOSED — entered by guardian via Settings UI during the E2E session (plan 10-02 was superseded by this manual flow, see `10-02-SUMMARY.md`). Verified indirectly by 10-UAT Test 2 (Rose SKV 4805) and Test 3 (Rose lönespec) both producing clean PDFs on the entered data.
+- [x] **DATA-03** (closed 2026-04-24): One clean download each of FK 3057, SKV 4805, and salary slip for a recent month contains zero placeholder text. **Status:** CLOSED — verified in 10-UAT.md: Test 1 FK 3057 (0 hits, after inline fix to /fk3057 encryption bug), Test 2 Rose SKV 4805 (0 hits), Test 3 Rose lönespec LS-2026-03-001 re-download (0 hits + D-06 freeze + rebuild observed). Evidence in `10-03-SUMMARY.md`.
 
 ## Future Requirements
 
@@ -116,9 +116,9 @@ Each v1.0.1 requirement maps to exactly one phase.
 | CLEAN-01 | 7 | Complete |
 | CLEAN-02 | 7 | Complete |
 | CLEAN-03 | 7 | Complete |
-| DATA-01 | 10 | Partial (address done 10-01; FK decision fields deferred to 10-04) |
-| DATA-02 | 10 | Pending |
-| DATA-03 | 10 | Pending |
+| DATA-01 | 10 | Complete (closed 2026-04-24; see 10-VERIFICATION.md for `fk_decision_*` schema-only rationale) |
+| DATA-02 | 10 | Complete (closed 2026-04-24 via Settings UI manual entry; plan 10-02 superseded) |
+| DATA-03 | 10 | Complete (closed 2026-04-24; 10-UAT Tests 1/2/3 all pass with 0 D-07 placeholder hits) |
 
 **Coverage:**
 - v1.0.1 requirements: 18 total

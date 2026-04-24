@@ -2,22 +2,22 @@
 gsd_state_version: 1.0
 milestone: v1.0.1
 milestone_name: Salary Slip + Foundation Cleanup
-status: executing
-last_updated: "2026-04-24T19:39:00.000Z"
-last_activity: 2026-04-24 -- Phase 10 mid-flight mode switch to guardian-driven manual E2E verification; plan 10-01 stays (address PUT was useful), 10-02 superseded by direct Settings UI entry, 10-03 pending --interactive run during E2E session
+status: completed
+last_updated: "2026-04-24T21:04:17.789Z"
+last_activity: 2026-04-24 -- Phase 10 closed; DATA-03 verified via --interactive UAT (3/3 PDFs zero placeholder hits). Inline fix for /fk3057 decryption bug landed mid-UAT. v1.0.1 milestone complete.
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 13
-  completed_plans: 11
-  percent: 85
+  completed_plans: 13
+  percent: 100
 ---
 
 # Kalinga Assistansportal — Project State
 
 **Project:** Swedish personal assistance (assistansersättning) self-management platform
-**Milestone:** v1.0.1 — Salary Slip + Foundation Cleanup
-**State Updated:** 2026-04-24 (Phase 10 executing; plan 10-01 complete)
+**Milestone:** v1.0.1 — Salary Slip + Foundation Cleanup (COMPLETE)
+**State Updated:** 2026-04-24 (Phase 10 complete; milestone v1.0.1 ready to ship)
 
 ---
 
@@ -27,7 +27,7 @@ progress:
 The guardian can complete the full monthly cycle — approve hours, generate all required forms, calculate pay — without needing an HR department or assistance company.
 
 **Current Focus:**
-Phase 10 — Real Data Entry & End-to-End Verification
+Milestone v1.0.1 complete — Phase 10 closed 2026-04-24. Next: ship (PR / merge / tag).
 
 **Tech Stack:**
 
@@ -41,13 +41,13 @@ Phase 10 — Real Data Entry & End-to-End Verification
 
 ## Current Position
 
-Phase: 10 (Real Data Entry & End-to-End Verification) — EXECUTING (mode switched to guardian-driven manual E2E + `--interactive` UAT)
-**Phase:** 10 — Real Data Entry & End-to-End Verification
-**Status:** Phase 10 paused between waves pending guardian's E2E session
-**Last activity:** 2026-04-24 — Mid-flight mode switch. The agentic PUT pipeline was judged over-engineered for what Phase 10 is actually proving; guardian will now do assistant data entry via the Settings UI during an end-to-end test session, then run `/gsd-execute-phase 10 --interactive --wave 3` to step through the PDF UAT inline. 10-01 stays (address PUT was genuinely useful, commit `fe95419`). 10-02 is superseded (no executor run, field list kept as reference). 10-03 pending. FK decision fields + 10-04 still deferred.
-**Progress:** [████████░░] 85% of v1.0.1 (3 of 4 phases + 1 of 3 Phase-10 plans committed; 10-02 superseded rather than run)
-**Branch:** `milestone/v1.0.1` on `origin` — 10-01 work local; push deferred until phase closes
-**Resume action:** when guardian is ready for E2E, run `/gsd-execute-phase 10 --interactive --wave 3` — steps through 10-03's PDF UAT inline, no subagents, guardian drives each test.
+Phase: 10 (Real Data Entry & End-to-End Verification) — ✓ COMPLETE (closed 2026-04-24)
+**Phase:** 10 closed — milestone v1.0.1 all 4 phases done
+**Status:** Milestone v1.0.1 complete — ready to ship
+**Last activity:** 2026-04-24 — Phase 10 --interactive UAT: 3/3 PDF tests passed. Inline bug fix to /fk3057 (decryption) landed. Dialog scroll fix landed.
+**Progress:** [██████████] 100% of v1.0.1 (4/4 phases, 13/13 plans counting 10-02 as superseded/10-03 as closed)
+**Branch:** `milestone/v1.0.1` on `origin` — ahead by several commits (10-01 PUT, mode-switch docs, dialog scroll fix, pdf.ts decryption fix, 10-UAT, summaries); push when ready
+**Next action:** open PR to main, merge, tag v1.0.1. Consider also following up on the two non-blocking gaps (Rose's `hourlyRateOverride` parsing issue + plan 10-04 drop confirmation).
 
 ---
 

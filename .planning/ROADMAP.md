@@ -692,7 +692,7 @@ Current shipping order:
 | 7. Foundation — Schema & Cleanup | 0/TBD | Not started | — |
 | 8. Employer Representation Helper | 0/1 | Not started | — |
 | 9. Salary Slip (Anhörig Model) | 0/4 | Not started | — |
-| 10. Real Data Entry & End-to-End Verification | 3/3 | Complete   | 2026-04-24 |
+| 10. Real Data Entry & End-to-End Verification | 3/3 | Complete    | 2026-04-24 |
 
 ---
 
