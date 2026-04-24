@@ -292,36 +292,28 @@ router.post("/fk3057", requireAuth, requireGuardian, async (req: AuthRequest, re
     const totalMins   = Math.round((totalHours % 1) * 60);
     const totalHrsInt = Math.floor(totalHours);
 
-    const formBytes = fs.readFileSync(formPath);
-    const pdfDoc    = await PDFDocument.load(formBytes, { ignoreEncryption: true });
-    const form      = pdfDoc.getForm();
-
-    const sf = (name: string, value: string) => {
-      try { form.getTextField(name).setText(value); } catch {}
-    };
-
-    sf("form1[0].#subform[0].flt_txtAr1[0]",  year[0] ?? "");
-    sf("form1[0].#subform[0].flt_txtAr2[0]",  year[1] ?? "");
-    sf("form1[0].#subform[0].flt_txtAr3[0]",  year[2] ?? "");
-    sf("form1[0].#subform[0].flt_txtAr4[0]",  year[3] ?? "");
-    sf("form1[0].#subform[0].flt_txtMan1[0]", mm[0]);
-    sf("form1[0].#subform[0].flt_txtMan2[0]", mm[1]);
-    sf("form1[0].#subform[0].flt_txtFnamnEnamnBrukare[0]", prof?.patientName ?? "");
-    sf("form1[0].#subform[0].flt_txtPersonNrBrukare[0]",   prof?.patientPno  ?? "");
-    sf("form1[0].#subform[0].flt_numaktivtid_tim[0]",      String(totalHrsInt));
-    sf("form1[0].#subform[0].flt_numaktivtid_min[0]",      String(totalMins).padStart(2, "0"));
+    const fields: Record<string, string> = {};
+    fields["form1[0].#subform[0].flt_txtAr1[0]"]  = year[0] ?? "";
+    fields["form1[0].#subform[0].flt_txtAr2[0]"]  = year[1] ?? "";
+    fields["form1[0].#subform[0].flt_txtAr3[0]"]  = year[2] ?? "";
+    fields["form1[0].#subform[0].flt_txtAr4[0]"]  = year[3] ?? "";
+    fields["form1[0].#subform[0].flt_txtMan1[0]"] = mm[0];
+    fields["form1[0].#subform[0].flt_txtMan2[0]"] = mm[1];
+    fields["form1[0].#subform[0].flt_txtFnamnEnamnBrukare[0]"] = prof?.patientName ?? "";
+    fields["form1[0].#subform[0].flt_txtPersonNrBrukare[0]"]   = prof?.patientPno  ?? "";
+    fields["form1[0].#subform[0].flt_numaktivtid_tim[0]"]      = String(totalHrsInt);
+    fields["form1[0].#subform[0].flt_numaktivtid_min[0]"]      = String(totalMins).padStart(2, "0");
 
     const today = new Date().toLocaleDateString("sv-SE");
-    sf("form1[0].#subform[0].flt_datum[0]",           today);
-    sf("form1[0].#subform[0].flt_txtNamnteckning[0]", prof?.guardianName  ?? "");
-    sf("form1[0].#subform[0].flt_txtTel[0]",          prof?.guardianPhone ?? "");
+    fields["form1[0].#subform[0].flt_datum[0]"]           = today;
+    fields["form1[0].#subform[0].flt_txtNamnteckning[0]"] = prof?.guardianName  ?? "";
+    fields["form1[0].#subform[0].flt_txtTel[0]"]          = prof?.guardianPhone ?? "";
 
-    form.flatten();
-    const filledBytes = await pdfDoc.save();
+    const filledBytes = await decryptAndFill(formPath, fields);
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="FK3057-${year}-${mm}.pdf"`);
-    res.send(Buffer.from(filledBytes));
+    res.send(filledBytes);
   } catch (e) {
     console.error("[pdf] error:", e);
     res.status(500).json({ error: "Internal server error" });
