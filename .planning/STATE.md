@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.0.1
 milestone_name: Salary Slip + Foundation Cleanup
-status: completed
-last_updated: "2026-04-24T21:04:17.789Z"
-last_activity: 2026-04-24 -- Phase 10 closed; DATA-03 verified via --interactive UAT (3/3 PDFs zero placeholder hits). Inline fix for /fk3057 decryption bug landed mid-UAT. v1.0.1 milestone complete.
+status: "v1.0.1 shipped — PR #7 open, cross-AI review next"
+last_updated: "2026-04-24T21:50:10.360Z"
+last_activity: "2026-04-24 -- v1.0.1 shipped: PR #7 opened against main"
 progress:
   total_phases: 4
   completed_phases: 4
@@ -43,8 +43,8 @@ Milestone v1.0.1 complete — Phase 10 closed 2026-04-24. Next: ship (PR / merge
 
 Phase: 10 (Real Data Entry & End-to-End Verification) — ✓ COMPLETE (closed 2026-04-24)
 **Phase:** 10 closed — milestone v1.0.1 all 4 phases done
-**Status:** Milestone v1.0.1 complete — ready to ship
-**Last activity:** 2026-04-24 — Phase 10 --interactive UAT: 3/3 PDF tests passed. Inline bug fix to /fk3057 (decryption) landed. Dialog scroll fix landed.
+**Status:** v1.0.1 shipped — PR #7 open, cross-AI review next
+**Last activity:** 2026-04-24 -- v1.0.1 shipped: PR #7 opened against main
 **Progress:** [██████████] 100% of v1.0.1 (4/4 phases, 13/13 plans counting 10-02 as superseded/10-03 as closed)
 **Branch:** `milestone/v1.0.1` on `origin` — ahead by several commits (10-01 PUT, mode-switch docs, dialog scroll fix, pdf.ts decryption fix, 10-UAT, summaries); push when ready
 **Next action:** open PR to main, merge, tag v1.0.1. Consider also following up on the two non-blocking gaps (Rose's `hourlyRateOverride` parsing issue + plan 10-04 drop confirmation).
