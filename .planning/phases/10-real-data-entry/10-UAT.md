@@ -16,10 +16,19 @@ runner: claude (interactive — PDF download + pdftotext grep; guardian sign-off
 ## Tests
 
 ### 1. FK 3057 — reporting month 2026-03 contains zero placeholders
-expected: POST /api/pdf/fk3057 {year:"2026",month:"3"} returns 200 application/pdf; pdftotext output contains zero D-07 placeholder pattern hits (TBD | 000000-0000 | TBD-FK-DECISION | 23123123123123 | placeholder | 6+-run | double-comma | ", ,").
-result:
+expected: POST /api/pdf/fk3057 {year:"2026",month:"3"} returns 200 application/pdf; pdftotext output contains zero D-07 placeholder pattern hits (TBD | 000000-0000 | TBD-FK-DECISION | 23123123123123 | placeholder | 6+-digit-run | double-comma | ", ,").
+result: pass (after fix)
 evidence: |
-  TBD
+  First attempt: HTTP 500 — server crash in /fk3057 route. Reproduction in a standalone node script surfaced the root cause: `fk3057.pdf` is owner-password-encrypted by Försäkringskassan; the route was loading it with `PDFDocument.load(..., {ignoreEncryption: true})` which yielded 0 accessible form fields and crashed on `pdfDoc.save()`. Commit 509f9cb (Phase 8) had refactored /fk3059 and /4805 to use the `decryptAndFill` (qpdf) helper but missed /fk3057.
+
+  Fix committed in this session: /fk3057 route now uses `decryptAndFill(formPath, fields)` — same pattern as /fk3059. 16 insertions / 24 deletions, zero behavioral change for field values.
+
+  Retry after fix: HTTP 200, 791078 bytes, first 4 bytes = %PDF-.
+  pdftotext run: 0 placeholder hits across D-07 pattern set (refined regex: `(\d)\1{5,}` digit-only, not the original `(.)\1{5,}` which false-positives on PDF whitespace runs).
+  131 text lines extracted, Swedish locale glyphs (å/ä/ö) render OK.
+  Patient identity, month/year digits, guardian contact fields visible in pdftotext output at category level (not transcribed).
+
+  Non-obvious discovery: the /fk3057 route does NOT reference `fk_decision_no`, `fk_decision_start`, or `fk_decision_end` anywhere. Those three fields exist only on the schema + `PUT /api/profile` whitelist; no PDF route consumes them. That means the Phase 10 CONTEXT.md premise "FK 3057 header will flag the `23123123123123` placeholder" was incorrect — the placeholder stays in DB but doesn't propagate to any generated PDF. Plan 10-04 (FK decision fields gap-closure) is likely unnecessary for DATA-03 / v1.0.1 scope; needs confirmation.
 
 ### 2. SKV 4805 — Rose Karon for 2026-03 contains zero placeholders
 expected: POST /api/pdf/4805 {year:"2026",month:"3",assistantId:$ROSE_ID} returns 200 application/pdf; pdftotext output contains zero D-07 placeholder pattern hits; employer block resolves to patient identity per Phase 8 EMP-01/02 (not guardian).
