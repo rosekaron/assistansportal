@@ -163,7 +163,7 @@ Full detail in [milestones/v1.0-MILESTONE-AUDIT.md](milestones/v1.0-MILESTONE-AU
 - [x] **Phase 7: Foundation — Schema & Cleanup** — Shipped 2026-04-18. All new `assistants` + `profile` columns live, PUT whitelists extended, dead scheduling scaffolding removed, Settings 2-section UI + SetupWizard additions verified. 22/22 must-haves passed.
 - [x] **Phase 8: Employer Representation Helper** — Shipped + UAT clean. `resolveEmployerRepresentation()` helper extracted; FK 3057, FK 3059, SKV 4805 renderers refactored; employer-name bug closed; slip renderer consumes helper via report-period-end date.
 - [x] **Phase 9: Salary Slip (Anhörig Model)** — Shipped 2026-04-20 (`ad13a6a`). 4 plans summarised. Lönespec PDF live: guardian POST, assistant GET /me, slip listing endpoint, pdfkit renderer, 23 unit tests + 21 integration tests. UAT 9/9 passed (cold start, 4 Settings fields persist, guardian download, disabled-state gates, AssistantDashboard self-service, IDOR block, replay idempotency, D-09 pay-date freeze, Swedish locale PDF content). Fremia/Custom scaffolding disabled per v1.4/v1.5 deferral.
-- [ ] **Phase 10: Real Data Entry & End-to-End Verification** — 🔄 Executing. Plan **10-01 closed 2026-04-24** (address-split fields + legacy D-02 sync populated via PUT /api/profile; FK decision number/start/end DEFERRED to new gap-closure plan 10-04 per guardian checkpoint decision). Plans **10-02 Assistants** and **10-03 PDF UAT** still pending. **Plan 10-04 (new)** will close the deferred FK fields and finish DATA-01 after the main flow.
+- [x] **Phase 10: Real Data Entry & End-to-End Verification** — 🔄 Executing. Plan **10-01 closed 2026-04-24** (address-split fields + legacy D-02 sync populated via PUT /api/profile; FK decision number/start/end DEFERRED to new gap-closure plan 10-04 per guardian checkpoint decision). Plans **10-02 Assistants** and **10-03 PDF UAT** still pending. **Plan 10-04 (new)** will close the deferred FK fields and finish DATA-01 after the main flow. (completed 2026-04-24)
 
 ---
 
@@ -549,10 +549,10 @@ Current shipping order:
 2. Settings → Assistants lists both Rose and Mikael with valid Swedish pno, real street/zip/city addresses, tax_scheme set to `a-skatt`, and populated bank clearing/account (or IBAN) fields
 3. A fresh download of FK 3057 (for the reporting month), a fresh download of SKV 4805 per assistant, and a fresh download of the salary slip per assistant for a recent approved month each contain zero placeholder text when visually inspected — verified by the guardian during a walkthrough checkpoint
 
-**Plans:** 3 plans — **MODE SWITCH 2026-04-24:** Phase 10 mid-flight pivot to guardian-driven manual E2E verification. The agentic PUT pipeline was judged over-engineered for a phase whose real verification is the guardian sitting down with real data and the actual Settings UI. 10-01 stays as-is (address populated via API was genuinely useful); 10-02 is superseded by direct Settings UI entry; 10-03 will run as an `--interactive` UAT during the guardian's E2E test session.
+**Plans:** 3/3 plans complete
 - [x] 10-01-PLAN.md — Profile data entry via PUT /api/profile — **PARTIAL (2026-04-24):** split-address fields + legacy D-02 sync populated; FK decision fields (fk_decision_no / start / end) DEFERRED to new plan 10-04 per guardian decision; DATA-01 still OPEN until 10-04 ships; Wave 1
 - [~] 10-02-PLAN.md — **SUPERSEDED (2026-04-24):** assistants data (Rose + Mikael) will be entered by the guardian directly through the Settings UI as part of the normal end-to-end test session, not through the planned agentic PUT pipeline. The plan's field list and acceptance shape remain as reference documentation for what "complete" looks like, but no executor run will happen. DATA-02 closes when the guardian confirms via `/gsd-execute-phase 10 --interactive --wave 3` (10-03 UAT) that the Settings-entered assistant data produces placeholder-free PDFs.
-- [ ] 10-03-PLAN.md — **INTERACTIVE MODE (pending):** 10-UAT.md with 3 tests (FK 3057 2026-03, Rose SKV 4805, Rose lönespec LS-2026-03-001 re-download with D-06 rebuild + freeze invariants); pdftotext grep of D-07 placeholder set; DATA-03. Run via `/gsd-execute-phase 10 --interactive --wave 3` when guardian is ready for E2E test session — no subagent, stepped through inline. The FK 3057 header test will still flag the deferred `fk_decision_no` placeholder — hit routes to 10-04, not a regression.
+- [x] 10-03-PLAN.md — **INTERACTIVE MODE (pending):** 10-UAT.md with 3 tests (FK 3057 2026-03, Rose SKV 4805, Rose lönespec LS-2026-03-001 re-download with D-06 rebuild + freeze invariants); pdftotext grep of D-07 placeholder set; DATA-03. Run via `/gsd-execute-phase 10 --interactive --wave 3` when guardian is ready for E2E test session — no subagent, stepped through inline. The FK 3057 header test will still flag the deferred `fk_decision_no` placeholder — hit routes to 10-04, not a regression.
 - [ ] 10-04-PLAN.md (to be created) — Gap-closure: collect real fk_decision_no + start/end from guardian and issue second PUT (or ask guardian to enter via Settings, TBD); finishes DATA-01.
 
 **UI hint**: yes
@@ -692,7 +692,7 @@ Current shipping order:
 | 7. Foundation — Schema & Cleanup | 0/TBD | Not started | — |
 | 8. Employer Representation Helper | 0/1 | Not started | — |
 | 9. Salary Slip (Anhörig Model) | 0/4 | Not started | — |
-| 10. Real Data Entry & End-to-End Verification | 0/3 | Planned | — |
+| 10. Real Data Entry & End-to-End Verification | 3/3 | Complete   | 2026-04-24 |
 
 ---
 
