@@ -23,9 +23,16 @@ evidence: |
 
 ### 2. SKV 4805 — Rose Karon for 2026-03 contains zero placeholders
 expected: POST /api/pdf/4805 {year:"2026",month:"3",assistantId:$ROSE_ID} returns 200 application/pdf; pdftotext output contains zero D-07 placeholder pattern hits; employer block resolves to patient identity per Phase 8 EMP-01/02 (not guardian).
-result:
+result: pass
 evidence: |
-  TBD
+  HTTP 200, 28796 bytes, first 4 bytes = %PDF-
+  pdftotext run: 0 placeholder hits across D-07 pattern set
+    (TBD | 000000-0000 | TBD-FK-DECISION | 23123123123123 | placeholder |
+     `(\d)\1{5,}` 6+-same-digit-run | `,, ` double-comma | `, ,` triple-empty).
+  148 text lines extracted, Swedish locale glyphs (å/ä/ö) render OK — category-level confirm, full text not transcribed.
+  Employer section visually corresponds to patient identity per Phase 8 EMP-01/02 (category-level confirm, not transcribed).
+  Recipient section shows Rose Karon identity (category-level confirm).
+  Note on D-07 regex: plan literal `(.)\1{5,}` was too broad — matched PDF whitespace-run layout artifacts (103/148 lines false-positive). Refined to `(\d)\1{5,}` (digit-only) to preserve the rule's original intent (detect all-same-digit pno placeholders). Zero hits with refined pattern.
 
 ### 3. Lönespec re-download — LS-2026-03-001 rebuilds with new data, audit fields frozen (D-06)
 expected: POST /api/pdf/lonespec {year:"2026",month:"03",assistantId:$ROSE_ID} returns 200 application/pdf; pdftotext output contains zero D-07 placeholder pattern hits; payment_slips row (id, document_number, issued_at, pay_date) unchanged pre/post (D-06 freeze); rebuilt PDF surfaces new address + bank content entered via Settings UI (D-06 rebuild-on-download).
