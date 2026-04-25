@@ -155,12 +155,61 @@ These need manual resolution — both branches edited the same regions:
 
 ## Open questions for the guardian
 
-1. **Multi-family (US-24/25/26):** is this a feature you're using or planning to use? If yes, it must survive the reconciliation. If you've moved past it, it can be dropped.
-2. **Clock in/out:** main implements it via `entries.clockedInAt/Out` columns; milestone implements it via a separate `clock.ts` route. **You currently have two parallel implementations of the same feature.** One needs to win.
-3. **Real Google OAuth (US-13b/13c):** is the OAuth flow on main live? Or has milestone's gcal.ts evolved to cover it?
-4. **AssistantDashboard:** main and milestone both have substantial but different versions. Which is the truth?
-5. **`docs/user-stories.md` (1,194 lines):** does this still represent your active product spec, or has the GSD `.planning/` directory replaced it as the source of truth?
-6. **Top-level `ROADMAP.md`:** main has its own `ROADMAP.md` at the repo root. milestone's roadmap lives at `.planning/ROADMAP.md`. Two roadmaps exist. Which is canonical?
+1. **Multi-family (US-24/25/26): ✓ DECIDED 2026-04-25 — REAL, must survive reconciliation.**
+   Implication: keep `authAssistants` table, `profile.authId`, `assistants.guardianAuthId` + `familyLabel`, and main's multi-family endpoints. The merged schema must include both these AND milestone's Phase 7 columns.
+2. **Clock in/out: ✓ DECIDED 2026-04-25 — `clock.ts` (milestone) wins.**
+   Implication: keep milestone's `server/src/routes/clock.ts` (268 lines). DROP main's `entries.clockedInAt`, `clockedOutAt`, `actualHours`, `guardianAdjusted` columns. Whatever main's `assistant.ts` extensions did with those columns needs to be dropped or rewritten to call clock.ts.
+3. **Real Google OAuth (US-13b/13c): ✓ DECIDED 2026-04-25 — milestone's `gcal.ts` already covers it.**
+   Implication: drop main's `gcal.ts` parallel edits at merge.
+4. **All UI: ✓ DECIDED 2026-04-25 — milestone's UI wins (whole track).**
+   Implication: keep milestone's `AssistantDashboard.tsx` (584), `Home.tsx`, `Records.tsx`, `Settings.tsx`. Drop main's `AssistantDashboard.tsx` (494), `Dashboard.tsx`, `Reports.tsx`, and main-only `AssistantDetail.tsx`. Resolves the AssistantDashboard ↔ clock-columns ripple — milestone's AssistantDashboard already reads from milestone's `clock.ts`, so no rewrite needed. (Original Decision #4 said "main's wins" — REVERSED 2026-04-25 same-session after guardian noted milestone is more updated on UI.)
+5. **`docs/user-stories.md` and `docs/fk-rules.md`: ✓ DECIDED 2026-04-25 — keep both.**
+   Implication: docs/ stays at repo root, `.planning/` stays where it is. They serve different audiences (product/external vs engineering/internal).
+6. **Two `ROADMAP.md` files: ✓ DECIDED 2026-04-25 — keep both.**
+   Implication: top-level `ROADMAP.md` (public-facing) and `.planning/ROADMAP.md` (GSD-managed) coexist. Cross-reference each other where appropriate.
+
+## Reconciliation plan (derived from decisions 1–6)
+
+### Schema (`server/src/db/schema.ts`)
+**Take BOTH branches' additions:**
+- `profile` gets: main's `authId` + all milestone's columns (split address, FK decision dates, `dubbelAssistansApproved`, `patientRelationToGuardian`, `patientRequiresRepresentative`, `defaultPayDay`)
+- `assistants` gets: main's `guardianAuthId` + `familyLabel` + all milestone's columns (split address, `taxScheme`, bank fields, employment dates, etc.)
+- New tables: `authAssistants` (main) + `paymentSlips`, `absences`, `payrollRecords` (milestone)
+- New enums: `linkStatusEnum` (main) + `absenceType`, `payrollStatus`, `paymentMethod`, `clockType`, `taxScheme`, `patientRelation`, `salaryModelSnapshot` (milestone). `reqStatusEnum` extended with `"cancelled"`.
+
+**Drop from `entries` (per Decision #2):**
+- `clockedInAt`, `clockedOutAt`, `actualHours`, `guardianAdjusted`
+
+### Routes
+- `clock.ts`: take milestone's 268-line implementation. Drop main's 1-line stub.
+- `assistant.ts`: take milestone's Phase 9/10 endpoints. Drop main's US-23 missed-clock-fix code that touches the removed `entries.clockedInAt` columns. The clock-in/out workflow is fully covered by milestone's `clock.ts` + UI; main's parallel approach is superseded.
+- `assistants.ts`: take BOTH — main's multi-family endpoints + milestone's Phase 7 whitelist extensions.
+- `pdf.ts`: take milestone's `decryptAndFill` + lönespec + the just-fixed `/fk3057`. Cherry-pick main's earlier FK fixes (BUG-01..05, väntetid totals) only if they survive the `decryptAndFill` refactor — most likely already covered.
+- `gcal.ts`: take milestone's. Drop main's edits (per Decision #3).
+- `entries.ts`: auto-merged cleanly earlier; accept that result.
+
+### Client (per Decision #4 reversal: milestone wins all UI)
+- Keep: milestone's `AssistantDashboard.tsx` (584), `Home.tsx`, `Records.tsx`, `Settings.tsx`.
+- Drop: main's `AssistantDashboard.tsx` (494), `Dashboard.tsx`, `Reports.tsx`, `AssistantDetail.tsx`.
+- `App.tsx` routing: take milestone's (already wired for Home/Records/AssistantDashboard).
+- Net effect: **no UI ripples remain**. Milestone's UI already reads clock data from milestone's `clock.ts`.
+
+### Docs
+- `README.md`: take main's curated version.
+- Top-level `ROADMAP.md`, `docs/user-stories.md`, `docs/fk-rules.md`: keep all (main's).
+- `.planning/` tree: keep all (milestone's).
+
+## Effort estimate (post all 6 decisions)
+
+- **Schema merge + drizzle migration:** 30 min
+- **Route conflict resolution (assistant, assistants, pdf):** 60-90 min
+- **Drop main UI files + reconcile App.tsx routing:** 15 min
+- **Boot/build/typecheck verification:** 30 min
+- **Smoke testing the merged build:** 30-60 min
+
+**Total: 2.5–3.5 hours of careful work** (down from 3-5 hours after Decision #4 reversal eliminated the AssistantDashboard rewrite). Plus risk premium for unanticipated drizzle migration issues with the merged schema (existing dev data in Postgres needs to survive the new column set).
+
+**Total: 3–5 hours of careful work**, plus risk premium for unanticipated drizzle migration issues with the merged schema (existing dev data in Postgres needs to survive the new column set).
 
 ## What I did NOT do today (to be picked up later)
 
