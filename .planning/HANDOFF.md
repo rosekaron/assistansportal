@@ -1,24 +1,29 @@
-# HANDOFF — Kalinga Assistansportal (v1.0.1 SHIPPED 2026-04-25)
+# HANDOFF — Kalinga Assistansportal (v1.0.1 work complete, MERGE BLOCKED 2026-04-25)
 
-> **You are picking up post-merge work.** v1.0.1 is shipped. PR #7 merged 2026-04-25. The next sprint is hardening based on the CodeRabbit review of that PR — see "Outstanding from PR #7 review" below.
+> **You are picking up a complicated state.** v1.0.1's actual work is done and verified. PR #7 is OPEN but **cannot auto-merge** — `main` and `milestone/v1.0.1` have diverged with parallel feature work on both sides. Read `.planning/MAIN-VS-MILESTONE-DIAGNOSIS.md` BEFORE attempting any merge or push.
 
 ## TL;DR
 
-- **Milestone:** v1.0.1 (Salary Slip + Foundation Cleanup) — ✅ SHIPPED, PR #7 merged 2026-04-25
-- **All 4 phases (7-10) verified and closed.** 18/18 requirements complete.
-- **OUTSTANDING:** 6 HIGH-severity findings from CodeRabbit review of PR #7 that were merged with documented deferral. See `.planning/todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md` for the full list and per-finding fix prompts.
-- **Resume command:** `/gsd-new-milestone v1.0.2` (recommended) — start a hardening milestone covering the 6 HIGH findings + the `hourlyRateOverride = 0.31` Settings parsing bug.
+- **Milestone:** v1.0.1 (Salary Slip + Foundation Cleanup) — work complete, all 4 phases (7-10) verified and closed locally on `milestone/v1.0.1`, 18/18 requirements complete.
+- **PR #7** is open against `main` with merge conflicts on 5 files (README.md, schema.ts, assistant.ts, assistants.ts, pdf.ts). **Not auto-mergeable.**
+- **The conflicts are real:** `main` has parallel feature work (multi-family, real Google OAuth, clock-in/out via entries.clockedInAt, AssistantDetail page, Reports.tsx) that `milestone/v1.0.1` never inherited. Both branches modified the same DB tables in different ways. Neither is a strict subset of the other.
+- **READ FIRST:** `.planning/MAIN-VS-MILESTONE-DIAGNOSIS.md` (written 2026-04-25). Has full topology + commit-by-commit breakdown + 6 open questions for the guardian.
+- **Resume action:** Read the diagnosis. Walk through the 6 open questions. Pick a reconciliation strategy (full merge, force-replace, or cherry-pick). Then execute.
 
-## Outstanding from PR #7 review (read before any new work)
+## Two outstanding tracks once the merge is unblocked
 
-CodeRabbit reviewed the full v1.0.1 diff and surfaced 23 findings. v1.0.1 was merged with these documented as deferred. The actual milestone scope (salary slip + foundation cleanup + employer helper + real-data E2E) was verified clean on its own merits — most HIGH items are pre-existing latent issues that just got surfaced by the cumulative diff.
+### Track A — Reconcile main ↔ milestone (BLOCKING for ship)
+See `.planning/MAIN-VS-MILESTONE-DIAGNOSIS.md`. Until this is resolved, v1.0.1 cannot land on main.
 
-**Read these first:**
+### Track B — v1.0.2 hardening (post-merge follow-up)
+CodeRabbit reviewed PR #7's diff and surfaced 23 findings. v1.0.1's actual milestone scope (salary slip + foundation cleanup + employer helper + real-data E2E) was verified clean on its own merits — most HIGH items are pre-existing latent issues. Track in `.planning/todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md`.
+
+**Read these first (Track B):**
 1. `.planning/todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md` — categorised follow-up list (HIGH / MEDIUM / LOW)
 2. `.planning/phases/10-real-data-entry/10-REVIEWS.md` — verbatim CodeRabbit output with `Prompt for AI Agent` per finding
 
 **HIGH (security + data integrity, fix in v1.0.2):**
-1. `clock.ts:52-69` — TOCTOU on clock-in
+1. `clock.ts:52-69` — TOCTOU on clock-in (NOTE: which `clock.ts`? Milestone has 268-line version; main has 1-line stub. Reconciliation outcome decides which is authoritative.)
 2. `clock.ts:147-165` — multi-table ops without transaction
 3. `assistants.ts:89-145` — same transaction concern
 4. `auth.ts:229-234` — missing UNIQUE on `assistantGuardianLinks(assistantId, guardianId)`
@@ -27,7 +32,8 @@ CodeRabbit reviewed the full v1.0.1 diff and surfaced 23 findings. v1.0.1 was me
 
 **Plus one separate UI bug:**
 - `hourlyRateOverride = 0.31` saved instead of `254.10` after Settings re-entry — likely Swedish decimal-comma parsing bug in the Settings input. Externally validated by CodeRabbit. Investigate the input parsing path.
-- **Git:** branch `milestone/v1.0.1`, HEAD `850ecbb`, pushed to origin. No PR open against `main` yet (hold until Phase 10 ships).
+
+_(The two outstanding tracks are summarised in the TL;DR above. Don't act on Track B (v1.0.2 hardening) before Track A (main↔milestone reconciliation) is resolved — half the HIGH-severity findings reference files whose authoritative version is still in dispute.)_
 
 ## Read order on resume
 
