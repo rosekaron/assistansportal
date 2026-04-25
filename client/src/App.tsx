@@ -82,14 +82,14 @@ export default function App() {
       <Route element={
         <RequireAuth><RequireGuardian><RequireSetup><Layout /></RequireSetup></RequireGuardian></RequireAuth>
       }>
-        {/* ── New IA routes (Plans 05-08 wire the real components) ── */}
+        {/* ── New IA routes (milestone v1.0.1 — Plans 05-08 wire the real components) ── */}
         <Route index              element={<Navigate to="/home" replace />} />
         <Route path="/home"       element={<HomePage />} />
         <Route path="/monthly"    element={<MonthlyPage />} />
         <Route path="/records"    element={<RecordsPage />} />
-        <Route path="/settings"   element={<SettingsPage />} />    {/* Plan 08 updates Settings.tsx in place */}
+        <Route path="/settings"   element={<SettingsPage />} />
 
-        {/* ── Legacy redirects — keep all old bookmarks working ── */}
+        {/* ── Legacy redirects — keep all old bookmarks working (incl. main's pre-IA routes) ── */}
         <Route path="/dashboard"  element={<Navigate to="/home"     replace />} />
         <Route path="/calendar"   element={<Navigate to="/home"     replace />} />
         <Route path="/schedule"   element={<Navigate to="/home"     replace />} />
@@ -97,6 +97,7 @@ export default function App() {
         <Route path="/compliance" element={<Navigate to="/monthly"  replace />} />
         <Route path="/payroll"    element={<Navigate to="/monthly"  replace />} />
         <Route path="/assistants" element={<Navigate to="/settings" replace />} />
+        <Route path="/assistants/:id" element={<Navigate to="/settings" replace />} />
         <Route path="/leave"      element={<Navigate to="/records"  replace />} />
         <Route path="/hours"      element={<Navigate to="/home"     replace />} />
       </Route>

@@ -9,7 +9,8 @@ export const repStatusEnum    = pgEnum("rep_status",    ["draft","pending","appr
 export const calStatusEnum    = pgEnum("cal_status",    ["tentative","confirmed"]);
 // NOTE: "self_book" value retained per D-14 — used by clock.ts as clock-origin marker, NOT for self-booking UX (removed in CLEAN-01).
 export const sourceEnum       = pgEnum("source",        ["proposal","self_book"]);
-export const inviteStatusEnum = pgEnum("invite_status", ["pending","accepted","declined","revoked"]);
+export const inviteStatusEnum  = pgEnum("invite_status",  ["pending","accepted","declined","revoked"]);
+export const linkStatusEnum    = pgEnum("link_status",    ["pending","accepted","declined"]);
 export const roleEnum         = pgEnum("role",          ["guardian","assistant"]);
 export const entryTypeEnum    = pgEnum("entry_type",    ["active","waiting","standby","sick"]);
 export const absenceTypeEnum  = pgEnum("absence_type",  ["sjukfrånvaro","vab","semester","other"]);
@@ -28,6 +29,7 @@ export const salaryModelSnapshotEnum = pgEnum("salary_model_snapshot", ["anhöri
 // See docs/compliance/swedish-fk-and-labor-rules.md for the complete rule set.
 export const profile = pgTable("profile", {
   id:            serial("id").primaryKey(),
+  authId:        integer("auth_id"),          // FK to auth.id — which guardian owns this profile (null = legacy global)
   guardianName:  text("guardian_name").default(""),
   guardianPno:   text("guardian_pno").default(""),
   guardianEmail: text("guardian_email").default(""),
@@ -101,6 +103,9 @@ export const assistants = pgTable("assistants", {
   isFlexible:     boolean("is_flexible").default(false),
   inviteStatus:   inviteStatusEnum("invite_status").default("pending"),
   authId:         integer("auth_id"),
+  // Multi-family (from origin/main): which guardian created this record + display label for the family
+  guardianAuthId: integer("guardian_auth_id"),                          // FK to auth.id of the guardian
+  familyLabel:    text("family_label").default(""),                     // patient name from guardian profile (for fast display)
   address:        text("address").default(""),
   // v1.0.1 Phase 7 additions (SCHEMA-01 / D-07, D-15, D-17)
   addressStreet:         text("address_street").default(""),            // D-07 — new split address; existing single-line `address` kept for fallback
@@ -123,6 +128,16 @@ export const assistants = pgTable("assistants", {
   createdAt:      timestamp("created_at").defaultNow(),
 });
 
+// ── Auth ↔ Assistants (many-to-many) ──────────────────────────
+// One assistant auth account can be linked to multiple assistant records (one per family)
+export const authAssistants = pgTable("auth_assistants", {
+  id:          text("id").primaryKey(),
+  authId:      integer("auth_id").notNull(),      // FK to auth.id (assistant role)
+  assistantId: text("assistant_id").notNull().references(() => assistants.id, { onDelete: "cascade" }),
+  status:      linkStatusEnum("status").default("pending"),
+  createdAt:   timestamp("created_at").defaultNow(),
+});
+
 // ── Schedule entries ──────────────────────────────────────────
 export const entries = pgTable("entries", {
   id:          text("id").primaryKey(),
@@ -140,9 +155,12 @@ export const entries = pgTable("entries", {
   gcalEventId: text("gcal_event_id"),
   createdAt:   timestamp("created_at").defaultNow(),
   updatedAt:   timestamp("updated_at").defaultNow(),
-  // Set to true when this entry was auto-created by a clock-out event (Plan 02).
+  // Set to true when this entry was auto-created by a clock-out event (clock.ts).
   // Plan 06 reads this flag to show the "Verified" badge on the Monthly page.
   // Manual entries (proposals, guardian-created) remain verified=false.
+  // Per Decision #2 (2026-04-25): main's parallel clock-column approach
+  // (clockedInAt/clockedOutAt/actualHours/guardianAdjusted) was DROPPED — milestone's
+  // separate `clock.ts` route + this `verified` flag is the authoritative implementation.
   verified:    boolean("verified").default(false),
 });
 
@@ -299,6 +317,7 @@ export const assistantGuardianLinks = pgTable("assistant_guardian_links", {
 export type Profile           = typeof profile.$inferSelect;
 export type Auth              = typeof auth.$inferSelect;
 export type Assistant         = typeof assistants.$inferSelect;
+export type AuthAssistant     = typeof authAssistants.$inferSelect;
 export type Entry             = typeof entries.$inferSelect;
 export type Blocked           = typeof blocked.$inferSelect;
 export type Invite            = typeof invites.$inferSelect;

@@ -69,7 +69,10 @@ router.put("/:id", requireAuth, requireGuardian, async (req: AuthRequest, res) =
   if (d.startTime   ?? d.start_time   !== undefined) allowed.startTime   = d.startTime   ?? d.start_time;
   if (d.endTime     ?? d.end_time     !== undefined) allowed.endTime     = d.endTime     ?? d.end_time;
   if (d.activityId  ?? d.activity_id  !== undefined) allowed.activityId  = d.activityId  ?? d.activity_id;
-  if (d.gcalEventId !== undefined) allowed.gcalEventId = d.gcalEventId;
+  if (d.gcalEventId          !== undefined) allowed.gcalEventId      = d.gcalEventId;
+  // NOTE (2026-04-25 reconciliation): main's clockedInAt/clockedOutAt/actualHours/guardianAdjusted
+  // whitelist entries were dropped — those columns don't exist on the merged entries table per
+  // Decision #2 (milestone's clock.ts owns clock-in/out, with its own audit table).
   allowed.updatedAt = new Date();
 
   const [row] = await db.update(entries).set(allowed).where(eq(entries.id, req.params.id)).returning();

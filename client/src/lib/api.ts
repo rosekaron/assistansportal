@@ -30,7 +30,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (r) => r,
   (err) => {
-    if (err.response?.status === 401) {
+    const isAuthEndpoint = err.config?.url?.includes("/auth/");
+    if (err.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem("token");
       window.location.href = "/login";
     }
@@ -65,11 +66,15 @@ export const profileApi = {
 
 // Assistants
 export const assistantsApi = {
-  list:     () => api.get("/assistants"),
-  create:   (data: Record<string, unknown>) => api.post("/assistants", data),
-  update:   (id: string, data: Record<string, unknown>) => api.put(`/assistants/${id}`, data),
-  delete:   (id: string) => api.delete(`/assistants/${id}`),
+  list:         () => api.get("/assistants"),
+  get:          (id: string) => api.get(`/assistants/${id}`),
+  create:       (data: Record<string, unknown>) => api.post("/assistants", data),
+  update:       (id: string, data: Record<string, unknown>) => api.put(`/assistants/${id}`, data),
+  delete:       (id: string) => api.delete(`/assistants/${id}`),
   registerSelf: (data: Record<string, unknown>) => api.post("/assistants/register-self", data),
+  // Multi-family link helpers (origin/main)
+  linkExisting: (assistantId: string, email: string) => api.post("/assistants/link-existing", { assistantId, email }),
+  linkStatus:   (id: string) => api.get(`/assistants/${id}/link-status`),
 };
 
 // Entries
@@ -140,6 +145,7 @@ export const gcalApi = {
   status:      () => api.get("/gcal/status"),
   connectUrl:  () => `${window.location.origin}/api/gcal/connect`,
   disconnect:  () => api.post("/gcal/disconnect"),
+  health:      () => api.get("/gcal/health"),
   events:      (start: string, end: string) => api.get("/gcal/events", { params: { start, end } }),
   createEvent: (data: Record<string, unknown>) => api.post("/gcal/events", data),
   deleteEvent: (eventId: string) => api.delete(`/gcal/events/${eventId}`),
@@ -224,6 +230,16 @@ export const assistantSelfApi = {
   submitReport: (id: string) => api.put(`/assistant/entries/${id}/submit-report`),
   // v1.0.1 Phase 9 (SLIP-02)
   slips:        () => api.get<PaymentSlipListRow[]>("/assistant/slips"),
+  // Multi-family — from origin/main (US-24/25/26)
+  families:     () => api.get("/assistant/families"),
+  leaveFamily:  (assistantId: string) => api.post(`/assistant/families/${assistantId}/leave`),
+  linkRequests: () => api.get("/assistant/link-requests"),
+  acceptLink:   (linkId: string) => api.post(`/assistant/link-requests/${linkId}/accept`),
+  declineLink:  (linkId: string) => api.post(`/assistant/link-requests/${linkId}/decline`),
+  // NOTE (2026-04-25 reconciliation): main's `openSlots`/`selfBook` helpers were removed —
+  // backing endpoints dropped per Phase 7 CLEAN-01 (dead scheduling scaffolding).
+  // Main's per-entry `clockIn`/`clockOut` helpers were removed too — replaced by milestone's
+  // `clockApi` (separate export below) per Decision #2.
 };
 
 // ── Clock API (assistant-only) ────────────────────────────────

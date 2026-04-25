@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
-import { assistants, assistantGuardianLinks, auth } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { assistants, assistantGuardianLinks, auth, authAssistants, profile } from "../db/schema";
+import { eq, and } from "drizzle-orm";
 import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 import { newId } from "../lib/id";
 
@@ -14,20 +14,33 @@ router.get("/", requireAuth, requireGuardian, async (_req: AuthRequest, res) => 
   res.json(rows);
 });
 
+router.get("/:id", requireAuth, async (req, res) => {
+  const [row] = await db.select().from(assistants).where(eq(assistants.id, req.params.id)).limit(1);
+  if (!row) return res.status(404).json({ error: "Assistant not found" });
+  res.json(row);
+});
+
 router.post("/", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   const { name, email, pno, phone, minWeeklyHours, isFlexible } = req.body;
-  const count = (await db.select().from(assistants)).length;
+  const count    = (await db.select().from(assistants)).length;
   const initials = name.trim().split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+
+  // Set familyLabel from the guardian's profile (patient name)
+  const [prof] = await db.select().from(profile).limit(1);
+  const familyLabel = prof?.patientName ?? "";
+
   const [row] = await db.insert(assistants).values({
-    id: newId("a"),
-    name: name.trim(),
+    id:             newId("a"),
+    name:           name.trim(),
     initials,
-    color: COLORS[count % COLORS.length],
-    email: email ?? "",
-    pno:   pno   ?? "",
-    phone: phone ?? "",
+    color:          COLORS[count % COLORS.length],
+    email:          email          ?? "",
+    pno:            pno            ?? "",
+    phone:          phone          ?? "",
     minWeeklyHours: minWeeklyHours ?? 0,
-    isFlexible: isFlexible ?? false,
+    isFlexible:     isFlexible     ?? false,
+    guardianAuthId: req.userId     ?? null,
+    familyLabel,
   }).returning();
 
   // Auto-create an active guardian link so the assistant can clock in immediately
@@ -98,8 +111,6 @@ router.post("/register-self", requireAuth, requireGuardian, async (req: AuthRequ
     }
 
     // Safety check: make sure no OTHER assistant row already has this guardian's auth_id.
-    // This prevents accidentally linking the guardian account to an existing assistant
-    // (e.g. a family member's record that was manually patched in the DB).
     const alreadyLinked = await db.select().from(assistants).where(eq(assistants.authId, req.userId!));
     if (alreadyLinked.length > 0) {
       return res.status(409).json({
@@ -124,7 +135,7 @@ router.post("/register-self", requireAuth, requireGuardian, async (req: AuthRequ
       inviteStatus:  "accepted",
     }).returning();
 
-    // Link auth account → assistant record
+    // Link auth account → assistant record (legacy single-link)
     await db.update(auth)
       .set({ assistantId: row.id })
       .where(eq(auth.id, req.userId!));
@@ -140,6 +151,61 @@ router.post("/register-self", requireAuth, requireGuardian, async (req: AuthRequ
     res.status(201).json({ ok: true, assistantId: row.id, assistant: row });
   } catch (e) {
     console.error("[assistants] register-self error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── POST /link-existing ────────────────────────────────────────
+// US-25 (multi-family): Guardian sends a link request to an assistant who already has an account.
+// Body: { assistantId, email } — assistantId is the guardian's local record, email is the assistant's auth email
+router.post("/link-existing", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
+  try {
+    const { assistantId, email } = req.body;
+    if (!assistantId || !email) return res.status(400).json({ error: "assistantId and email required" });
+
+    // Verify the assistant record exists
+    const [assistant] = await db.select().from(assistants).where(eq(assistants.id, assistantId)).limit(1);
+    if (!assistant) return res.status(404).json({ error: "Assistant record not found" });
+
+    // Find the auth account by email (must be assistant role)
+    const [authAccount] = await db.select().from(auth)
+      .where(and(eq(auth.email, email.toLowerCase()), eq(auth.role, "assistant"))).limit(1);
+    if (!authAccount) return res.status(404).json({
+      error: "No assistant account found with this email. Send an invite instead.",
+      code: "NO_ACCOUNT",
+    });
+
+    // Check for existing link
+    const existing = await db.select().from(authAssistants)
+      .where(and(eq(authAssistants.authId, authAccount.id), eq(authAssistants.assistantId, assistantId))).limit(1);
+    if (existing.length > 0) {
+      return res.status(409).json({ error: "A link request already exists", status: existing[0].status });
+    }
+
+    // Create the pending link request
+    const [link] = await db.insert(authAssistants).values({
+      id:          newId("la"),
+      authId:      authAccount.id,
+      assistantId,
+      status:      "pending",
+    }).returning();
+
+    res.status(201).json({ link, message: "Link request sent — the assistant will see it when they next log in." });
+  } catch (e) {
+    console.error("[assistants] link-existing error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── GET /:id/link-status ───────────────────────────────────────
+// Check link requests for a specific assistant record (multi-family)
+router.get("/:id/link-status", requireAuth, requireGuardian, async (req, res) => {
+  try {
+    const links = await db.select().from(authAssistants)
+      .where(eq(authAssistants.assistantId, req.params.id));
+    res.json(links);
+  } catch (e) {
+    console.error("[assistants] link-status error:", e);
     res.status(500).json({ error: "Internal server error" });
   }
 });

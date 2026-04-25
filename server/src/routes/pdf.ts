@@ -32,11 +32,17 @@ const FORMS_DIR = (() => {
   return candidates[0];
 })();
 
-async function decryptAndFill(formPath: string, fields: Record<string, string>): Promise<Buffer> {
+// fields: text values. checks: field names to check (true) or uncheck (false).
+async function decryptAndFill(
+  formPath: string,
+  fields: Record<string, string>,
+  checks: Record<string, boolean> = {},
+  radios: Record<string, string> = {},
+): Promise<Buffer> {
   const tmpOut = path.join(os.tmpdir(), `fk_decrypted_${Date.now()}.pdf`);
 
   try {
-    // Decrypt using qpdf (via node-qpdf2) — handles owner-password-only FK forms
+    // Decrypt using qpdf — handles owner-password-only FK forms
     const result = spawnSync("qpdf", ["--decrypt", formPath, tmpOut]);
     if (result.status !== 0) {
       throw new Error(`qpdf: ${result.stderr?.toString() ?? result.stdout?.toString()}`);
@@ -58,6 +64,12 @@ async function decryptAndFill(formPath: string, fields: Record<string, string>):
         }
         form.getTextField(name).setText(value);
       } catch { /* skip unknown field */ }
+    }
+    for (const [name, checked] of Object.entries(checks)) {
+      try { checked ? form.getCheckBox(name).check() : form.getCheckBox(name).uncheck(); } catch {}
+    }
+    for (const [name, value] of Object.entries(radios)) {
+      try { form.getRadioGroup(name).select(value); } catch {}
     }
 
     form.flatten();
@@ -126,8 +138,13 @@ router.post("/fk3059", requireAuth, requireGuardian, async (req: AuthRequest, re
       address: null, addressStreet: null, addressZip: null, addressCity: null,
     }, new Date(end));
 
-    // ── Build field map ───────────────────────────────────────
-    const fields: Record<string, string> = {};
+    // ── Build field maps ──────────────────────────────────────
+    const fields:  Record<string, string>  = {};
+    const checks:  Record<string, boolean> = {};
+    const radios:  Record<string, string>  = {};
+
+    // Section 5: Employer type — always '3' (privatperson / egna arbetsgivaren) — from origin/main
+    radios["form1[0].#subform[0].RadioButtonList[2]"] = "3";
 
     // Page 1 — year/month
     fields["form1[0].#subform[0].flt_txtAr1[0]"] = year[0] ?? "";
@@ -168,31 +185,21 @@ router.post("/fk3059", requireAuth, requireGuardian, async (req: AuthRequest, re
 
     // ── Shift rows ────────────────────────────────────────────
     // 80 slots across 4 columns × 20 rows
+    const mkSlots = (sub: string, col: string, colIdx: number) =>
+      Array.from({ length: 20 }, (_, i) => ({
+        dag:      `form1[0].#subform[${sub}].${col}[${colIdx}].rad[${i}].flt_txtDag1[0]`,
+        kl1:      `form1[0].#subform[${sub}].${col}[${colIdx}].rad[${i}].flt_txtKlocka1[0]`,
+        kl2:      `form1[0].#subform[${sub}].${col}[${colIdx}].rad[${i}].flt_txtKlocka2[0]`,
+        aktiv:    `form1[0].#subform[${sub}].${col}[${colIdx}].rad[${i}].ksr_aktivTid[0]`,
+        vante:    `form1[0].#subform[${sub}].${col}[${colIdx}].rad[${i}].ksr_vanteTid[0]`,
+        beredskap:`form1[0].#subform[${sub}].${col}[${colIdx}].rad[${i}].ksr_beredskapsTid[0]`,
+      }));
+
     const slots = [
-      ...Array.from({ length: 20 }, (_, i) => ({
-        dag: `form1[0].#subform[10].raderVanster[0].rad[${i}].flt_txtDag1[0]`,
-        kl1: `form1[0].#subform[10].raderVanster[0].rad[${i}].flt_txtKlocka1[0]`,
-        kl2: `form1[0].#subform[10].raderVanster[0].rad[${i}].flt_txtKlocka2[0]`,
-        cb:  `form1[0].#subform[10].raderVanster[0].rad[${i}].ksr_aktivTid[0]`,
-      })),
-      ...Array.from({ length: 20 }, (_, i) => ({
-        dag: `form1[0].#subform[10].raderHoger[0].rad[${i}].flt_txtDag1[0]`,
-        kl1: `form1[0].#subform[10].raderHoger[0].rad[${i}].flt_txtKlocka1[0]`,
-        kl2: `form1[0].#subform[10].raderHoger[0].rad[${i}].flt_txtKlocka2[0]`,
-        cb:  `form1[0].#subform[10].raderHoger[0].rad[${i}].ksr_aktivTid[0]`,
-      })),
-      ...Array.from({ length: 20 }, (_, i) => ({
-        dag: `form1[0].#subform[16].raderVanster[1].rad[${i}].flt_txtDag1[0]`,
-        kl1: `form1[0].#subform[16].raderVanster[1].rad[${i}].flt_txtKlocka1[0]`,
-        kl2: `form1[0].#subform[16].raderVanster[1].rad[${i}].flt_txtKlocka2[0]`,
-        cb:  `form1[0].#subform[16].raderVanster[1].rad[${i}].ksr_aktivTid[0]`,
-      })),
-      ...Array.from({ length: 20 }, (_, i) => ({
-        dag: `form1[0].#subform[16].raderHoger[1].rad[${i}].flt_txtDag1[0]`,
-        kl1: `form1[0].#subform[16].raderHoger[1].rad[${i}].flt_txtKlocka1[0]`,
-        kl2: `form1[0].#subform[16].raderHoger[1].rad[${i}].flt_txtKlocka2[0]`,
-        cb:  `form1[0].#subform[16].raderHoger[1].rad[${i}].ksr_aktivTid[0]`,
-      })),
+      ...mkSlots("10", "raderVanster", 0),
+      ...mkSlots("10", "raderHoger",   0),
+      ...mkSlots("16", "raderVanster", 1),
+      ...mkSlots("16", "raderHoger",   1),
     ];
 
     // Totals per type (active=1, waiting=2, standby=3)
@@ -206,11 +213,18 @@ router.post("/fk3059", requireAuth, requireGuardian, async (req: AuthRequest, re
       fields[slot.dag] = day;
       fields[slot.kl1] = e.startTime;
       fields[slot.kl2] = e.endTime;
-      // All hours are aktiv tid — check the per-row checkbox
-      fields[slot.cb]  = "Yes";
 
       const type = (e.entryType ?? "active") as keyof typeof totMins;
       totMins[type] += Math.round((e.hours ?? 0) * 60);
+
+      // Per-row checkboxes — main's mkSlots helper exposes `aktiv`/`vante`/`beredskap`.
+      // The earlier `fields[slot.cb] = "Yes"` line (from milestone's older mkSlots that used
+      // a single `cb` key) was dropped during the 2026-04-25 reconciliation — it pointed at
+      // a property that no longer exists, and the `checks[slot.aktiv]` line below already
+      // marks the active-tid checkbox correctly.
+      checks[slot.aktiv]     = type === "active";
+      checks[slot.vante]     = type === "waiting";
+      checks[slot.beredskap] = type === "standby";
     }
 
     function hm(mins: number) {
@@ -233,7 +247,7 @@ router.post("/fk3059", requireAuth, requireGuardian, async (req: AuthRequest, re
     fields["form1[0].#subform[16].flt_txtTelefon2[0]"] = asst.phone ?? "";
 
     // ── Fill and send ─────────────────────────────────────────
-    const filledBytes = await decryptAndFill(formPath, fields);
+    const filledBytes = await decryptAndFill(formPath, fields, checks, radios);
     const filename    = `FK3059-${year}-${mm}-${asst.name.replace(/\s+/g, "-")}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");
@@ -268,11 +282,10 @@ router.post("/fk3057", requireAuth, requireGuardian, async (req: AuthRequest, re
         eq(entries.repStatus, "approved"),
       ));
 
-    // Fetch all absences covering this month for FK 3057 (all assistants, all absence types)
-    // LEAV-02: exclude entries whose date falls within any absence range
+    // Fetch absences covering this month for FK 3057 (all assistants, all absence types)
+    // LEAV-02: exclude entries whose date falls within any absence range — milestone's billable filtering.
     // NOTE: FK 3057 absence query is not scoped by guardianId because the entries table
-    // is also unscoped (single-tenant design per RESEARCH.md Pitfall 6). This is a known
-    // v1 single-tenant assumption — tracked for MULTI-01 in a future multi-tenant phase.
+    // is also unscoped (single-tenant design per RESEARCH.md Pitfall 6). Tracked for MULTI-01.
     const fk3057Start = `${year}-${mm}-01`;
     const fk3057End   = `${year}-${mm}-${String(daysInMonth).padStart(2, "0")}`;
     const allAbsences = await db.select({
@@ -288,28 +301,51 @@ router.post("/fk3057", requireAuth, requireGuardian, async (req: AuthRequest, re
     );
 
     const billableFk3057 = filterBillableEntries(monthEntries, allAbsences);
-    const totalHours  = billableFk3057.reduce((s, e) => s + (e.hours ?? 0), 0);
-    const totalMins   = Math.round((totalHours % 1) * 60);
-    const totalHrsInt = Math.floor(totalHours);
 
-    const fields: Record<string, string> = {};
-    fields["form1[0].#subform[0].flt_txtAr1[0]"]  = year[0] ?? "";
-    fields["form1[0].#subform[0].flt_txtAr2[0]"]  = year[1] ?? "";
-    fields["form1[0].#subform[0].flt_txtAr3[0]"]  = year[2] ?? "";
-    fields["form1[0].#subform[0].flt_txtAr4[0]"]  = year[3] ?? "";
-    fields["form1[0].#subform[0].flt_txtMan1[0]"] = mm[0];
-    fields["form1[0].#subform[0].flt_txtMan2[0]"] = mm[1];
-    fields["form1[0].#subform[0].flt_txtFnamnEnamnBrukare[0]"] = prof?.patientName ?? "";
-    fields["form1[0].#subform[0].flt_txtPersonNrBrukare[0]"]   = prof?.patientPno  ?? "";
-    fields["form1[0].#subform[0].flt_numaktivtid_tim[0]"]      = String(totalHrsInt);
-    fields["form1[0].#subform[0].flt_numaktivtid_min[0]"]      = String(totalMins).padStart(2, "0");
+    // Bucket billable entries by entryType so the form gets active / waiting / standby totals
+    // separately (origin/main commit `85f8e15` "Fix FK 3057 — fill väntetid and beredskapstid totals").
+    const totMins = { active: 0, waiting: 0, standby: 0 };
+    for (const e of billableFk3057) {
+      const type = (e.entryType ?? "active") as keyof typeof totMins;
+      totMins[type] += Math.round((e.hours ?? 0) * 60);
+    }
+
+    function hm(mins: number) {
+      return { h: Math.floor(mins / 60), m: mins % 60 };
+    }
+    const { h: h1, m: m1 } = hm(totMins.active);
+    const { h: h2, m: m2 } = hm(totMins.waiting);
+    const { h: h3, m: m3 } = hm(totMins.standby);
 
     const today = new Date().toLocaleDateString("sv-SE");
-    fields["form1[0].#subform[0].flt_datum[0]"]           = today;
-    fields["form1[0].#subform[0].flt_txtNamnteckning[0]"] = prof?.guardianName  ?? "";
-    fields["form1[0].#subform[0].flt_txtTel[0]"]          = prof?.guardianPhone ?? "";
 
-    const filledBytes = await decryptAndFill(formPath, fields);
+    const fields: Record<string, string> = {
+      "form1[0].#subform[0].flt_txtAr1[0]":               year[0] ?? "",
+      "form1[0].#subform[0].flt_txtAr2[0]":               year[1] ?? "",
+      "form1[0].#subform[0].flt_txtAr3[0]":               year[2] ?? "",
+      "form1[0].#subform[0].flt_txtAr4[0]":               year[3] ?? "",
+      "form1[0].#subform[0].flt_txtMan1[0]":              mm[0],
+      "form1[0].#subform[0].flt_txtMan2[0]":              mm[1],
+      "form1[0].#subform[0].flt_txtFnamnEnamnBrukare[0]": prof?.patientName ?? "",
+      "form1[0].#subform[0].flt_txtPersonNrBrukare[0]":   prof?.patientPno  ?? "",
+      "form1[0].#subform[0].flt_numaktivtid_tim[0]":      String(h1),
+      "form1[0].#subform[0].flt_numaktivtid_min[0]":      String(m1).padStart(2, "0"),
+      "form1[0].#subform[0].flt_numvantetid_tim[0]":      String(h2),
+      "form1[0].#subform[0].flt_numvantetid_min[0]":      String(m2).padStart(2, "0"),
+      "form1[0].#subform[0].flt_numberedskapstid_tim[0]": String(h3),
+      "form1[0].#subform[0].flt_numberedskapstid_min[0]": String(m3).padStart(2, "0"),
+      "form1[0].#subform[0].flt_datum[0]":                today,
+      "form1[0].#subform[0].flt_txtNamnteckning[0]":      prof?.guardianName  ?? "",
+      "form1[0].#subform[0].flt_txtTel[0]":               prof?.guardianPhone ?? "",
+    };
+    const checks: Record<string, boolean> = {
+      "form1[0].#subform[0].ksr_kryssrutaArbetsgivare[0]": true,
+    };
+
+    // Use decryptAndFill (qpdf) — fk3057.pdf is owner-password-encrypted by Försäkringskassan.
+    // Phase 8's commit `509f9cb` refactored /fk3059 + /4805 to this helper but missed /fk3057.
+    // Reconnected during Phase 10 UAT (2026-04-25).
+    const filledBytes = await decryptAndFill(formPath, fields, checks);
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="FK3057-${year}-${mm}.pdf"`);
