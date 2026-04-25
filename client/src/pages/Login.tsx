@@ -80,13 +80,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "linear-gradient(135deg, hsl(201 50% 96%) 0%, hsl(210 30% 98%) 100%)" }}>
+    <div className="min-h-screen bg-muted/30 flex items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6">
 
         {/* Logo */}
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm" style={{ background: "hsl(201 70% 42%)" }}>
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-sm">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                 <circle cx="9" cy="7" r="4"/>
@@ -101,7 +101,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <Card>
+        <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="text-base">{titles[mode]}</CardTitle>
             <CardDescription>{descs[mode]}</CardDescription>

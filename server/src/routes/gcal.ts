@@ -1,8 +1,9 @@
-import { Router } from "express";
+import { Router, Response, NextFunction } from "express";
 import { google } from "googleapis";
+import jwt from "jsonwebtoken";
 import { db } from "../db";
 import { settings } from "../db/schema";
-import { requireAuth, AuthRequest } from "../middleware/auth";
+import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 import * as dotenv from "dotenv";
 dotenv.config();
 
@@ -16,8 +17,28 @@ function getOAuthClient() {
   );
 }
 
+// ── Auth helper: accepts JWT from header OR ?token= query param ──
+function requireGuardianOrQueryToken(req: AuthRequest, res: Response, next: NextFunction) {
+  const header = req.headers.authorization;
+  if (header?.startsWith("Bearer ")) {
+    try {
+      const payload = jwt.verify(header.slice(7), process.env.JWT_SECRET || "dev_secret") as { userId: number; role?: string };
+      req.userId = payload.userId; req.role = payload.role;
+    } catch { return res.status(401).json({ error: "Invalid token" }); }
+  } else if (req.query.token) {
+    try {
+      const payload = jwt.verify(req.query.token as string, process.env.JWT_SECRET || "dev_secret") as { userId: number; role?: string };
+      req.userId = payload.userId; req.role = payload.role;
+    } catch { return res.status(401).json({ error: "Invalid token" }); }
+  } else {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (req.role !== "guardian") return res.status(403).json({ error: "Guardian access required" });
+  next();
+}
+
 // ── Step 1: Redirect user to Google consent screen ────────────
-router.get("/connect", (_req, res) => {
+router.get("/connect", requireGuardianOrQueryToken as Parameters<typeof router.get>[1], (_req, res) => {
   const oauth2Client = getOAuthClient();
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
@@ -60,15 +81,15 @@ router.get("/callback", async (req, res) => {
     await upsert("gcal_calendar_id",   "primary");
 
     // Redirect back to app
-    res.redirect(`${process.env.CLIENT_URL}/calendar?gcal_connected=true`);
+    res.redirect(`${process.env.CLIENT_URL}/settings?gcal_connected=true`);
   } catch (e) {
     console.error("GCal callback error:", e);
-    res.redirect(`${process.env.CLIENT_URL}/calendar?gcal_error=auth_failed`);
+    res.redirect(`${process.env.CLIENT_URL}/settings?gcal_error=auth_failed`);
   }
 });
 
 // ── Helper: get authenticated calendar client ─────────────────
-async function getCalendarClient() {
+export async function getCalendarClient() {
   const rows = await db.select().from(settings);
   const s = Object.fromEntries(rows.map(r => [r.key, r.value]));
 
@@ -91,7 +112,7 @@ async function getCalendarClient() {
 }
 
 // ── Get calendar status ───────────────────────────────────────
-router.get("/status", requireAuth, async (_req, res) => {
+router.get("/status", requireAuth, requireGuardian, async (_req: AuthRequest, res) => {
   try {
     const rows = await db.select().from(settings);
     const s = Object.fromEntries(rows.map(r => [r.key, r.value]));
@@ -100,11 +121,31 @@ router.get("/status", requireAuth, async (_req, res) => {
       email:       s.gcal_email ?? "",
       calendarId:  s.gcal_calendar_id ?? "primary",
     });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[gcal] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── List user's Google calendars ─────────────────────────────
+router.get("/calendars", requireAuth, requireGuardian, async (_req: AuthRequest, res) => {
+  try {
+    const { calendar } = await getCalendarClient();
+    const { data } = await calendar.calendarList.list({ maxResults: 50 });
+    const list = (data.items ?? []).map((cal) => ({
+      id:      cal.id,
+      summary: cal.summary,
+      primary: cal.primary ?? false,
+    }));
+    res.json(list);
+  } catch (e) {
+    console.error("[gcal] calendars error:", e);
+    res.status(500).json({ error: "Failed to fetch calendars" });
+  }
 });
 
 // ── Disconnect ────────────────────────────────────────────────
-router.post("/disconnect", requireAuth, async (_req, res) => {
+router.post("/disconnect", requireAuth, requireGuardian, async (_req: AuthRequest, res) => {
   try {
     const upsert = async (key: string, value: string) => {
       await db.insert(settings).values({ key, value })
@@ -115,11 +156,14 @@ router.post("/disconnect", requireAuth, async (_req, res) => {
     await upsert("gcal_access_token",  "");
     await upsert("gcal_refresh_token", "");
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[gcal] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Create a calendar event (blocked time or shift) ───────────
-router.post("/events", requireAuth, async (req, res) => {
+router.post("/events", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   try {
     const { summary, description, date, startTime, endTime, attendeeEmail, colorId } = req.body;
     const { calendar, calendarId } = await getCalendarClient();
@@ -137,21 +181,23 @@ router.post("/events", requireAuth, async (req, res) => {
       event.sendUpdates = "all";
     }
 
-    const { data } = await calendar.events.insert({
+    const insertParams = {
       calendarId,
       requestBody: event,
       sendUpdates: attendeeEmail ? "all" : "none",
-    } as Parameters<typeof calendar.events.insert>[0]);
+    };
+    // googleapis overloads confuse TS; cast to the promise-returning form.
+    const resp = await (calendar.events.insert as unknown as (p: typeof insertParams) => Promise<{ data: { id?: string; htmlLink?: string } }>)(insertParams);
 
-    res.json({ eventId: data.id, htmlLink: data.htmlLink });
+    res.json({ eventId: resp.data.id, htmlLink: resp.data.htmlLink });
   } catch (e) {
-    console.error("Create event error:", e);
-    res.status(500).json({ error: String(e) });
+    console.error("[gcal] error:", e);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
 // ── Update an event ───────────────────────────────────────────
-router.put("/events/:eventId", requireAuth, async (req, res) => {
+router.put("/events/:eventId", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   try {
     const { summary, status } = req.body;
     const { calendar, calendarId } = await getCalendarClient();
@@ -161,16 +207,22 @@ router.put("/events/:eventId", requireAuth, async (req, res) => {
       requestBody: { summary, status },
     });
     res.json({ ok: true, eventId: data.id });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[gcal] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Delete an event ───────────────────────────────────────────
-router.delete("/events/:eventId", requireAuth, async (req, res) => {
+router.delete("/events/:eventId", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   try {
     const { calendar, calendarId } = await getCalendarClient();
     await calendar.events.delete({ calendarId, eventId: req.params.eventId });
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[gcal] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── List user's calendars ─────────────────────────────────────
@@ -199,20 +251,30 @@ router.get("/health", requireAuth, async (_req, res) => {
 });
 
 // ── List upcoming events from Google Calendar ─────────────────
-router.get("/events", requireAuth, async (req, res) => {
+router.get("/events", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   try {
     const { start, end } = req.query as Record<string, string>;
     const { calendar, calendarId } = await getCalendarClient();
+    // `end` arrives as a calendar date (YYYY-MM-DD). Google's timeMax is
+    // exclusive, so new Date(end).toISOString() would exclude the entire
+    // end day. Advance to the next day's midnight UTC so the end date is
+    // inclusive (e.g. Sunday events render when the client passes the
+    // week's Sunday as `end`).
+    const timeMaxDate = end ? new Date(end) : null;
+    if (timeMaxDate) timeMaxDate.setUTCDate(timeMaxDate.getUTCDate() + 1);
     const { data } = await calendar.events.list({
       calendarId,
       timeMin: start ? new Date(start).toISOString() : new Date().toISOString(),
-      timeMax: end   ? new Date(end).toISOString()   : undefined,
+      timeMax: timeMaxDate ? timeMaxDate.toISOString() : undefined,
       singleEvents: true,
       orderBy: "startTime",
-      maxResults: 100,
+      maxResults: 250,
     });
     res.json(data.items ?? []);
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[gcal] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 export default router;

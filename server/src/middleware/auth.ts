@@ -33,3 +33,14 @@ export function requireAssistant(req: AuthRequest, res: Response, next: NextFunc
   if (req.role !== "assistant") return res.status(403).json({ error: "Assistant access required" });
   next();
 }
+
+/**
+ * Allows both assistants AND guardians who have linked an assistant record.
+ * Used for clock-in/out and assistant self-service routes.
+ * The individual route handlers use getAssistantId(userId) to resolve the
+ * assistant record from the DB — so no JWT re-issue is needed.
+ */
+export function requireAssistantAccess(req: AuthRequest, res: Response, next: NextFunction) {
+  if (req.role === "assistant" || req.role === "guardian") return next();
+  return res.status(403).json({ error: "Authentication required" });
+}

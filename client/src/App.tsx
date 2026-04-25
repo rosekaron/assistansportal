@@ -9,14 +9,11 @@ import SetupWizard        from "@/pages/SetupWizard";
 import VerifySuccess      from "@/pages/VerifySuccess";
 import AcceptInvite       from "@/pages/AcceptInvite";
 import ResetPassword      from "@/pages/ResetPassword";
-import Dashboard          from "@/pages/Dashboard";
-import CalendarPage       from "@/pages/Calendar";
-import HoursPage          from "@/pages/Hours";
-import ReportsPage        from "@/pages/Reports";
-import AssistantsPage     from "@/pages/Assistants";
+import HomePage           from "@/pages/Home";
+import MonthlyPage        from "@/pages/Monthly";
+import RecordsPage        from "@/pages/Records";
 import SettingsPage       from "@/pages/Settings";
 import AssistantDashboard from "@/pages/AssistantDashboard";
-import AssistantDetail    from "@/pages/AssistantDetail";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const token    = useAuthStore((s) => s.token);
@@ -26,14 +23,23 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 function RequireGuardian({ children }: { children: React.ReactNode }) {
-  const role = useAuthStore((s) => s.role);
+  const role       = useAuthStore((s) => s.role);
+  const activeView = useAuthStore((s) => s.activeView);
+  // Pure assistant → redirect to assistant dashboard
   if (role === "assistant") return <Navigate to="/assistant" replace />;
+  // Guardian who switched to assistant view → redirect
+  if (role === "guardian" && activeView === "assistant") return <Navigate to="/assistant" replace />;
   return <>{children}</>;
 }
 
 function RequireAssistant({ children }: { children: React.ReactNode }) {
-  const role = useAuthStore((s) => s.role);
-  if (role === "guardian") return <Navigate to="/dashboard" replace />;
+  const role       = useAuthStore((s) => s.role);
+  const activeView = useAuthStore((s) => s.activeView);
+  const isDualRole = useAuthStore((s) => s.isDualRole);
+  // Pure guardian with no assistant link → back to home
+  if (role === "guardian" && !isDualRole()) return <Navigate to="/home" replace />;
+  // Guardian in guardian view → back to home
+  if (role === "guardian" && activeView === "guardian") return <Navigate to="/home" replace />;
   return <>{children}</>;
 }
 
@@ -76,14 +82,24 @@ export default function App() {
       <Route element={
         <RequireAuth><RequireGuardian><RequireSetup><Layout /></RequireSetup></RequireGuardian></RequireAuth>
       }>
-        <Route index             element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/calendar"  element={<CalendarPage />} />
-        <Route path="/hours"     element={<HoursPage />} />
-        <Route path="/reports"   element={<ReportsPage />} />
-        <Route path="/assistants"    element={<AssistantsPage />} />
-        <Route path="/assistants/:id" element={<AssistantDetail />} />
-        <Route path="/settings"  element={<SettingsPage />} />
+        {/* ── New IA routes (milestone v1.0.1 — Plans 05-08 wire the real components) ── */}
+        <Route index              element={<Navigate to="/home" replace />} />
+        <Route path="/home"       element={<HomePage />} />
+        <Route path="/monthly"    element={<MonthlyPage />} />
+        <Route path="/records"    element={<RecordsPage />} />
+        <Route path="/settings"   element={<SettingsPage />} />
+
+        {/* ── Legacy redirects — keep all old bookmarks working (incl. main's pre-IA routes) ── */}
+        <Route path="/dashboard"  element={<Navigate to="/home"     replace />} />
+        <Route path="/calendar"   element={<Navigate to="/home"     replace />} />
+        <Route path="/schedule"   element={<Navigate to="/home"     replace />} />
+        <Route path="/reports"    element={<Navigate to="/monthly"  replace />} />
+        <Route path="/compliance" element={<Navigate to="/monthly"  replace />} />
+        <Route path="/payroll"    element={<Navigate to="/monthly"  replace />} />
+        <Route path="/assistants" element={<Navigate to="/settings" replace />} />
+        <Route path="/assistants/:id" element={<Navigate to="/settings" replace />} />
+        <Route path="/leave"      element={<Navigate to="/records"  replace />} />
+        <Route path="/hours"      element={<Navigate to="/home"     replace />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

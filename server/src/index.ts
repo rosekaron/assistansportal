@@ -4,10 +4,17 @@ import path from "path";
 import * as dotenv from "dotenv";
 dotenv.config();
 
+// Startup guard: refuse to start with missing or insecure JWT secret
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "dev_secret") {
+  console.error("FATAL: JWT_SECRET not set or uses insecure default 'dev_secret'. Aborting.");
+  process.exit(1);
+}
+
 // Ensure Homebrew binaries (qpdf etc.) are in PATH
 process.env.PATH = `/opt/homebrew/bin:${process.env.PATH}`;
 
 import { seedDefaults } from "./db";
+import { startReminderCron } from "./lib/reminderCron";
 import authRoutes            from "./routes/auth";
 import profileRoutes         from "./routes/profile";
 import assistantRoutes       from "./routes/assistants";
@@ -17,6 +24,11 @@ import entriesRoutes         from "./routes/entries";
 import miscRoutes            from "./routes/misc";
 import pdfRoutes             from "./routes/pdf";
 import costsRoutes           from "./routes/costs";
+import absencesRoutes        from "./routes/absences";
+import payrollRoutes         from "./routes/payroll";
+import paymentsRoutes        from "./routes/payments";
+import clockRoutes           from "./routes/clock";
+import guardianLinksRoutes   from "./routes/guardian-links";
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -35,11 +47,18 @@ app.use("/api/entries",     entriesRoutes);
 app.use("/api",             miscRoutes);
 app.use("/api/pdf",         pdfRoutes);
 app.use("/api/costs",       costsRoutes);
+app.use("/api/absences",    absencesRoutes);
+app.use("/api/payroll",    payrollRoutes);
+app.use("/api/payments",   paymentsRoutes);
+app.use("/api/clock",          clockRoutes);
+app.use("/api/guardian-links", guardianLinksRoutes);
 
 app.get("/api/health", (_req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
 
 async function main() {
   await seedDefaults();
+  startReminderCron();
+  console.log("  Cron          → compliance reminder job started");
   app.listen(PORT, () => {
     console.log(`\n✅  Server running → http://localhost:${PORT}`);
     console.log(`   Postgres       → ${process.env.DATABASE_URL?.split("@")[1] ?? "localhost:5432"}\n`);

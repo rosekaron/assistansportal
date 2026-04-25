@@ -3,9 +3,10 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { db } from "../db";
-import { auth, emailVerifications, passwordResets, assistants, invites, profile } from "../db/schema";
+import { auth, emailVerifications, passwordResets, assistants, invites, profile, assistantGuardianLinks } from "../db/schema";
 import { eq, and, gt } from "drizzle-orm";
-import { requireAuth, AuthRequest } from "../middleware/auth";
+import { newId } from "../lib/id";
+import { requireAuth, requireGuardian, AuthRequest } from "../middleware/auth";
 import { sendVerificationEmail, sendPasswordResetEmail, sendAssistantInviteEmail } from "../lib/email";
 
 const router = Router();
@@ -41,9 +42,12 @@ router.post("/register", async (req, res) => {
         ? "Account created. Check your email to verify your account."
         : "Account created. Email sending not configured — use the button below to verify.",
       emailSent,
-      devVerifyToken: token, // always return in dev — harmless if email works
+      ...(process.env.NODE_ENV !== "production" ? { devVerifyToken: token } : {}),
     });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Verify email (redirect from email link) ───────────────────
@@ -62,11 +66,17 @@ router.get("/verify-email", async (req, res) => {
     const [user] = await db.select().from(auth).where(eq(auth.id, record.userId)).limit(1);
     const jwtToken = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: "30d" });
     res.redirect(`${process.env.CLIENT_URL || "http://localhost:5173"}/verify-success?token=${jwtToken}&role=${user.role}`);
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Dev-only: verify without email ────────────────────────────
 router.post("/dev-verify", async (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).json({ error: "Not found" });
+  }
   try {
     const { token } = req.body;
     const [record] = await db.select().from(emailVerifications).where(eq(emailVerifications.token, token)).limit(1);
@@ -78,7 +88,10 @@ router.post("/dev-verify", async (req, res) => {
     const [user] = await db.select().from(auth).where(eq(auth.id, record.userId)).limit(1);
     const jwtToken = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: "30d" });
     res.json({ token: jwtToken, role: user.role, message: "Email verified" });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Login ─────────────────────────────────────────────────────
@@ -98,7 +111,10 @@ router.post("/login", async (req, res) => {
 
     const token = jwt.sign({ userId: user.id, role: user.role, assistantId: user.assistantId }, JWT_SECRET, { expiresIn: "30d" });
     res.json({ token, userId: user.id, role: user.role, assistantId: user.assistantId ?? null });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Resend verification ───────────────────────────────────────
@@ -113,7 +129,10 @@ router.post("/resend-verification", async (req, res) => {
       try { await sendVerificationEmail(email, token); } catch {}
     }
     res.json({ message: "If this email exists and is unverified, a new link has been sent." });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Forgot password ───────────────────────────────────────────
@@ -128,7 +147,10 @@ router.post("/forgot-password", async (req, res) => {
       try { await sendPasswordResetEmail(email, token); } catch {}
     }
     res.json({ message: "If this email exists, a reset link has been sent." });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Reset password ────────────────────────────────────────────
@@ -146,7 +168,10 @@ router.post("/reset-password", async (req, res) => {
     await db.update(auth).set({ passwordHash: hash }).where(eq(auth.id, record.userId));
     await db.update(passwordResets).set({ used: true }).where(eq(passwordResets.id, record.id));
     res.json({ message: "Password updated. You can now log in." });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Accept assistant invite ───────────────────────────────────
@@ -162,27 +187,72 @@ router.post("/accept-invite", async (req, res) => {
     const existing = await db.select().from(auth).where(eq(auth.email, invite.email)).limit(1);
     if (existing.length > 0) return res.status(409).json({ error: "An account with this email already exists. Please log in instead." });
 
-    const [assistant] = await db.select().from(assistants).where(eq(assistants.email, invite.email)).limit(1);
+    // Find or create the assistants row. The legacy flow required the guardian
+    // to create the assistants row before sending the invite, but POST /api/invites
+    // does not create one — so invites accepted without a pre-existing row would
+    // silently leave the assistant orphaned (no row in assistants, not in the
+    // multi-assistant schedule grid, no ability to clock in). Auto-create from
+    // invite fields so every accepted invite produces a usable assistant.
+    let [assistant] = await db.select().from(assistants).where(eq(assistants.email, invite.email)).limit(1);
+    if (!assistant) {
+      const count = (await db.select().from(assistants)).length;
+      const COLORS = ["#6366f1","#0891b2","#059669","#d97706","#dc2626","#7c3aed","#0e7490","#b45309","#0f766e","#9333ea"];
+      const initials = invite.name.trim().split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+      [assistant] = await db.insert(assistants).values({
+        id:             newId("a"),
+        name:           invite.name.trim(),
+        initials,
+        color:          COLORS[count % COLORS.length],
+        email:          invite.email,
+        pno:            "",
+        phone:          "",
+        minWeeklyHours: invite.minWeeklyHours ?? 0,
+        isFlexible:     invite.isFlexible ?? false,
+        inviteStatus:   "pending",   // flipped to "accepted" below
+      }).returning();
+    }
 
     const hash = await bcrypt.hash(password, 12);
     const [user] = await db.insert(auth).values({
       email: invite.email, passwordHash: hash,
       role: "assistant", emailVerified: true,
-      assistantId: assistant?.id ?? null,
+      assistantId: assistant.id,
     }).returning();
 
-    if (assistant) {
-      await db.update(assistants).set({ authId: user.id, inviteStatus: "accepted" }).where(eq(assistants.id, assistant.id));
+    await db.update(assistants).set({ authId: user.id, inviteStatus: "accepted" }).where(eq(assistants.id, assistant.id));
+
+    // Ensure an active guardian link exists so the assistant can clock in.
+    // Single-tenant: the one guardian is the only user with role="guardian".
+    const [guardian] = await db.select({ id: auth.id }).from(auth)
+      .where(eq(auth.role, "guardian")).limit(1);
+    if (guardian) {
+      await db.insert(assistantGuardianLinks).values({
+        id:          newId("gl"),
+        assistantId: assistant.id,
+        guardianId:  guardian.id,
+        active:      true,
+      }).onConflictDoNothing();
+      // Also activate any existing inactive link
+      await db.update(assistantGuardianLinks)
+        .set({ active: true })
+        .where(and(
+          eq(assistantGuardianLinks.assistantId, assistant.id),
+          eq(assistantGuardianLinks.guardianId, guardian.id),
+        ));
     }
+
     await db.update(invites).set({ status: "accepted" }).where(eq(invites.id, invite.id));
 
-    const jwtToken = jwt.sign({ userId: user.id, role: "assistant", assistantId: assistant?.id }, JWT_SECRET, { expiresIn: "30d" });
-    res.json({ token: jwtToken, role: "assistant", assistantId: assistant?.id ?? null, message: "Account created. Welcome!" });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+    const jwtToken = jwt.sign({ userId: user.id, role: "assistant", assistantId: assistant.id }, JWT_SECRET, { expiresIn: "30d" });
+    res.json({ token: jwtToken, role: "assistant", assistantId: assistant.id, message: "Account created. Welcome!" });
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Send assistant invite email ───────────────────────────────
-router.post("/send-invite-email", requireAuth, async (req: AuthRequest, res) => {
+router.post("/send-invite-email", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   try {
     const { inviteId } = req.body;
     const [invite] = await db.select().from(invites).where(eq(invites.id, inviteId)).limit(1);
@@ -198,9 +268,13 @@ router.post("/send-invite-email", requireAuth, async (req: AuthRequest, res) => 
       );
       res.json({ ok: true });
     } catch (e) {
-      res.status(500).json({ error: "Could not send email: " + String(e) });
+      console.error("[auth] error:", e);
+      res.status(500).json({ error: "Internal server error" });
     }
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ── Get current user ──────────────────────────────────────────
@@ -209,7 +283,10 @@ router.get("/me", requireAuth, async (req: AuthRequest, res) => {
     const [user] = await db.select().from(auth).where(eq(auth.id, req.userId!)).limit(1);
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json({ id: user.id, email: user.email, role: user.role, assistantId: user.assistantId, verified: user.emailVerified });
-  } catch (e) { res.status(500).json({ error: String(e) }); }
+  } catch (e) {
+    console.error("[auth] error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 export default router;

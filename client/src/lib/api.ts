@@ -2,6 +2,25 @@ import axios from "axios";
 
 const api = axios.create({ baseURL: "/api" });
 
+// Absence types
+export type AbsenceType = "sjukfrånvaro" | "vab" | "semester" | "other";
+
+export type Absence = {
+  id: string;
+  guardianId: number;
+  assistantId: string | null;
+  absenceType: AbsenceType;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+};
+
+export type AbsenceBalance = {
+  vabRemaining: number;
+  sickDays: number;
+  year: number;
+};
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -47,13 +66,15 @@ export const profileApi = {
 
 // Assistants
 export const assistantsApi = {
-  list:        () => api.get("/assistants"),
-  get:         (id: string) => api.get(`/assistants/${id}`),
-  create:      (data: Record<string, unknown>) => api.post("/assistants", data),
-  update:      (id: string, data: Record<string, unknown>) => api.put(`/assistants/${id}`, data),
-  delete:      (id: string) => api.delete(`/assistants/${id}`),
+  list:         () => api.get("/assistants"),
+  get:          (id: string) => api.get(`/assistants/${id}`),
+  create:       (data: Record<string, unknown>) => api.post("/assistants", data),
+  update:       (id: string, data: Record<string, unknown>) => api.put(`/assistants/${id}`, data),
+  delete:       (id: string) => api.delete(`/assistants/${id}`),
+  registerSelf: (data: Record<string, unknown>) => api.post("/assistants/register-self", data),
+  // Multi-family link helpers (origin/main)
   linkExisting: (assistantId: string, email: string) => api.post("/assistants/link-existing", { assistantId, email }),
-  linkStatus:  (id: string) => api.get(`/assistants/${id}/link-status`),
+  linkStatus:   (id: string) => api.get(`/assistants/${id}/link-status`),
 };
 
 // Entries
@@ -63,13 +84,6 @@ export const entriesApi = {
   bulkCreate: (items: Record<string, unknown>[]) => api.post("/entries/bulk", { items }),
   update:     (id: string, data: Record<string, unknown>) => api.put(`/entries/${id}`, data),
   delete:     (id: string) => api.delete(`/entries/${id}`),
-};
-
-// Slots
-export const slotsApi = {
-  list:   () => api.get("/slots"),
-  create: (data: Record<string, unknown>) => api.post("/slots", data),
-  delete: (id: string) => api.delete(`/slots/${id}`),
 };
 
 // Blocked
@@ -100,6 +114,23 @@ export const pdfApi = {
     api.post("/pdf/fk3057", { year, month }, { responseType: "blob" }),
   fk3059: (year: string, month: string, assistantId: string) =>
     api.post("/pdf/fk3059", { year, month, assistantId }, { responseType: "blob" }),
+  form4805: (year: string, month: string, assistantId: string) =>
+    api.post("/pdf/4805", { year, month, assistantId }, { responseType: "blob" }),
+  // v1.0.1 Phase 9 (SLIP-01, SLIP-02)
+  lonespec: (year: string, month: string, assistantId: string) =>
+    api.post("/pdf/lonespec", { year, month, assistantId }, { responseType: "blob" }),
+  lonespecMe: (month: string) =>
+    api.get(`/pdf/lonespec/me?month=${encodeURIComponent(month)}`, { responseType: "blob" }),
+};
+
+// v1.0.1 Phase 9 (SLIP-02) — listing response row for assistant /slips endpoint
+export type PaymentSlipListRow = {
+  id: string;
+  reportMonth: string;        // "YYYY-MM"
+  documentNumber: string;     // "LS-YYYY-MM-NNN"
+  issuedAt: string;           // ISO 8601
+  payDate: string;            // "YYYY-MM-DD"
+  payMethod: "bankgiro" | "swish" | "kontant";
 };
 
 // Costs
@@ -114,28 +145,124 @@ export const gcalApi = {
   status:      () => api.get("/gcal/status"),
   connectUrl:  () => `${window.location.origin}/api/gcal/connect`,
   disconnect:  () => api.post("/gcal/disconnect"),
-  calendars:   () => api.get("/gcal/calendars"),
   health:      () => api.get("/gcal/health"),
   events:      (start: string, end: string) => api.get("/gcal/events", { params: { start, end } }),
   createEvent: (data: Record<string, unknown>) => api.post("/gcal/events", data),
   deleteEvent: (eventId: string) => api.delete(`/gcal/events/${eventId}`),
+  calendars:   () => api.get<{ id: string; summary: string; primary: boolean }[]>("/gcal/calendars"),
+};
+
+// Rates (env-var sourced from server)
+export const ratesApi = {
+  get: () => api.get<{ fkHourlyRate: number; employerTaxRate: number }>("/rates"),
+};
+
+// Absences
+export const absenceApi = {
+  list:    (params?: Record<string, string>) =>
+    api.get<Absence[]>("/absences", { params }),
+  create:  (data: Record<string, unknown>) =>
+    api.post<Absence>("/absences", data),
+  delete:  (id: string) =>
+    api.delete<{ ok: boolean }>(`/absences/${id}`),
+  balance: (assistantId: string) =>
+    api.get<AbsenceBalance>(`/absences/balance/${assistantId}`),
+};
+
+// Payroll
+export type PayrollRecord = {
+  id: string;
+  assistantId: string;
+  month: string;                 // YYYY-MM
+  billableHours: number;
+  hourlyRateSnapshot: number;
+  taxRateSnapshot: number;
+  prelimTaxRateSnapshot: number;   // snapshotted preliminary tax rate (D-05)
+  grossPay: number;
+  employerContributions: number;
+  totalEmployerCost: number;
+  absenceBreakdownJson: string | null;  // JSON: {"sjukfrånvaro":h,"vab":h,"semester":h,"other":h} (PAY-02)
+  status: "draft" | "approved";
+  approvedAt: string | null;
+  createdAt: string;
+};
+
+export type Payment = {
+  id: string;
+  payrollRecordId: string;
+  assistantId: string;
+  date: string;                  // YYYY-MM-DD
+  amountSek: number;
+  method: "bankgiro" | "swish" | "kontant";
+  createdAt: string;
+};
+
+export const payrollApi = {
+  list:     (month: string) =>
+    api.get<PayrollRecord[]>("/payroll", { params: { month } }),
+  generate: (month: string) =>
+    api.post<PayrollRecord[]>("/payroll/generate", { month }),
+  approve:  (id: string) =>
+    api.post<PayrollRecord>(`/payroll/${id}/approve`),
+};
+
+export const paymentsApi = {
+  list: (payrollRecordId: string) =>
+    api.get<Payment[]>("/payments", { params: { payrollRecordId } }),
+  create: (data: {
+    payrollRecordId: string;
+    assistantId: string;
+    date: string;
+    amountSek: number;
+    method: "bankgiro" | "swish" | "kontant";
+  }) => api.post<Payment>("/payments", data),
+  delete: (id: string) =>
+    api.delete<{ ok: boolean }>(`/payments/${id}`),
 };
 
 // Assistant self-service
 export const assistantSelfApi = {
-  me:               () => api.get("/assistant/me"),
-  entries:          (params?: Record<string, string>) => api.get("/assistant/entries", { params }),
-  accept:           (id: string) => api.put(`/assistant/entries/${id}/accept`),
-  reject:           (id: string) => api.put(`/assistant/entries/${id}/reject`),
-  submitReport:     (id: string) => api.put(`/assistant/entries/${id}/submit-report`),
-  openSlots:        () => api.get("/assistant/open-slots"),
-  selfBook:         (slotId: string) => api.post(`/assistant/self-book/${slotId}`),
-  clockIn:          (id: string) => api.post(`/assistant/entries/${id}/clock-in`),
-  clockOut:         (id: string) => api.post(`/assistant/entries/${id}/clock-out`),
-  // Multi-family
-  families:         () => api.get("/assistant/families"),
-  leaveFamily:      (assistantId: string) => api.post(`/assistant/families/${assistantId}/leave`),
-  linkRequests:     () => api.get("/assistant/link-requests"),
-  acceptLink:       (linkId: string) => api.post(`/assistant/link-requests/${linkId}/accept`),
-  declineLink:      (linkId: string) => api.post(`/assistant/link-requests/${linkId}/decline`),
+  me:           () => api.get("/assistant/me"),
+  entries:      (params?: Record<string, string>) => api.get("/assistant/entries", { params }),
+  schedule:     (start: string, end: string) => api.get("/assistant/schedule", { params: { start, end } }),
+  accept:       (id: string) => api.put(`/assistant/entries/${id}/accept`),
+  reject:       (id: string) => api.put(`/assistant/entries/${id}/reject`),
+  submitReport: (id: string) => api.put(`/assistant/entries/${id}/submit-report`),
+  // v1.0.1 Phase 9 (SLIP-02)
+  slips:        () => api.get<PaymentSlipListRow[]>("/assistant/slips"),
+  // Multi-family — from origin/main (US-24/25/26)
+  families:     () => api.get("/assistant/families"),
+  leaveFamily:  (assistantId: string) => api.post(`/assistant/families/${assistantId}/leave`),
+  linkRequests: () => api.get("/assistant/link-requests"),
+  acceptLink:   (linkId: string) => api.post(`/assistant/link-requests/${linkId}/accept`),
+  declineLink:  (linkId: string) => api.post(`/assistant/link-requests/${linkId}/decline`),
+  // NOTE (2026-04-25 reconciliation): main's `openSlots`/`selfBook` helpers were removed —
+  // backing endpoints dropped per Phase 7 CLEAN-01 (dead scheduling scaffolding).
+  // Main's per-entry `clockIn`/`clockOut` helpers were removed too — replaced by milestone's
+  // `clockApi` (separate export below) per Decision #2.
+};
+
+// ── Clock API (assistant-only) ────────────────────────────────
+export const clockApi = {
+  clockIn:  (guardianId: number) =>
+    api.post<{ event: Record<string, unknown> }>("/clock/in", { guardianId }),
+  clockOut: (guardianId: number) =>
+    api.post<{ event: Record<string, unknown>; entry: Record<string, unknown> }>("/clock/out", { guardianId }),
+  status:   (guardianId: number) =>
+    api.get<{ state: "clocked_in" | "clocked_out"; activeEvent: Record<string, unknown> | null }>(
+      `/clock/status?guardianId=${guardianId}`
+    ),
+};
+
+// ── Guardian Links API (assistant-only) ───────────────────────
+export type GuardianLink = {
+  id: string;
+  assistantId: string;
+  guardianId: number;
+  active: boolean;
+  createdAt: string;
+};
+
+export const guardianLinksApi = {
+  myFamilies: () => api.get<GuardianLink[]>("/guardian-links/my-families"),
 };

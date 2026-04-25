@@ -2,9 +2,15 @@ import { Router } from "express";
 import { PDFDocument } from "pdf-lib";
 import { spawnSync } from "child_process";
 import { db } from "../db";
-import { entries, assistants, profile } from "../db/schema";
-import { eq, and, gte, lte } from "drizzle-orm";
-import { requireAuth } from "../middleware/auth";
+import { entries, assistants, profile, absences, payrollRecords, paymentSlips } from "../db/schema";
+import { eq, and, gte, lte, or, isNull } from "drizzle-orm";
+import { buildForm4805Fields, Form4805Input } from "../lib/form4805-utils";
+import { resolveEmployerRepresentation } from "../lib/employer-representation";
+import { requireAuth, requireGuardian, requireAssistantAccess, AuthRequest } from "../middleware/auth";
+import { filterBillableEntries } from "../lib/absence-utils";
+import { newId } from "../lib/id";
+import { buildAnhorigSlip, type SlipFields } from "../lib/payrollSlipUtils";
+import { renderAnhorigSlipPdf } from "../lib/pdfSlipRenderer";
 import path from "path";
 import fs from "fs";
 import os from "os";
@@ -47,7 +53,17 @@ async function decryptAndFill(
     const form      = pdfDoc.getForm();
 
     for (const [name, value] of Object.entries(fields)) {
-      try { form.getTextField(name).setText(value); } catch { /* skip unknown field */ }
+      try {
+        // Try checkbox first, then fall back to text field
+        if (value === "Yes" || value === "Off") {
+          try {
+            const cb = form.getCheckBox(name);
+            if (value === "Yes") cb.check(); else cb.uncheck();
+            continue;
+          } catch { /* not a checkbox, fall through to text field */ }
+        }
+        form.getTextField(name).setText(value);
+      } catch { /* skip unknown field */ }
     }
     for (const [name, checked] of Object.entries(checks)) {
       try { checked ? form.getCheckBox(name).check() : form.getCheckBox(name).uncheck(); } catch {}
@@ -64,7 +80,7 @@ async function decryptAndFill(
 }
 
 // ── FK 3059 Tidsredovisning — one PDF per assistant ───────────
-router.post("/fk3059", requireAuth, async (req, res) => {
+router.post("/fk3059", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   try {
     const { year, month, assistantId } = req.body as {
       year: string; month: string; assistantId: string;
@@ -93,12 +109,41 @@ router.post("/fk3059", requireAuth, async (req, res) => {
       ))
       .orderBy(entries.date, entries.startTime);
 
+    // Fetch absences covering this month for this assistant (including null-assistantId)
+    // LEAV-02: exclude entries whose date falls within any absence range
+    const monthAbsences = await db.select({
+      assistantId: absences.assistantId,
+      startDate:   absences.startDate,
+      endDate:     absences.endDate,
+      absenceType: absences.absenceType,
+    }).from(absences).where(
+      and(
+        or(
+          eq(absences.assistantId, assistantId),
+          isNull(absences.assistantId),
+        ),
+        lte(absences.startDate, end),
+        gte(absences.endDate, start),
+      )
+    );
+
+    const billableEntries = filterBillableEntries(monthEntries, monthAbsences);
+
+    // Resolve employer / representative per D-01 (asOfDate = last day of report period).
+    // `end` above is already YYYY-MM-DD for the last day of the month.
+    const rep = resolveEmployerRepresentation(prof ?? {
+      patientName: null, patientPno: null,
+      guardianName: null, guardianPno: null,
+      patientRequiresRepresentative: null,
+      address: null, addressStreet: null, addressZip: null, addressCity: null,
+    }, new Date(end));
+
     // ── Build field maps ──────────────────────────────────────
     const fields:  Record<string, string>  = {};
     const checks:  Record<string, boolean> = {};
     const radios:  Record<string, string>  = {};
 
-    // Section 5: Employer type — always '3' (privatperson / egna arbetsgivaren)
+    // Section 5: Employer type — always '3' (privatperson / egna arbetsgivaren) — from origin/main
     radios["form1[0].#subform[0].RadioButtonList[2]"] = "3";
 
     // Page 1 — year/month
@@ -121,8 +166,8 @@ router.post("/fk3059", requireAuth, async (req, res) => {
     fields["form1[0].#subform[0].flt_datmod6_1[0]"] = start;
     fields["form1[0].#subform[0].flt_datmod6_2[0]"] = end;
 
-    // Section 5: Guardian / employer
-    fields["form1[0].#subform[0].flt_txtNamnAnordnaren[0]"] = prof?.guardianName  ?? "";
+    // Section 5: Employer (Anordnaren = patient per EMP-02) + contact (guardian per D-09)
+    fields["form1[0].#subform[0].flt_txtNamnAnordnaren[0]"] = rep.arbetsgivare.name;
     fields["form1[0].#subform[0].flt_txtKontaktperson[0]"]  = prof?.guardianName  ?? "";
     fields["form1[0].#subform[0].flt_txtTelefon1[0]"]       = prof?.guardianPhone ?? "";
 
@@ -160,8 +205,8 @@ router.post("/fk3059", requireAuth, async (req, res) => {
     // Totals per type (active=1, waiting=2, standby=3)
     const totMins = { active: 0, waiting: 0, standby: 0 };
 
-    for (let i = 0; i < Math.min(monthEntries.length, slots.length); i++) {
-      const e    = monthEntries[i];
+    for (let i = 0; i < Math.min(billableEntries.length, slots.length); i++) {
+      const e    = billableEntries[i];
       const slot = slots[i];
       const day  = String(parseInt(e.date.split("-")[2])); // "3" not "03"
 
@@ -172,6 +217,11 @@ router.post("/fk3059", requireAuth, async (req, res) => {
       const type = (e.entryType ?? "active") as keyof typeof totMins;
       totMins[type] += Math.round((e.hours ?? 0) * 60);
 
+      // Per-row checkboxes — main's mkSlots helper exposes `aktiv`/`vante`/`beredskap`.
+      // The earlier `fields[slot.cb] = "Yes"` line (from milestone's older mkSlots that used
+      // a single `cb` key) was dropped during the 2026-04-25 reconciliation — it pointed at
+      // a property that no longer exists, and the `checks[slot.aktiv]` line below already
+      // marks the active-tid checkbox correctly.
       checks[slot.aktiv]     = type === "active";
       checks[slot.vante]     = type === "waiting";
       checks[slot.beredskap] = type === "standby";
@@ -192,6 +242,7 @@ router.post("/fk3059", requireAuth, async (req, res) => {
     fields["form1[0].#subform[16].flt_numSummaTimmar3[0]"]  = String(h3);
     fields["form1[0].#subform[16].flt_numSummaMinuter3[0]"] = String(m3).padStart(2, "0");
 
+
     // Section 8: assistant signs — leave date blank, pre-fill phone
     fields["form1[0].#subform[16].flt_txtTelefon2[0]"] = asst.phone ?? "";
 
@@ -203,15 +254,14 @@ router.post("/fk3059", requireAuth, async (req, res) => {
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.send(filledBytes);
 
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error("\n❌ FK3059 error:", msg, "\n");
-    res.status(500).json({ error: msg });
+  } catch (e) {
+    console.error("[pdf] error:", e);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
 // ── FK 3057 Räkning ───────────────────────────────────────────
-router.post("/fk3057", requireAuth, async (req, res) => {
+router.post("/fk3057", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
   try {
     const { year, month } = req.body as { year: string; month: string };
     const formPath = path.join(FORMS_DIR, "fk3057.pdf");
@@ -222,17 +272,40 @@ router.post("/fk3057", requireAuth, async (req, res) => {
 
     const [prof] = await db.select().from(profile).limit(1);
     const mm = month.padStart(2, "0");
+    const daysInMonth = new Date(parseInt(year), parseInt(mm), 0).getDate();
 
     const monthEntries = await db.select().from(entries)
       .where(and(
         gte(entries.date, `${year}-${mm}-01`),
-        lte(entries.date, `${year}-${mm}-31`),
+        lte(entries.date, `${year}-${mm}-${String(daysInMonth).padStart(2, "0")}`),
         eq(entries.reqStatus, "approved"),
         eq(entries.repStatus, "approved"),
       ));
 
+    // Fetch absences covering this month for FK 3057 (all assistants, all absence types)
+    // LEAV-02: exclude entries whose date falls within any absence range — milestone's billable filtering.
+    // NOTE: FK 3057 absence query is not scoped by guardianId because the entries table
+    // is also unscoped (single-tenant design per RESEARCH.md Pitfall 6). Tracked for MULTI-01.
+    const fk3057Start = `${year}-${mm}-01`;
+    const fk3057End   = `${year}-${mm}-${String(daysInMonth).padStart(2, "0")}`;
+    const allAbsences = await db.select({
+      assistantId: absences.assistantId,
+      startDate:   absences.startDate,
+      endDate:     absences.endDate,
+      absenceType: absences.absenceType,
+    }).from(absences).where(
+      and(
+        lte(absences.startDate, fk3057End),
+        gte(absences.endDate, fk3057Start),
+      )
+    );
+
+    const billableFk3057 = filterBillableEntries(monthEntries, allAbsences);
+
+    // Bucket billable entries by entryType so the form gets active / waiting / standby totals
+    // separately (origin/main commit `85f8e15` "Fix FK 3057 — fill väntetid and beredskapstid totals").
     const totMins = { active: 0, waiting: 0, standby: 0 };
-    for (const e of monthEntries) {
+    for (const e of billableFk3057) {
       const type = (e.entryType ?? "active") as keyof typeof totMins;
       totMins[type] += Math.round((e.hours ?? 0) * 60);
     }
@@ -269,24 +342,382 @@ router.post("/fk3057", requireAuth, async (req, res) => {
       "form1[0].#subform[0].ksr_kryssrutaArbetsgivare[0]": true,
     };
 
+    // Use decryptAndFill (qpdf) — fk3057.pdf is owner-password-encrypted by Försäkringskassan.
+    // Phase 8's commit `509f9cb` refactored /fk3059 + /4805 to this helper but missed /fk3057.
+    // Reconnected during Phase 10 UAT (2026-04-25).
     const filledBytes = await decryptAndFill(formPath, fields, checks);
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="FK3057-${year}-${mm}.pdf"`);
-    res.send(Buffer.from(filledBytes));
+    res.send(filledBytes);
   } catch (e) {
-    console.error("FK3057 error:", e);
-    res.status(500).json({ error: String(e) });
+    console.error("[pdf] error:", e);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
 // ── List available forms ──────────────────────────────────────
-router.get("/forms", requireAuth, (_req, res) => {
+router.get("/forms", requireAuth, requireGuardian, (_req: AuthRequest, res) => {
   const available = ["fk3057.pdf", "fk3059.pdf"].map(name => ({
     name,
     exists: fs.existsSync(path.join(FORMS_DIR, name)),
   }));
   res.json(available);
+});
+
+// ── Blankett 4805 Förenklad arbetsgivardeklaration ───────────────────────
+router.post("/4805", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
+  try {
+    const { year, month, assistantId } = req.body as {
+      year: string; month: string; assistantId: string;
+    };
+
+    // SECURITY: validate assistantId is a non-empty string containing only
+    // alphanumeric chars and hyphens to prevent path traversal / injection
+    if (!assistantId || !/^[a-zA-Z0-9_-]+$/.test(assistantId)) {
+      return res.status(400).json({ error: "Invalid assistantId" });
+    }
+
+    const mm        = month.padStart(2, "0");
+    const yearMonth = `${year}-${mm}`;
+
+    const formPath = path.join(FORMS_DIR, "skv4805.pdf");
+    if (!fs.existsSync(formPath)) {
+      return res.status(404).json({ error: "skv4805.pdf not found in forms/ directory" });
+    }
+
+    // Fetch assistant
+    const [asst] = await db.select().from(assistants).where(eq(assistants.id, assistantId));
+    if (!asst) return res.status(404).json({ error: "Assistant not found" });
+
+    // Fetch approved payroll record for this assistant + month (D-07: only approved)
+    const [pr] = await db.select().from(payrollRecords).where(
+      and(
+        eq(payrollRecords.assistantId, assistantId),
+        eq(payrollRecords.month, yearMonth),
+        eq(payrollRecords.status, "approved"),
+      )
+    );
+    if (!pr) {
+      return res.status(409).json({
+        error: "Payroll record not found or not approved for this assistant and month. Approve payroll before generating 4805.",
+      });
+    }
+
+    // Fetch guardian profile
+    const [prof] = await db.select().from(profile).limit(1);
+
+    // Build field map
+    const input: Form4805Input = {
+      yearMonth,
+      profile: {
+        guardianName:  prof?.guardianName  ?? "",
+        guardianPno:   prof?.guardianPno   ?? "",
+        guardianPhone: prof?.guardianPhone ?? "",
+        address:       prof?.address       ?? "",
+        city:          prof?.city          ?? "",
+        zip:           prof?.zip           ?? "",
+        // Phase 8 — patient identity for employer-representation helper
+        patientName:                    prof?.patientName                    ?? "",
+        patientPno:                     prof?.patientPno                     ?? "",
+        patientRequiresRepresentative:  prof?.patientRequiresRepresentative  ?? false,
+        addressStreet:                  prof?.addressStreet                  ?? "",
+        addressZip:                     prof?.addressZip                     ?? "",
+        addressCity:                    prof?.addressCity                    ?? "",
+      },
+      assistant: {
+        name:    asst.name,
+        pno:     asst.pno     ?? "",
+        address: asst.address ?? "",
+      },
+      payrollRecord: {
+        grossPay:              pr.grossPay,
+        employerContributions: pr.employerContributions,
+        prelimTaxRateSnapshot: pr.prelimTaxRateSnapshot ?? 0,
+      },
+    };
+    const fieldMap = buildForm4805Fields(input);
+
+    // Load and fill the 4805 PDF (unencrypted AcroForm — no qpdf needed)
+    const formBytes = fs.readFileSync(formPath);
+    const pdfDoc    = await PDFDocument.load(formBytes, { ignoreEncryption: true });
+    const form      = pdfDoc.getForm();
+    const allFields = form.getFields();
+
+    // Handle regular unique fields
+    for (const [name, value] of Object.entries(fieldMap)) {
+      if (name.startsWith("__employer__") || name.startsWith("__recipient__")) continue;
+      try { form.getTextField(name).setText(value); } catch { /* skip unknown */ }
+    }
+
+    // Handle duplicate-named fields (employer = index 0, recipient = index 1)
+    const dupNames = ["txtNamn[0]", "txtPersNr[0]", "txtAdress[0]"] as const;
+    for (const leafName of dupNames) {
+      const matches = allFields.filter(f => f.getName().endsWith(leafName));
+      const empKey  = `__employer__${leafName}`;
+      const recKey  = `__recipient__${leafName}`;
+      if (matches[0] && fieldMap[empKey] !== undefined) {
+        try { (matches[0] as ReturnType<typeof form.getTextField>).setText(fieldMap[empKey]!); } catch {}
+      }
+      if (matches[1] && fieldMap[recKey] !== undefined) {
+        try { (matches[1] as ReturnType<typeof form.getTextField>).setText(fieldMap[recKey]!); } catch {}
+      }
+    }
+
+    form.flatten();
+    const filledBytes = await pdfDoc.save();
+    const filename    = `4805-${yearMonth}-${asst.name.replace(/\s+/g, "-")}.pdf`;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(Buffer.from(filledBytes));
+
+  } catch (e) {
+    console.error("[pdf] 4805 error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── Salary slip (lönespecifikation) helpers + endpoints ───────────────────
+// D-04: document number format LS-${params.reportMonth}-NNN (3-digit padded)
+// D-05: re-download reuses the existing payment_slips row (idempotent)
+// D-09: payDate frozen on first issue from profile.defaultPayDay
+// D-12: POST returns 400 when assistants.hourlyRateOverride IS NULL
+
+async function issueOrReuseSlip(params: {
+  assistantId: string;
+  reportMonth: string;              // "YYYY-MM"
+  payrollRecordId: string;
+  payDate: string;                  // "YYYY-MM-DD"
+  payMethod: "bankgiro" | "swish" | "kontant";
+}): Promise<{
+  id: string;
+  documentNumber: string;
+  payDate: string;
+  payMethod: "bankgiro" | "swish" | "kontant";
+  issuedAt: Date;
+}> {
+  // 1. Reuse existing row if one already exists for (assistant, month).
+  const existing = await db.select().from(paymentSlips).where(and(
+    eq(paymentSlips.assistantId, params.assistantId),
+    eq(paymentSlips.reportMonth, params.reportMonth),
+  )).limit(1);
+  if (existing.length > 0) {
+    const row = existing[0];
+    return {
+      id: row.id,
+      documentNumber: row.documentNumber,
+      payDate: row.payDate,
+      payMethod: row.payMethod as "bankgiro" | "swish" | "kontant",
+      issuedAt: row.issuedAt,
+    };
+  }
+  // 2. Compute next sequence (always 1 in v1.0.1 per D-05; defensive anyway).
+  const peers = await db.select().from(paymentSlips).where(and(
+    eq(paymentSlips.assistantId, params.assistantId),
+    eq(paymentSlips.reportMonth, params.reportMonth),
+  ));
+  const nextSeq = peers.length === 0 ? 1 : Math.max(...peers.map(p => p.sequence)) + 1;
+  const padded  = String(nextSeq).padStart(3, "0");
+  const documentNumber = `LS-${params.reportMonth}-${padded}`;
+  // 3. Insert; on 23505 (unique_violation) re-select.
+  try {
+    const [row] = await db.insert(paymentSlips).values({
+      id: newId("slip"),
+      payrollRecordId: params.payrollRecordId,
+      assistantId: params.assistantId,
+      reportMonth: params.reportMonth,
+      documentNumber,
+      sequence: nextSeq,
+      payDate: params.payDate,
+      payMethod: params.payMethod,
+    }).returning();
+    return {
+      id: row.id,
+      documentNumber: row.documentNumber,
+      payDate: row.payDate,
+      payMethod: row.payMethod as "bankgiro" | "swish" | "kontant",
+      issuedAt: row.issuedAt,
+    };
+  } catch (err: any) {
+    if (err?.code === "23505") {
+      const [again] = await db.select().from(paymentSlips).where(and(
+        eq(paymentSlips.assistantId, params.assistantId),
+        eq(paymentSlips.reportMonth, params.reportMonth),
+      )).limit(1);
+      if (again) {
+        return {
+          id: again.id,
+          documentNumber: again.documentNumber,
+          payDate: again.payDate,
+          payMethod: again.payMethod as "bankgiro" | "swish" | "kontant",
+          issuedAt: again.issuedAt,
+        };
+      }
+    }
+    throw err;
+  }
+}
+
+function computePayDate(reportMonth: string, defaultPayDay: number): string {
+  // reportMonth "2026-03" → "2026-04-25" (next month, default_pay_day clamped 1..28).
+  const [y, m]   = reportMonth.split("-").map(n => parseInt(n, 10));
+  const payYear  = m === 12 ? y + 1 : y;
+  const payMonth = m === 12 ? 1     : m + 1;
+  const day      = Math.min(Math.max(defaultPayDay || 25, 1), 28);
+  return `${payYear}-${String(payMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+// Build a safe filename segment from assistant.name — strips path-traversal chars.
+function safeNameSegment(name: string): string {
+  return name.replace(/\s+/g, "-").replace(/[^\w\-.]/g, "");
+}
+
+// ── POST /api/pdf/lonespec (guardian) ─────────────────────────────────────
+// SLIP-01 guardian path; gates 409 (not approved) + 400 (rate NULL).
+router.post("/lonespec", requireAuth, requireGuardian, async (req: AuthRequest, res) => {
+  try {
+    const { year, month, assistantId } = req.body as {
+      year?: string; month?: string; assistantId?: string;
+    };
+
+    if (!assistantId || !/^[a-zA-Z0-9_-]+$/.test(assistantId)) {
+      return res.status(400).json({ error: "Invalid assistantId" });
+    }
+    if (!year || !/^\d{4}$/.test(year) || !month || !/^\d{1,2}$/.test(month)) {
+      return res.status(400).json({ error: "Invalid year or month" });
+    }
+
+    const mm        = month.padStart(2, "0");
+    const yearMonth = `${year}-${mm}`;
+
+    const [asst] = await db.select().from(assistants).where(eq(assistants.id, assistantId));
+    if (!asst) return res.status(404).json({ error: "Assistant not found" });
+
+    // D-12: rate-NULL gate before approval check — the guardian's action is to
+    // set the rate, not to re-approve payroll.
+    if (asst.hourlyRateOverride == null) {
+      return res.status(400).json({
+        error: `Timlön saknas för ${asst.name}. Sätt timlönen i Inställningar → Assistenter.`,
+      });
+    }
+
+    // D-08: approval gate.
+    const [pr] = await db.select().from(payrollRecords).where(and(
+      eq(payrollRecords.assistantId, assistantId),
+      eq(payrollRecords.month, yearMonth),
+      eq(payrollRecords.status, "approved"),
+    ));
+    if (!pr) {
+      return res.status(409).json({ error: "Lönekörningen är inte godkänd för denna månad." });
+    }
+
+    const [prof] = await db.select().from(profile).limit(1);
+    if (!prof) return res.status(500).json({ error: "Profile not found" });
+    const absenceRows = await db.select().from(absences);
+
+    const payDate   = computePayDate(yearMonth, prof.defaultPayDay ?? 25);
+    const payMethod = (asst.paymentMethod ?? "bankgiro") as "bankgiro" | "swish" | "kontant";
+
+    const slipMeta = await issueOrReuseSlip({
+      assistantId,
+      reportMonth: yearMonth,
+      payrollRecordId: pr.id,
+      payDate,
+      payMethod,
+    });
+
+    const fields: SlipFields = buildAnhorigSlip({
+      profile: prof,
+      assistant: asst,
+      payrollRecord: pr,
+      absences: absenceRows.map((a: any) => ({
+        assistantId: a.assistantId,
+        startDate:   a.startDate,
+        endDate:     a.endDate,
+        absenceType: a.absenceType,
+      })),
+      documentNumber: slipMeta.documentNumber,
+      payDate:        slipMeta.payDate,
+      payMethod:      slipMeta.payMethod,
+    });
+    const pdfBuffer = await renderAnhorigSlipPdf(fields);
+
+    const filename = `lonespec-${yearMonth}-${safeNameSegment(asst.name)}.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(pdfBuffer);
+  } catch (e) {
+    console.error("[pdf] lonespec error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── GET /api/pdf/lonespec/me (assistant, JWT-scoped) ──────────────────────
+// SLIP-02 assistant path. Pitfall 6 + 7: derive assistantId from req.assistantId
+// ONLY; never read from req.query or req.body.
+router.get("/lonespec/me", requireAuth, requireAssistantAccess, async (req: AuthRequest, res) => {
+  try {
+    const assistantId = req.assistantId;
+    if (!assistantId) {
+      return res.status(400).json({ error: "No assistant linked to this account" });
+    }
+
+    const month = String(req.query.month ?? "");
+    if (!/^\d{4}-\d{2}$/.test(month)) {
+      return res.status(400).json({ error: "Invalid month" });
+    }
+
+    const [asst] = await db.select().from(assistants).where(eq(assistants.id, assistantId));
+    if (!asst) return res.status(404).json({ error: "Assistant not found" });
+
+    if (asst.hourlyRateOverride == null) {
+      return res.status(400).json({
+        error: `Timlön saknas för ${asst.name}. Sätt timlönen i Inställningar → Assistenter.`,
+      });
+    }
+
+    const [pr] = await db.select().from(payrollRecords).where(and(
+      eq(payrollRecords.assistantId, assistantId),
+      eq(payrollRecords.month, month),
+      eq(payrollRecords.status, "approved"),
+    ));
+    if (!pr) {
+      return res.status(409).json({ error: "Lönekörningen är inte godkänd för denna månad." });
+    }
+
+    const [prof] = await db.select().from(profile).limit(1);
+    if (!prof) return res.status(500).json({ error: "Profile not found" });
+    const absenceRows = await db.select().from(absences);
+
+    const payDate   = computePayDate(month, prof.defaultPayDay ?? 25);
+    const payMethod = (asst.paymentMethod ?? "bankgiro") as "bankgiro" | "swish" | "kontant";
+    const slipMeta  = await issueOrReuseSlip({
+      assistantId, reportMonth: month, payrollRecordId: pr.id, payDate, payMethod,
+    });
+
+    const fields: SlipFields = buildAnhorigSlip({
+      profile: prof, assistant: asst, payrollRecord: pr,
+      absences: absenceRows.map((a: any) => ({
+        assistantId: a.assistantId,
+        startDate:   a.startDate,
+        endDate:     a.endDate,
+        absenceType: a.absenceType,
+      })),
+      documentNumber: slipMeta.documentNumber,
+      payDate:        slipMeta.payDate,
+      payMethod:      slipMeta.payMethod,
+    });
+    const pdfBuffer = await renderAnhorigSlipPdf(fields);
+
+    const filename = `lonespec-${month}-${safeNameSegment(asst.name)}.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(pdfBuffer);
+  } catch (e) {
+    console.error("[pdf] lonespec/me error:", e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 export default router;

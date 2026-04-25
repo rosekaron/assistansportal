@@ -3,3 +3,13 @@ dist/
 .env
 *.local
 .DS_Store
+
+# Test + coverage artifacts
+client/test-results/
+server/coverage/
+
+# Claude Code worktree scratch
+.claude/worktrees/
+
+# Drizzle introspect output (generated from live DB — source of truth is server/src/db/schema.ts)
+server/drizzle/

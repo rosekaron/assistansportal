@@ -4,12 +4,22 @@ import { useQueryClient } from "@tanstack/react-query";
 import { profileApi, assistantsApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/inputs";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/controls";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 
 const COLORS = ["#6366f1","#0891b2","#059669","#d97706","#dc2626","#7c3aed","#0e7490","#b45309"];
 const STEPS  = ["Guardian","Child & FK","Assistants","Done"];
+
+const PATIENT_RELATION_OPTIONS = [
+  { value: "parent-child",    label: "Förälder → barn"     },
+  { value: "spouse",          label: "Make/maka"           },
+  { value: "adult-child",     label: "Barn → vuxet barn"   },
+  { value: "god_man",         label: "God man"             },
+  { value: "legal-guardian",  label: "Förvaltare"          },
+  { value: "other",           label: "Annan"               },
+];
 
 interface AssistantRow {
   name: string; email: string; minWeeklyHours: string; isFlexible: boolean; color: string;
@@ -20,6 +30,10 @@ interface ProfileForm {
   guardianName: string; guardianPno: string; guardianEmail: string; guardianPhone: string;
   patientName: string;  patientPno: string;  address: string; city: string; zip: string;
   fkDecisionNo: string; weeklyHours: string;
+  // v1.0.1 Phase 7 additions (minimal subset — bank/skatt/anställning filled later via Settings)
+  fkDecisionStart: string;
+  fkDecisionEnd: string;
+  patientRelationToGuardian: string;
 }
 
 function ProfileField({
@@ -55,6 +69,7 @@ export default function SetupWizard() {
     guardianName: "", guardianPno: "", guardianEmail: "", guardianPhone: "",
     patientName:  "", patientPno:  "", address: "",      city: "",        zip: "",
     fkDecisionNo: "", weeklyHours: "129",
+    fkDecisionStart: "", fkDecisionEnd: "", patientRelationToGuardian: "parent-child",
   });
 
   const [rows, setRows] = useState<AssistantRow[]>([
@@ -82,7 +97,10 @@ export default function SetupWizard() {
   async function finish() {
     setSaving(true);
     try {
-      await profileApi.update({ ...profile, weeklyHours: weekly, setup_done: true });
+      // Wizard sends minimal SCHEMA-02 fields: fkDecisionStart, fkDecisionEnd, patientRelationToGuardian.
+      // All other Phase 7 profile fields (addressStreet/Zip/City, dubbelAssistansApproved,
+      // patientRequiresRepresentative) use schema defaults; filled later via Settings.
+      await profileApi.update({ ...profile, weeklyHours: weekly, setupDone: true });
       for (const row of rows.filter((r) => r.name.trim())) {
         await assistantsApi.create({
           name: row.name, email: row.email,
@@ -198,6 +216,41 @@ export default function SetupWizard() {
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">h/wk</span>
                       </div>
                     </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label>Beslutet gäller från</Label>
+                      <Input
+                        type="date"
+                        value={profile.fkDecisionStart}
+                        onChange={(e) => setField("fkDecisionStart", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Beslutet gäller t.o.m.</Label>
+                      <Input
+                        type="date"
+                        value={profile.fkDecisionEnd}
+                        onChange={(e) => setField("fkDecisionEnd", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Relation till brukaren</Label>
+                    <Select
+                      value={profile.patientRelationToGuardian}
+                      onValueChange={(v) => setField("patientRelationToGuardian", v)}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {PATIENT_RELATION_OPTIONS.map(o => (
+                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Vanligaste valet: Förälder → barn (anhörigassistans för minderårig).
+                    </p>
                   </div>
                 </div>
                 <div className="flex justify-between pt-2">
