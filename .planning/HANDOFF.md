@@ -1,13 +1,32 @@
-# HANDOFF — Kalinga Assistansportal (v1.0.1 paused 2026-04-20)
+# HANDOFF — Kalinga Assistansportal (v1.0.1 SHIPPED 2026-04-25)
 
-> **You are picking up paused work.** A fresh LLM / fresh session can resume from here without loss. All work is committed and pushed to `origin/milestone/v1.0.1`.
+> **You are picking up post-merge work.** v1.0.1 is shipped. PR #7 merged 2026-04-25. The next sprint is hardening based on the CodeRabbit review of that PR — see "Outstanding from PR #7 review" below.
 
 ## TL;DR
 
-- **Milestone:** v1.0.1 (Salary Slip + Foundation Cleanup)
-- **Progress:** 75% — Phases 7, 8, 9 ✅ shipped + UAT-clean. Phase 10 is next.
-- **Current state:** Phase 10 CONTEXT.md is captured. Plans not authored.
-- **Resume command:** `/gsd-plan-phase 10`
+- **Milestone:** v1.0.1 (Salary Slip + Foundation Cleanup) — ✅ SHIPPED, PR #7 merged 2026-04-25
+- **All 4 phases (7-10) verified and closed.** 18/18 requirements complete.
+- **OUTSTANDING:** 6 HIGH-severity findings from CodeRabbit review of PR #7 that were merged with documented deferral. See `.planning/todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md` for the full list and per-finding fix prompts.
+- **Resume command:** `/gsd-new-milestone v1.0.2` (recommended) — start a hardening milestone covering the 6 HIGH findings + the `hourlyRateOverride = 0.31` Settings parsing bug.
+
+## Outstanding from PR #7 review (read before any new work)
+
+CodeRabbit reviewed the full v1.0.1 diff and surfaced 23 findings. v1.0.1 was merged with these documented as deferred. The actual milestone scope (salary slip + foundation cleanup + employer helper + real-data E2E) was verified clean on its own merits — most HIGH items are pre-existing latent issues that just got surfaced by the cumulative diff.
+
+**Read these first:**
+1. `.planning/todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md` — categorised follow-up list (HIGH / MEDIUM / LOW)
+2. `.planning/phases/10-real-data-entry/10-REVIEWS.md` — verbatim CodeRabbit output with `Prompt for AI Agent` per finding
+
+**HIGH (security + data integrity, fix in v1.0.2):**
+1. `clock.ts:52-69` — TOCTOU on clock-in
+2. `clock.ts:147-165` — multi-table ops without transaction
+3. `assistants.ts:89-145` — same transaction concern
+4. `auth.ts:229-234` — missing UNIQUE on `assistantGuardianLinks(assistantId, guardianId)`
+5. `gcal.ts:20-38` — JWT in query parameter logged
+6. `entries.ts:45-48` — `e.message` leaked to clients
+
+**Plus one separate UI bug:**
+- `hourlyRateOverride = 0.31` saved instead of `254.10` after Settings re-entry — likely Swedish decimal-comma parsing bug in the Settings input. Externally validated by CodeRabbit. Investigate the input parsing path.
 - **Git:** branch `milestone/v1.0.1`, HEAD `850ecbb`, pushed to origin. No PR open against `main` yet (hold until Phase 10 ships).
 
 ## Read order on resume
