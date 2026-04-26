@@ -1,167 +1,121 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0.1
-milestone_name: Salary Slip + Foundation Cleanup
-status: merge-blocked
-last_updated: "2026-04-25T20:33:35.767Z"
-last_activity: "2026-04-25 -- PR #7 open against main, NOT mergeable. main↔milestone divergence diagnosis written to .planning/MAIN-VS-MILESTONE-DIAGNOSIS.md. Awaiting guardian decision on reconciliation strategy."
+milestone: null
+milestone_name: null
+status: between-milestones
+last_updated: "2026-04-26T11:30:00.000Z"
+last_activity: "2026-04-26 -- /gsd-complete-milestone v1.0.1: archives written, MILESTONES.md updated, PROJECT.md evolved, ROADMAP.md reorganised. Tag v1.0.1 applied to merge commit a796a12."
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 13
-  completed_plans: 13
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Kalinga Assistansportal — Project State
 
 **Project:** Swedish personal assistance (assistansersättning) self-management platform
-**Milestone:** v1.0.1 — Salary Slip + Foundation Cleanup (COMPLETE)
-**State Updated:** 2026-04-24 (Phase 10 complete; milestone v1.0.1 ready to ship)
+**Status:** Between milestones — v1.0.1 SHIPPED, next milestone TBD
+**State Updated:** 2026-04-26
 
 ---
 
 ## Project Reference
 
-**Core Value:**
-The guardian can complete the full monthly cycle — approve hours, generate all required forms, calculate pay — without needing an HR department or assistance company.
+See: [PROJECT.md](PROJECT.md)
 
-**Current Focus:**
-Milestone v1.0.1 complete — Phase 10 closed 2026-04-24. Next: ship (PR / merge / tag).
+**Core value:** The guardian can complete the full monthly cycle — approve hours, generate all required forms, issue the lönespec, calculate pay — without needing an HR department or assistance company.
 
-**Tech Stack:**
+**Current focus:** Choosing next milestone. Three live candidates:
 
-- Frontend: React + Vite (TypeScript)
-- Backend: Express + Drizzle ORM (TypeScript)
-- Database: PostgreSQL
-- No breaking changes to stack; TypeScript throughout
-- PDF libraries: pdf-lib + pdfkit (existing); no new libs for v1.0.1
+1. **v1.0.2 — Hardening** (recommended): close 6 HIGH-severity CodeRabbit findings + multi-family UI re-add + Swedish decimal-comma fix. Backlog: [todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md](todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md)
+2. **v1.1 — Bulk Schedule Entry** (convenience): copy-week, weekday templates, multi-day bulk create
+3. **Design-wireframes implementation**: [seeds/design-wireframes-implementation.md](seeds/design-wireframes-implementation.md)
+
+Or one of the deeper milestones (v1.2 / v1.3 / v1.4 / v2.0) — see [ROADMAP.md](ROADMAP.md) "Future Milestones".
 
 ---
 
 ## Current Position
 
-Phase: 10 (Real Data Entry & End-to-End Verification) — ✓ COMPLETE (closed 2026-04-24)
-**Phase:** 10 closed — milestone v1.0.1 all 4 phases done
-**Status:** v1.0.1 work complete locally — PR #7 OPEN but merge BLOCKED on main↔milestone divergence (see .planning/MAIN-VS-MILESTONE-DIAGNOSIS.md)
-**Last activity:** 2026-04-24 -- v1.0.1 shipped: PR #7 opened against main
-**Progress:** [██████████] 100% of v1.0.1 (4/4 phases, 13/13 plans counting 10-02 as superseded/10-03 as closed)
-**Branch:** `milestone/v1.0.1` on `origin` — ahead by several commits (10-01 PUT, mode-switch docs, dialog scroll fix, pdf.ts decryption fix, 10-UAT, summaries); push when ready
-**Next action:** open PR to main, merge, tag v1.0.1. Consider also following up on the two non-blocking gaps (Rose's `hourlyRateOverride` parsing issue + plan 10-04 drop confirmation).
+**Active milestone:** None
+**Active phase:** None
+**Last shipped milestone:** v1.0.1 — Salary Slip + Foundation Cleanup
+**Tag:** `v1.0.1` on merge commit `a796a12`
+**PR:** [#7 milestone/v1.0.1 → main](https://github.com/rosekaron/assistansportal/pull/7) — MERGED 2026-04-25
+**Branch:** `milestone/v1.0.1` — ahead of `main` by docs-only commit `0e55f79` + this archive's commit
+
+**Next action:** Run `/gsd-new-milestone` to start the next milestone, or `/gsd-progress` to review options.
 
 ---
 
-## Phases Defined (v1.0.1)
+## Shipped Milestones
 
-4 phases with strict dependency chain:
+| Milestone | Tag | Shipped | Phases | Plans | Reqs |
+|-----------|-----|---------|--------|-------|------|
+| v1.0 — MVP | `v1.0` | 2026-04-18 | 9 (1–6.1) | 36 | 15/15 |
+| v1.0.1 — Salary Slip + Foundation Cleanup | `v1.0.1` | 2026-04-25 | 4 (7–10) | 13 | 18/18 |
 
-| Phase | Goal | Requirements | Status |
-|-------|------|--------------|--------|
-| 7 | Foundation — Schema & Cleanup | 6 (SCHEMA-01/02/03 + CLEAN-01/02/03) | ✅ Complete (22/22 must-haves, shipped 2026-04-18) |
-| 8 | Employer Representation Helper (single source of truth for FK/SKV/slip renderers) | 2 (EMP-01, EMP-02) | ✅ Complete (shipped + UAT clean) |
-| 9 | Salary Slip — Anhörig Model (lönespec PDF, guardian + assistant download paths, audit table, Fremia/Custom scaffolding) | 7 (SLIP-01..07) | ✅ Complete — 4 plans shipped, UAT 9/9 passed 2026-04-20 (`ad13a6a`) |
-| 10 | Real Data Entry & End-to-End Verification (guardian enters real brukare/assistant data; clean FK/SKV/slip downloads) | 3 (DATA-01/02/03) | 🔄 Executing — 10-01 done 2026-04-24 (address-only DATA-01 subset); 10-02 Assistants + 10-03 PDF UAT pending; gap-closure plan 10-04 needed for FK decision fields |
+Full archives:
 
-**Key Constraint:** Phase 7 must ship before 8 (needs `patient_requires_representative` column). Phases 7 + 8 must ship before 9 (slip needs new schema columns and uses employer helper in header). Phase 10 is last — it validates end-to-end.
-
----
-
-## What Phase 9 delivered (for downstream consumers)
-
-Phase 9 is done and UAT-verified. The following artifacts and behaviors are live on `milestone/v1.0.1`:
-
-- **Schema:** `payment_slips` audit table + 2 indexes; `assistants.salary_model`, `hourly_rate_override`, `payment_method`; `profile.default_pay_day` (1–28 clamp)
-- **Library:** `buildAnhorigSlip()` pure field builder + `renderAnhorigSlipPdf()` pdfkit renderer in `server/src/lib/`. 23 unit tests green.
-- **Endpoints:**
-  - `POST /api/pdf/lonespec` (guardian) — 400 NULL-rate gate → 409 approval gate → 200 PDF
-  - `GET /api/pdf/lonespec/me?month=YYYY-MM` (assistant) — JWT-only `assistantId`, IDOR-safe
-  - `GET /api/assistant/slips` — JWT-bound listing
-- **UI:** Monthly "Lönespecifikation" section (3 disabled states), AssistantDashboard "Lönespecifikationer" card, Settings 4 new fields (Avtalsmodell, Utbetalningssätt, Timlön, Utbetalningsdag)
-- **Key invariants:** D-05 audit-metadata-only; D-06 rebuild-on-download; D-08 approval gate; D-09 pay-date freeze at issue; D-12 hourly_rate_override NULL → 400 before approval check
-
-See `.planning/phases/09-salary-slip/09-UAT.md` for the full 9-test verification evidence.
+- [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) + [v1.0-REQUIREMENTS.md](milestones/v1.0-REQUIREMENTS.md) + [v1.0-MILESTONE-AUDIT.md](milestones/v1.0-MILESTONE-AUDIT.md)
+- [milestones/v1.0.1-ROADMAP.md](milestones/v1.0.1-ROADMAP.md) + [v1.0.1-REQUIREMENTS.md](milestones/v1.0.1-REQUIREMENTS.md) + [v1.0.1-MILESTONE-AUDIT.md](milestones/v1.0.1-MILESTONE-AUDIT.md)
 
 ---
 
-## Critical Blockers & Risks (now)
+## Open Threads (carry across milestones)
 
-**Blocking Phase 10:**
+**v1.0 carry-overs (still open):**
 
-- None. Phases 7, 8, 9 all complete. Ready for `/gsd-plan-phase 10`.
+- Phase 02 + 06.1 `human_needed` verifications — guardian walkthrough pending (LEAV-01/02/03 + BUG-004 SMTP)
+- 3 Phase 6 UAT items blocked on live Google OAuth credentials
+- 4/9 v1.0 phases missing `VALIDATION.md`; 4/9 in `draft` Nyquist status
+- March 2026 retroactive filing blocked on labor-law advisor review ([compliance/2026-03-advisor-brief.md](compliance/2026-03-advisor-brief.md))
 
-**Known dev-data gaps** (Phase 10 is closing these, plan by plan):
+**v1.0.1 deferrals (rolling into v1.0.2 backlog):**
 
-- `profile.fk_decision_no = "23123123123123"` — placeholder pattern — **OPEN**, deferred to new plan 10-04 per 10-01 guardian decision
-- `profile.fk_decision_start` + `fk_decision_end` — both NULL — **OPEN**, deferred to plan 10-04
-- `profile.address_street/zip/city` — **CLOSED by 10-01** (split fields populated, legacy address/city/zip synced per D-02)
-- `assistants.address_street/zip/city` (both Rose + Mikael) — **OPEN**, to be closed by plan 10-02
-- `assistants.bank_clearing/bank_account/iban` (both) — **OPEN**, to be closed by plan 10-02
-- `mikael@karon.se` auth row has `assistant_id = NULL` (created via password-auth, not invite-link flow). Not a data-entry gap; just means positive-path IDOR tests for Mikael cannot run until he's linked — negative (injection blocked) side is already verified.
+- 6 HIGH-severity CodeRabbit findings (mostly pre-existing, surfaced by PR #7 cumulative diff)
+- Multi-family Settings UI re-add (backend wired; UI dropped at merge per Decision #4 reversal)
+- `hourlyRateOverride = 0.31` Swedish decimal-comma parsing bug
+- Plan 10-04 FK decision fields gap-closure — recommended DROP per VERIFICATION
+- Pre-existing PII leak in `.planning/HANDOFF.md` git history (commit `9c38efc`)
 
----
-
-## Decisions Made (v1.0.1 kick-off)
-
-| Decision | Rationale | Status |
-|----------|-----------|--------|
-| Continue in same repo, not fresh project | v1.0.1 is incremental follow-on to v1.0 | Approved |
-| Phase numbering continues from v1.0 (starts at 7) | Milestone continuity | Approved (GSD convention) |
-| Schema + cleanup merged into single Phase 7 | Both foundational; keeps milestone at ~4 phases | Derived |
-| EMP is its own Phase 8 | Touches 3 existing renderers — isolated verification | Derived |
-| SLIP is its own Phase 9 (7 requirements — largest phase) | Cohesive vertical slice | Derived |
-| DATA is separated as Phase 10 | Guardian-driven checkpoint, not code work | Derived |
+Tracked in [todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md](todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md).
 
 ---
 
-## Accumulated Context
+## Forward Seeds (not yet promoted)
 
-**From v1.0 archive (inherited):**
+- [seeds/verified-presence.md](seeds/verified-presence.md) — anti-fraud clock-in concept (predates v1.0.1)
+- [seeds/design-wireframes-implementation.md](seeds/design-wireframes-implementation.md) — fetch + implement Anthropic-hosted design wireframes (captured 2026-04-25)
 
-- v1.0 shipped 9 phases, 36 plans, 15/15 requirements (2026-04-18, tag `v1.0`)
-- Full monthly compliance cycle works end-to-end in current UI
-- Accepted known issues: flat 30% preliminärskatt, omkostnader pot not modelled, age-bracket arbetsgivaravgifter, gross-not-net outstanding balance, guardianName-as-employer (closed by Phase 8)
+Review during `/gsd-new-milestone` to surface candidates.
 
-**v1.0.1-specific context:**
+---
 
-- Anhörig arrangement: Rose + Mikael at fixed 254.10 kr/h, no sjuk/VAB/semester pay, no pension (legal — they're the patient's parents)
-- Salary slip intentionally excludes arbetsgivaravgifter + total kostnad (guardian direction 2026-04-18)
-- Fremia/Custom scaffolding ships disabled in v1.0.1; live logic deferred to v1.4/v1.5
-- Latent guardian-name-as-employer bug closed by Phase 8's `resolveEmployerRepresentation()`
+## Git State
+
+**Branch:** `milestone/v1.0.1`
+**Tags:** `v1.0` (2026-04-18), `v1.0.1` (2026-04-26 on merge commit `a796a12`)
+**Untracked (pre-existing, not mine to own):** `.planning/compliance/2026-03-smoke-test/`
+**Other branches on origin:** `main` (HEAD `a796a12`), `milestone/v1.0-mvp` (archived v1.0), `mikaelkaron/devcontainer`
 
 ---
 
 ## Session Continuity
 
-**Roadmap complete (v1.0.1):** 4 phases defined (7–10), 18/18 requirements mapped, dependencies documented, success criteria derived.
+**For a cold-start session, read in this order:**
 
-**Next Action:**
-Execute plan 10-02 (Assistants data entry — addresses + bank details for Rose + Mikael). Use API base `:3001` and the same carry-forward PUT pattern established by 10-01 (see 10-01-SUMMARY.md "Patterns established"). After 10-02 and 10-03 ship, create gap-closure plan 10-04 to close the deferred FK decision fields and finish DATA-01.
+1. **HANDOFF section of [ROADMAP.md](ROADMAP.md)** — current product state + next-milestone candidates
+2. [PROJECT.md](PROJECT.md) — product vision, users, anhörigassistans arrangement, key decisions
+3. [MILESTONES.md](MILESTONES.md) — full v1.0 + v1.0.1 shipped-version detail
+4. [todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md](todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md) — if considering v1.0.2 hardening as next milestone
 
-**Context Artifacts Available:**
-
-- `.planning/PROJECT.md` — core value, constraints, v1.0.1 kick-off context
-- `.planning/REQUIREMENTS.md` — 18 v1.0.1 requirements + full traceability to Phases 7–10
-- `.planning/ROADMAP.md` — v1.0.1 phase details (Phases 7–10) + v1.0 retrospective
-- `.planning/HANDOFF.md` — **pause-state cold-start briefing (read first on resume)**
-- `.planning/milestones/v1.0-ROADMAP.md` — shipped v1.0 phase archive
-- `.planning/milestones/v1.0-MILESTONE-AUDIT.md` — v1.0 known-issues and accepted debt
-- `.planning/phases/07-foundation-schema-cleanup/` — Phase 7 context/plans/summaries/verification
-- `.planning/phases/08-employer-representation-helper/` — Phase 8 context/plans/summaries/UAT
-- `.planning/phases/09-salary-slip/` — Phase 9 context/plans/summaries/UAT (9/9 passed)
-- `.planning/phases/10-real-data-entry/10-CONTEXT.md` — Phase 10 context + discussion log (ready for planner)
-
----
-
-## Git State at Pause
-
-- Branch: `milestone/v1.0.1`
-- Head: `850ecbb docs(10): capture phase context`
-- Previous commits on this branch relative to `main`: 234 (one milestone — unmerged; v1.0 was a separate branch archived at tag `v1.0`)
-- Pushed to: `origin/milestone/v1.0.1` ✓
-- Untracked (pre-existing, not mine to own): `.planning/compliance/2026-03-smoke-test/`
-- No PR open against `main`. Strategy (per conversation 2026-04-20): hold until Phase 10 ships, then open the full v1.0.1 milestone PR.
+Then run `/gsd-new-milestone` to define the next milestone's requirements, phases, and roadmap.
 
 ---
 
 *State created: 2026-04-06 (v1.0 kickoff)*
-*v1.0.1 roadmap state updated: 2026-04-20 — Phase 9 complete (UAT 9/9), Phase 10 context captured, milestone paused*
+*v1.0.1 milestone shipped: 2026-04-25 (PR #7 merge `a796a12`)*
+*v1.0.1 archives written: 2026-04-26 by `/gsd-complete-milestone v1.0.1`*
