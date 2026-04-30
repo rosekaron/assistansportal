@@ -8,8 +8,8 @@ dist/
 client/test-results/
 server/coverage/
 
-# Claude Code worktree scratch
-.claude/worktrees/
+# Claude Code (local config + worktrees)
+.claude/
 
 # Drizzle introspect output (generated from live DB — source of truth is server/src/db/schema.ts)
 server/drizzle/
