@@ -1,3 +1,4 @@
+<!-- generated-by: gsd-doc-writer -->
 # FK Rules — Assistansersättning Hour Limits
 
 > Reference for compliance logic in Kalinga. Last updated: 2026-03-28.
@@ -66,8 +67,9 @@ FK tracks each individual assistant's reported hours on **form FK 3059** (tidsre
 ## Kalinga Compliance Logic
 
 ### Block conditions (PDF generation blocked)
-1. Any assistant's hours in a 4-week rolling period exceed **52 hours/week average**
-2. Any assistant's annual overtime (hours above 40h/week) exceeds **300 hours**
+
+1. Any assistant's hours in a 4-week rolling period exceed **52 hours/week average** _(planned — not yet implemented)_
+2. Any assistant's annual overtime (hours above 40h/week) exceeds **300 hours** _(planned — not yet implemented)_
 3. Total logged hours across all assistants exceed the **weekly approved hours** (care package total) for the month
 
 ### Warning conditions (PDF generation allowed but warning shown)

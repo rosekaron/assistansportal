@@ -1,3 +1,4 @@
+<!-- generated-by: gsd-doc-writer -->
 # User Stories — Kalinga Assistansportal
 > Version: v0.1 | Last updated: 2026-04-03 (multi-family assistant support)
 
@@ -1230,13 +1231,13 @@
 **Severity:** High — FK compliance risk
 **Found in:** PDF code review (pdf.ts) + FK 3059 form field inspection
 **Expected:** `fkDecisionNo` from Settings is written to the FK 3057 PDF form
-**Actual:** FK 3059 has no decision number field (FK identifies the case by patient PNO). FK 3057 is where the decision number belongs — but the FK 3057 form file (`fk3057.pdf`) is missing from the `forms/` directory. Until FK 3057 is added, the decision number cannot be filled.
+**Actual:** FK 3059 has no decision number field (FK identifies the case by patient PNO). FK 3057 is where the decision number belongs — `fk3057.pdf` is present in the `forms/` directory, but the decision number field is not yet being written to it.
 
 ---
 
 ### BUG-04 — Assistant PNO and phone not collectable at invite time
 **Severity:** Medium — FK compliance risk
-**Found in:** PDF code review (pdf.ts) + Assistants.tsx
+**Found in:** PDF code review (pdf.ts) + assistant add flow (note: `Assistants.tsx` no longer exists — the add-assistant UI was replaced by `Home.tsx` and related pages during the v1.0 refactor)
 **Expected:** Guardian can enter assistant PNO and phone when adding a new assistant
 **Actual:** Add assistant form only collects name and email. PNO and phone can only be added later via edit. Any FK 3059 generated before the guardian edits the assistant will have blank PNO and phone fields.
 
