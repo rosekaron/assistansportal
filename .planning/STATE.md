@@ -1,10 +1,10 @@
 ---
 gsd_state_version: 1.0
-milestone: null
-milestone_name: null
-status: between-milestones
-last_updated: "2026-04-26T11:30:00.000Z"
-last_activity: "2026-04-26 -- /gsd-complete-milestone v1.0.1: archives written, MILESTONES.md updated, PROJECT.md evolved, ROADMAP.md reorganised. Tag v1.0.1 applied to merge commit a796a12."
+milestone: v1.0.2
+milestone_name: "Production Deployment"
+status: active
+last_updated: "2026-04-30T00:00:00.000Z"
+last_activity: "2026-04-30 -- /gsd-new-milestone v1.0.2: Production Deployment milestone started. Phase dirs archived. Requirements + roadmap being defined."
 progress:
   total_phases: 0
   completed_phases: 0
@@ -16,8 +16,8 @@ progress:
 # Kalinga Assistansportal — Project State
 
 **Project:** Swedish personal assistance (assistansersättning) self-management platform
-**Status:** Between milestones — v1.0.1 SHIPPED, next milestone TBD
-**State Updated:** 2026-04-26
+**Status:** Active — v1.0.2 Production Deployment in progress
+**State Updated:** 2026-04-30
 
 ---
 
@@ -27,7 +27,7 @@ See: [PROJECT.md](PROJECT.md)
 
 **Core value:** The guardian can complete the full monthly cycle — approve hours, generate all required forms, issue the lönespec, calculate pay — without needing an HR department or assistance company.
 
-**Current focus:** Choosing next milestone. Three live candidates:
+**Current focus:** v1.0.2 — Deploy to production on azin.run. Containerize the app, provision PostgreSQL, configure env vars, go live.
 
 1. **v1.0.2 — Hardening** (recommended): close 6 HIGH-severity CodeRabbit findings + multi-family UI re-add + Swedish decimal-comma fix. Backlog: [todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md](todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md)
 2. **v1.1 — Bulk Schedule Entry** (convenience): copy-week, weekday templates, multi-day bulk create

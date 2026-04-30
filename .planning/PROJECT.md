@@ -1,11 +1,11 @@
 # Kalinga — Assistansportal
 
-## Current State (2026-04-26)
+## Current State (2026-04-30)
 
 **Shipped:** v1.0.1 — Salary Slip + Foundation Cleanup (merged to `main` 2026-04-25 via [PR #7](https://github.com/rosekaron/assistansportal/pull/7))
 **Git tag:** `v1.0.1` on merge commit `a796a12` (also `v1.0` archived on `milestone/v1.0-mvp`)
-**Active milestone:** Planning — choosing between v1.0.2 (CodeRabbit hardening) or a feature milestone (v1.1 / v1.2 / design-wireframes)
-**Branch state:** `milestone/v1.0.1` ahead of `main` by one docs-only commit (`0e55f79` — design-wireframes seed + post-merge HANDOFF refresh)
+**Active milestone:** v1.0.2 — Production Deployment (azin.run)
+**Branch state:** `main` — ahead of origin by 0 commits after cleanup/README/gitignore housekeeping
 
 **v1.0.1 delivered:** 4 phases (7–10), 13 plans, 18/18 requirements. Lönespec PDF live end-to-end; statutory non-compliance closed (Swedish labor law requires written pay record per pay period). Latent FK 3057/3059/SKV 4805 employer-name bug closed by `resolveEmployerRepresentation()` helper. Schema additions for v1.2 + v1.3 already in place. Dead scheduling scaffolding removed. See [.planning/MILESTONES.md](MILESTONES.md) and [.planning/milestones/v1.0.1-ROADMAP.md](milestones/v1.0.1-ROADMAP.md).
 
@@ -35,19 +35,24 @@ See [.planning/milestones/v1.0-MILESTONE-AUDIT.md](milestones/v1.0-MILESTONE-AUD
 
 Kalinga is a care management platform for the Swedish personal assistance sector. It serves disabled people and their families who have chosen to self-manage their assistansersättning (personal assistance compensation from Försäkringskassan) rather than delegate to a staffing company like Humana or Attendo. The platform handles the full monthly compliance cycle: scheduling assistants, tracking hours, generating FK and Skatteverket forms, and calculating payroll — and now (v1.0.1) issues the legally-required Swedish lönespecifikation per pay period — so the guardian can manage their own "micro-assistance employer" without specialist knowledge.
 
-**v1.0 delivered the full compliance cycle. v1.0.1 added the salary slip + foundation cleanup.** The platform is now statutorily complete for the anhörig-model use case (Rose + Mikael under mutual agreement). Forward scope is hardening (v1.0.2) or a feature milestone (v1.1 Bulk Schedule, v1.2 Submission Readiness Gate, v1.3 Schedule Violations, v1.4 Fremia Salary Model, v2.0 Calendar Reconciliation). See [.planning/ROADMAP.md](ROADMAP.md).
+**v1.0 delivered the full compliance cycle. v1.0.1 added the salary slip + foundation cleanup. v1.0.2 deploys the platform to production on azin.run.** Forward scope is security hardening (v1.0.3), then feature milestones (v1.1 Bulk Schedule, v1.2 Submission Readiness Gate, v1.3 Schedule Violations, v1.4 Fremia Salary Model, v2.0 Calendar Reconciliation). See [.planning/ROADMAP.md](ROADMAP.md).
 
 ## Core Value
 
 The guardian can complete the full monthly cycle — approve hours, generate all required forms, issue the lönespec, calculate pay — without needing an HR department or assistance company.
 
-## Next Milestone: TBD (v1.0.2 hardening or v1.1 Bulk Schedule / v1.2 Submission Readiness)
+## Current Milestone: v1.0.2 — Production Deployment
 
-**Decide via `/gsd-new-milestone`.** Top candidates:
+**Goal:** Deploy Assistansportal to production on azin.run — containerize the app, get it live at a real URL, with PDFs generating, Google OAuth working, and the database migrated.
 
-- **v1.0.2 — Hardening** (urgent if any HIGH-severity CodeRabbit finding is exploitable in the deployed environment): TOCTOU on clock-in, transactional multi-table ops, missing UNIQUE on `assistantGuardianLinks`, JWT-in-query logging, error-message leak. Plus multi-family UI re-add and Swedish decimal-comma fix. Backlog: [todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md](todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md).
-- **v1.1 — Bulk Schedule Entry** (convenience win): copy-week, weekday templates, multi-day/multi-assistant bulk create.
-- **v1.2 — Submission Readiness Gate** (12-blocker pre-flight validator before FK/SKV submission). Now half-unblocked because v1.0.1's SCHEMA-02 added `fk_decision_start/end` etc.
+**Target features:**
+- Production multi-stage Dockerfile with qpdf (apt) and forms directory included
+- Server serves compiled React client as static files in `NODE_ENV=production`
+- GitHub repo connected to Azin, all env vars configured, PostgreSQL provisioned
+- Push-to-main triggers automatic build and deploy
+- Database schema pushed to production
+- Google OAuth redirect URI updated for production domain
+- Smoke test: guardian login → PDF download → Google Calendar OAuth
 - **Design-wireframes implementation** ([.planning/seeds/design-wireframes-implementation.md](seeds/design-wireframes-implementation.md)) — fetch + implement Anthropic-hosted wireframes captured 2026-04-25.
 
 ## Requirements
@@ -112,9 +117,15 @@ The guardian can complete the full monthly cycle — approve hours, generate all
 
 ### Active
 
-(None — milestone v1.0.1 shipped. Next milestone's Active requirements will be defined by `/gsd-new-milestone`.)
+<!-- v1.0.2 Production Deployment -->
 
-**Choosing the next milestone:** see "Next Milestone" section above and [todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md](todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md) for the v1.0.2 hardening backlog.
+- [ ] App is containerized with a production multi-stage Dockerfile (includes qpdf via apt, forms directory, compiled client)
+- [ ] Server serves compiled React client as static files when `NODE_ENV=production`
+- [ ] GitHub repo connected to Azin; push to `main` triggers auto-deploy
+- [ ] Production PostgreSQL provisioned by Azin; schema migrated via Drizzle push
+- [ ] All 13 environment variables configured in Azin production environment
+- [ ] Google OAuth redirect URIs updated for production domain
+- [ ] Smoke test passes: login, PDF download, Google Calendar OAuth at production URL
 
 ### Out of Scope
 
@@ -171,7 +182,7 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-26 — v1.0.1 SHIPPED & MERGED (PR #7 → main, tag `v1.0.1` on `a796a12`). All 18 v1.0.1 requirements validated. Next: choose v1.0.2 hardening or feature milestone via `/gsd-new-milestone`.*
+*Last updated: 2026-04-30 — v1.0.2 Production Deployment milestone started. GSD updated to 1.38.5. v1.0.1 phase dirs archived. Next: `/gsd-plan-phase 11`.*
 
 ## Core Value Proposition (Clarified 2026-04-10)
 
