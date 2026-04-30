@@ -1,21 +1,38 @@
-# HANDOFF — Kalinga Assistansportal (v1.0.1 work complete, MERGE BLOCKED 2026-04-25)
+# HANDOFF — Kalinga Assistansportal (v1.0.1 SHIPPED & MERGED 2026-04-25)
 
-> **You are picking up a complicated state.** v1.0.1's actual work is done and verified. PR #7 is OPEN but **cannot auto-merge** — `main` and `milestone/v1.0.1` have diverged with parallel feature work on both sides. Read `.planning/MAIN-VS-MILESTONE-DIAGNOSIS.md` BEFORE attempting any merge or push.
+> **You are picking up post-merge work.** v1.0.1 shipped and PR #7 was merged into `main` at 2026-04-25T21:52:59Z (merge commit `a796a1233e`). The repo is on a clean post-merge footing. The next sprint is hardening based on the CodeRabbit review of PR #7 — see "Outstanding work" below.
 
 ## TL;DR
 
-- **Milestone:** v1.0.1 (Salary Slip + Foundation Cleanup) — work complete, all 4 phases (7-10) verified and closed locally on `milestone/v1.0.1`, 18/18 requirements complete.
-- **PR #7** is open against `main` with merge conflicts on 5 files (README.md, schema.ts, assistant.ts, assistants.ts, pdf.ts). **Not auto-mergeable.**
-- **The conflicts are real:** `main` has parallel feature work (multi-family, real Google OAuth, clock-in/out via entries.clockedInAt, AssistantDetail page, Reports.tsx) that `milestone/v1.0.1` never inherited. Both branches modified the same DB tables in different ways. Neither is a strict subset of the other.
-- **READ FIRST:** `.planning/MAIN-VS-MILESTONE-DIAGNOSIS.md` (written 2026-04-25). Has full topology + commit-by-commit breakdown + 6 open questions for the guardian.
-- **Resume action:** Read the diagnosis. Walk through the 6 open questions. Pick a reconciliation strategy (full merge, force-replace, or cherry-pick). Then execute.
+- **Milestone:** v1.0.1 (Salary Slip + Foundation Cleanup) — ✅ SHIPPED, PR #7 merged 2026-04-25. All 4 phases (7-10) verified, 18/18 requirements complete.
+- **Reconciliation done:** `main` had 30 parallel commits with multi-family + clock-in/out + AssistantDetail + real OAuth that the milestone branch never inherited. PR #7 was paused mid-ship while the divergence was diagnosed; reconciled the same session via 6 explicit decisions. See `.planning/MAIN-VS-MILESTONE-DIAGNOSIS.md` for the full audit trail.
+- **Currently on `main`:** all of milestone v1.0.1's work + main's multi-family backend + main's compatible FK form fixes (väntetid/beredskapstid totals, mkSlots helper, arbetsgivare checkbox).
+- **Currently DROPPED at merge** (per Decision #2 + #4): main's `entries.clockedInAt/Out/actualHours/guardianAdjusted` columns + parallel clock-in/out routes (milestone's `clock.ts` is authoritative); main's `Dashboard.tsx`, `Reports.tsx`, `Assistants.tsx`, `AssistantDetail.tsx` (milestone UI wins).
+- **Resume action:** read this file → `.planning/todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md` → start `/gsd-new-milestone v1.0.2` or pick a different priority below.
 
-## Two outstanding tracks once the merge is unblocked
+## Outstanding work (priority order)
 
-### Track A — Reconcile main ↔ milestone (BLOCKING for ship)
-See `.planning/MAIN-VS-MILESTONE-DIAGNOSIS.md`. Until this is resolved, v1.0.1 cannot land on main.
+### Track A — v1.0.2 hardening (CodeRabbit findings from PR #7)
+6 HIGH-severity findings — most are pre-existing latent issues that the cumulative diff surfaced for the first time, NOT regressions introduced by v1.0.1. Backlog: `.planning/todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md`.
 
-### Track B — v1.0.2 hardening (post-merge follow-up)
+### Track B — Multi-family Settings UI re-add
+The merge dropped main's multi-family switcher UI from `client/src/pages/Settings.tsx` (took milestone wholesale per Decision #4 reversal). Backend is fully wired (`/families`, `/link-existing`, `/link-status`, `/link-requests/{accept,decline}` + `assistantsApi.linkExisting/linkStatus`); the UI for managing families needs to be re-added in milestone's 2-section collapsible shape. See merge commit `e389a0d` body for context.
+
+### Track C — Misc cleanups
+- Rose's `hourlyRateOverride = 0.31` parsing bug in Settings input (likely Swedish decimal-comma issue) — flagged by CodeRabbit, validates a Phase 10 UAT gap
+- Pre-existing PII leak in `.planning/HANDOFF.md` history (committed in `9c38efc`, low priority redaction)
+- Plan 10-04 — recommended for DROP (FK decision fields don't propagate to any PDF, see `.planning/phases/10-real-data-entry/10-VERIFICATION.md`)
+
+### Track D — Future milestones (seeds, not active work)
+- `.planning/seeds/verified-presence.md` — anti-fraud clock-in concept (predated v1.0.1)
+- `.planning/seeds/design-wireframes-implementation.md` — fetch + implement the Anthropic-hosted design wireframes (captured 2026-04-25)
+- `.planning/seeds/` — review periodically; surface candidates for the next milestone
+
+## Track A details (merge-blocked branch state) — RESOLVED, archived for context
+
+PR #7 was originally "merge blocked" because main had diverged with substantive parallel feature work. The diagnosis is at `.planning/MAIN-VS-MILESTONE-DIAGNOSIS.md` and lists all 6 decisions made. The reconciliation merge happened in commit `e389a0d` (2026-04-25). Reading the diagnosis is still useful for understanding "why is the schema shaped this way" or "where did multi-family come from" questions in future sessions.
+
+### Reconciliation summary (for cold readers)
 CodeRabbit reviewed PR #7's diff and surfaced 23 findings. v1.0.1's actual milestone scope (salary slip + foundation cleanup + employer helper + real-data E2E) was verified clean on its own merits — most HIGH items are pre-existing latent issues. Track in `.planning/todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md`.
 
 **Read these first (Track B):**
