@@ -566,20 +566,20 @@ services:
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should docker-compose.prod.yml be a new file or override pattern?**
    - What we know: existing `docker-compose.yml` only defines a `postgres` service for dev
    - What's unclear: whether to write a standalone `docker-compose.prod.yml` or use Docker Compose override syntax
-   - Recommendation: standalone `docker-compose.prod.yml` for smoke testing; simpler to reason about; Phase 12 Azin deploy won't use docker-compose at all
+   - RESOLVED: Standalone `docker-compose.prod.yml` for smoke testing; simpler to reason about; Phase 12 Azin deploy won't use docker-compose at all.
 
 2. **Should root `npm ci --omit=dev` in runtime stage be skipped?**
    - What we know: root `package.json` has only `concurrently` and `husky` as devDependencies; zero production dependencies
    - What's unclear: whether a future package added to root would need this layer
-   - Recommendation: Include the layer anyway for correctness and future-proofing; it costs ~0ms to run when there are no production deps
+   - RESOLVED: Include the layer anyway for correctness and future-proofing; it costs ~0ms to run when there are no production deps.
 
 3. **Port in Dockerfile: EXPOSE 3001 vs ENV PORT?**
-   - Recommendation: `EXPOSE 3001` is documentation only. `ENV PORT=3001` sets the default inside the container but allows override via `docker run -e PORT=...`. Include both. Azin may set PORT via its own env injection.
+   - RESOLVED: Include both. `EXPOSE 3001` is documentation-only; `ENV PORT=3001` sets the default inside the container but allows override via `docker run -e PORT=...`. Azin may set PORT via its own env injection.
 
 ---
 
