@@ -1,0 +1,14 @@
+{
+  "doc_path": "docs/DEVELOPMENT.md",
+  "claims_checked": 34,
+  "claims_passed": 33,
+  "claims_failed": 1,
+  "failures": [
+    {
+      "line": 12,
+      "claim": "node:22-bookworm",
+      "expected": "devcontainer base image tag 'node:22-bookworm' in .devcontainer/Dockerfile",
+      "actual": "Dockerfile uses 'mcr.microsoft.com/devcontainers/javascript-node:dev-22-bookworm' — image name differs from the shorthand claimed"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "doc_path": "docs/user-stories.md",
+  "claims_checked": 5,
+  "claims_passed": 3,
+  "claims_failed": 2,
+  "failures": [
+    {
+      "line": 1233,
+      "claim": "fk3057.pdf is missing from the forms/ directory",
+      "expected": "file not found at forms/fk3057.pdf (as claimed in BUG-03)",
+      "actual": "file EXISTS at /Users/rosekaron/Desktop/Kalinga/assistansportal/forms/fk3057.pdf — BUG-03 description is stale; the form file is present"
+    },
+    {
+      "line": 1239,
+      "claim": "Assistants.tsx",
+      "expected": "file exists",
+      "actual": "file not found — no Assistants.tsx in client/src or anywhere in the project; closest match is AssistantDashboard.tsx"
+    }
+  ]
+}

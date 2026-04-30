@@ -1,0 +1,20 @@
+{
+  "doc_path": "docs/fk-rules.md",
+  "claims_checked": 14,
+  "claims_passed": 12,
+  "claims_failed": 2,
+  "failures": [
+    {
+      "line": 69,
+      "claim": "Block condition: any assistant's hours in a 4-week rolling period exceed 52 hours/week average → PDF generation blocked",
+      "expected": "enforcement logic (52 h/week rolling average check) in codebase",
+      "actual": "no implementation found in server/src — threshold is documented but not coded"
+    },
+    {
+      "line": 70,
+      "claim": "Block condition: any assistant's annual overtime above 40 h/week exceeds 300 hours → PDF generation blocked",
+      "expected": "enforcement logic (300 h/year annual overtime cap check) in codebase",
+      "actual": "no implementation found in server/src — threshold is documented but not coded"
+    }
+  ]
+}

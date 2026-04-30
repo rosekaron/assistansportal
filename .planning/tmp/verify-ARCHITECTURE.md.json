@@ -1,0 +1,14 @@
+{
+  "doc_path": "docs/ARCHITECTURE.md",
+  "claims_checked": 33,
+  "claims_passed": 32,
+  "claims_failed": 1,
+  "failures": [
+    {
+      "line": 39,
+      "claim": "POST /api/payroll",
+      "expected": "route definition in codebase for POST /api/payroll",
+      "actual": "no POST handler at /api/payroll root; payroll generation is POST /api/payroll/generate"
+    }
+  ]
+}
