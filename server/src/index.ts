@@ -10,9 +10,6 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "dev_secret") {
   process.exit(1);
 }
 
-// Ensure Homebrew binaries (qpdf etc.) are in PATH
-process.env.PATH = `/opt/homebrew/bin:${process.env.PATH}`;
-
 import { seedDefaults } from "./db";
 import { startReminderCron } from "./lib/reminderCron";
 import authRoutes            from "./routes/auth";
