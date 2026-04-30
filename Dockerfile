@@ -35,7 +35,7 @@ RUN apt-get update && \
 
 # Production deps: root (currently zero prod deps; included for future-proofing)
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --ignore-scripts
 
 # Production deps: server only (client deps stay in builder stage; we only need client/dist output)
 COPY server/package.json server/package-lock.json ./server/
