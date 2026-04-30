@@ -1,7 +1,13 @@
 # Kalinga Assistansportal — Roadmap
 
 **Project:** Swedish personal assistance (assistansersättning) self-management platform with compliance and payroll integration.
-**Last updated:** 2026-04-26 (v1.0.1 archived)
+**Last updated:** 2026-04-30 (vision + far-horizon merged from root ROADMAP.md)
+
+---
+
+## Vision
+
+Assistansportal is the operating system for personal assistance in Europe — starting with Sweden. We eliminate the administrative burden carried by families, individuals, and care companies managing personal assistance, replacing manual workflows with a purpose-built platform that handles compliance, coordination, and care — so that caregivers can focus on people, not paperwork.
 
 ---
 
@@ -237,6 +243,61 @@ Default shipping order (revisable):
 
 ---
 
+## Far Horizon (post-v2.0)
+
+These phases are not yet scheduled. They follow naturally once the core compliance + payroll + reconciliation loop is solid.
+
+### Care coordination (V2 product era)
+
+**Goal:** Deepen retention by making Assistansportal the central hub for care coordination. Expand from admin automation into active care management. Begin onboarding small care companies alongside individual families.
+
+**Features:**
+- Care instructions: structured documentation from guardians to assistants
+- Activities planning and logging
+- Therapy and exercise tracking
+- Events and appointment coordination
+
+**B2B — small care companies:**
+- Staff scheduling
+- Multi-client management
+- Compliance reporting
+
+### Knowledge base & discovery (V3 product era)
+
+**Goal:** Expand the platform into discovery and advocacy — helping families navigate the broader system of entitlements, equipment, and funding. Establish Assistansportal as the trusted companion for the full personal assistance journey.
+
+**Features:**
+- Knowledge base: condition-specific guidance for rare diseases
+- Hjälpmedel discovery: surfacing relevant assistive equipment by diagnosis
+- Funding discovery: identifying additional funding sources beyond LSS
+- LSS appeals support: guiding families through challenging and appealing LSS decisions
+
+### Platform expansion (marketplace era)
+
+**Goal:** Evolve Assistansportal from a management tool into a two-sided platform with network effects. Once a critical mass of families, care companies, and assistants are active, open a marketplace layer that creates new value for all three sides.
+
+**Features:**
+- Assistant pool: searchable registry of available assistants for families and care companies
+- Temp staff pool: care companies can source vetted temporary assistants on demand
+- Ratings and reviews: families and companies rate assistants; assistants build a portable reputation
+- Marketplace: care companies can list open positions; assistants can signal availability
+
+**Strategic note:** Dependent on platform density. Revenue model expands to include placement fees, featured listings, and verification services. Network effects at this stage create significant competitive moat.
+
+---
+
+## Parking lot
+
+Features acknowledged but not yet phased:
+
+- European regulatory adaptation (German, Dutch, broader EU compliance layer)
+- API integrations with payroll providers and public sector systems
+- Enterprise tier: larger care operators, custom contracts
+- Multilingual platform (English, German, Dutch)
+
+---
+
 *Roadmap created: 2026-04-06*
 *v1.0 archived: 2026-04-18 — 15/15 requirements, 9 phases shipped*
 *v1.0.1 archived: 2026-04-26 — 18/18 requirements, 4 phases shipped (7–10)*
+*Far-horizon + vision merged from root ROADMAP.md: 2026-04-30*
