@@ -83,4 +83,4 @@ Requirements for deploying the platform to production on azin.run.
 
 ---
 *Requirements defined: 2026-04-30*
-*Last updated: 2026-04-30 — initial definition for v1.0.2 Production Deployment*
+*Last updated: 2026-04-30 — traceability confirmed after roadmap write (phases 11–12)*

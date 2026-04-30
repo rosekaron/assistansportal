@@ -4,9 +4,9 @@ milestone: v1.0.2
 milestone_name: "Production Deployment"
 status: active
 last_updated: "2026-04-30T00:00:00.000Z"
-last_activity: "2026-04-30 -- /gsd-new-milestone v1.0.2: Production Deployment milestone started. Phase dirs archived. Requirements + roadmap being defined."
+last_activity: "2026-04-30 -- /gsd-roadmap-milestone: v1.0.2 roadmap written. 2 phases (11-12), 15/15 requirements mapped. Ready for /gsd-plan-phase 11."
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -29,24 +29,29 @@ See: [PROJECT.md](PROJECT.md)
 
 **Current focus:** v1.0.2 — Deploy to production on azin.run. Containerize the app, provision PostgreSQL, configure env vars, go live.
 
-1. **v1.0.2 — Hardening** (recommended): close 6 HIGH-severity CodeRabbit findings + multi-family UI re-add + Swedish decimal-comma fix. Backlog: [todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md](todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md)
-2. **v1.1 — Bulk Schedule Entry** (convenience): copy-week, weekday templates, multi-day bulk create
-3. **Design-wireframes implementation**: [seeds/design-wireframes-implementation.md](seeds/design-wireframes-implementation.md)
-
-Or one of the deeper milestones (v1.2 / v1.3 / v1.4 / v2.0) — see [ROADMAP.md](ROADMAP.md) "Future Milestones".
-
 ---
 
 ## Current Position
 
-**Active milestone:** None
-**Active phase:** None
+**Active milestone:** v1.0.2 — Production Deployment
+**Active phase:** None (roadmap ready; planning not started)
 **Last shipped milestone:** v1.0.1 — Salary Slip + Foundation Cleanup
 **Tag:** `v1.0.1` on merge commit `a796a12`
 **PR:** [#7 milestone/v1.0.1 → main](https://github.com/rosekaron/assistansportal/pull/7) — MERGED 2026-04-25
-**Branch:** `milestone/v1.0.1` — ahead of `main` by docs-only commit `0e55f79` + this archive's commit
+**Branch:** `main`
 
-**Next action:** Run `/gsd-new-milestone` to start the next milestone, or `/gsd-progress` to review options.
+**Next action:** Run `/gsd-plan-phase 11` to plan Phase 11: Production Dockerfile & Static Serving.
+
+---
+
+## v1.0.2 Phases
+
+| Phase | Name | Requirements | Status |
+|-------|------|--------------|--------|
+| 11 | Production Dockerfile & Static Serving | CONT-01..05 (5) | Not started |
+| 12 | Azin Deployment & Go-Live | DEPLOY-01..04, PROD-01..03, SMOKE-01..03 (10) | Not started |
+
+**Coverage:** 15/15 requirements mapped ✓
 
 ---
 
@@ -73,7 +78,7 @@ Full archives:
 - 4/9 v1.0 phases missing `VALIDATION.md`; 4/9 in `draft` Nyquist status
 - March 2026 retroactive filing blocked on labor-law advisor review ([compliance/2026-03-advisor-brief.md](compliance/2026-03-advisor-brief.md))
 
-**v1.0.1 deferrals (rolling into v1.0.2 backlog):**
+**v1.0.1 deferrals (rolling into v1.0.3 backlog):**
 
 - 6 HIGH-severity CodeRabbit findings (mostly pre-existing, surfaced by PR #7 cumulative diff)
 - Multi-family Settings UI re-add (backend wired; UI dropped at merge per Decision #4 reversal)
@@ -96,10 +101,10 @@ Review during `/gsd-new-milestone` to surface candidates.
 
 ## Git State
 
-**Branch:** `milestone/v1.0.1`
+**Branch:** `main`
 **Tags:** `v1.0` (2026-04-18), `v1.0.1` (2026-04-26 on merge commit `a796a12`)
-**Untracked (pre-existing, not mine to own):** `.planning/compliance/2026-03-smoke-test/`
-**Other branches on origin:** `main` (HEAD `a796a12`), `milestone/v1.0-mvp` (archived v1.0), `mikaelkaron/devcontainer`
+**Untracked (pre-existing, not mine to own):** `.planning/compliance/2026-03-smoke-test/`, `.planning/tmp/`
+**Other branches on origin:** `milestone/v1.0-mvp` (archived v1.0), `mikaelkaron/devcontainer`
 
 ---
 
@@ -107,15 +112,16 @@ Review during `/gsd-new-milestone` to surface candidates.
 
 **For a cold-start session, read in this order:**
 
-1. **HANDOFF section of [ROADMAP.md](ROADMAP.md)** — current product state + next-milestone candidates
+1. **HANDOFF section of [ROADMAP.md](ROADMAP.md)** — current product state + milestone overview
 2. [PROJECT.md](PROJECT.md) — product vision, users, anhörigassistans arrangement, key decisions
-3. [MILESTONES.md](MILESTONES.md) — full v1.0 + v1.0.1 shipped-version detail
-4. [todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md](todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md) — if considering v1.0.2 hardening as next milestone
+3. [REQUIREMENTS.md](REQUIREMENTS.md) — v1.0.2 requirements (CONT-01..05, DEPLOY-01..04, PROD-01..03, SMOKE-01..03)
+4. This STATE.md — current phase position + open threads
 
-Then run `/gsd-new-milestone` to define the next milestone's requirements, phases, and roadmap.
+Then run `/gsd-plan-phase 11` to start planning Phase 11.
 
 ---
 
 *State created: 2026-04-06 (v1.0 kickoff)*
 *v1.0.1 milestone shipped: 2026-04-25 (PR #7 merge `a796a12`)*
 *v1.0.1 archives written: 2026-04-26 by `/gsd-complete-milestone v1.0.1`*
+*v1.0.2 roadmap initialized: 2026-04-30 — 2 phases (11–12), 15 requirements mapped*

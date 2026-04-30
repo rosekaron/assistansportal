@@ -1,7 +1,7 @@
 # Kalinga Assistansportal — Roadmap
 
 **Project:** Swedish personal assistance (assistansersättning) self-management platform with compliance and payroll integration.
-**Last updated:** 2026-04-30 (vision + far-horizon merged from root ROADMAP.md)
+**Last updated:** 2026-04-30 (v1.0.2 phases 11–12 added)
 
 ---
 
@@ -15,29 +15,14 @@ Assistansportal is the operating system for personal assistance in Europe — st
 
 If you're a new session / new LLM and have never seen this project before, **read this section, then PROJECT.md, then the Future Milestones section below. Skip nothing.**
 
-### Where the project stands (as of 2026-04-26)
+### Where the project stands (as of 2026-04-30)
 
 - **v1.0.1 SHIPPED & MERGED.** PR #7 merged into `main` 2026-04-25 (merge commit `a796a12`); git tag `v1.0.1` applied. All 4 phases (7–10) verified, 18/18 requirements satisfied. The platform is now statutorily complete for the anhörig-model use case (lönespec PDF live end-to-end + employer-representation helper closes the latent FK/SKV employer-name bug).
-- **Active milestone:** None. Next milestone TBD — see options below.
-- **Branch state:** `milestone/v1.0.1` ahead of `main` by one docs-only commit (`0e55f79` — design-wireframes seed + post-merge HANDOFF refresh). The bookkeeping commit from `/gsd-complete-milestone` (this archive write-up) lands on the same branch.
+- **Active milestone:** v1.0.2 — Production Deployment. Roadmap initialized; 2 phases (11–12) defined.
+- **Branch state:** `main` — ahead of origin by 0 commits after cleanup/README/gitignore housekeeping.
 - **Two milestone archives now live:**
   - [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) + [v1.0-REQUIREMENTS.md](milestones/v1.0-REQUIREMENTS.md) + [v1.0-MILESTONE-AUDIT.md](milestones/v1.0-MILESTONE-AUDIT.md)
   - [milestones/v1.0.1-ROADMAP.md](milestones/v1.0.1-ROADMAP.md) + [v1.0.1-REQUIREMENTS.md](milestones/v1.0.1-REQUIREMENTS.md) + [v1.0.1-MILESTONE-AUDIT.md](milestones/v1.0.1-MILESTONE-AUDIT.md) (the latter is the main↔milestone divergence reconciliation audit)
-
-### How to pick the next milestone
-
-Three live candidates. Decide via `/gsd-new-milestone`:
-
-1. **v1.0.2 — Hardening** (recommended if any of the 6 HIGH-severity CodeRabbit findings are exploitable in your deployed environment). Backlog: [todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md](todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md). Includes:
-   - 6 HIGH-severity CodeRabbit findings (mostly pre-existing, surfaced by PR #7 cumulative diff): TOCTOU on clock-in, multi-table ops without transactions, missing UNIQUE on `assistantGuardianLinks`, JWT in query parameter logged, `e.message` leaked to clients
-   - Multi-family Settings UI re-add (backend wired; UI dropped at merge per Decision #4 reversal)
-   - `hourlyRateOverride = 0.31` Swedish decimal-comma parsing bug in Settings input
-   - Plan 10-04 FK decision fields gap-closure — recommended DROP per VERIFICATION (re-evaluate)
-   - Pre-existing PII leak in `.planning/HANDOFF.md` git history (commit `9c38efc`)
-2. **v1.1 — Bulk Schedule Entry** (convenience win): copy-week, weekday templates, multi-day/multi-assistant bulk create. Not yet planned.
-3. **Design-wireframes implementation** ([seeds/design-wireframes-implementation.md](seeds/design-wireframes-implementation.md)) — fetch + implement Anthropic-hosted wireframes captured 2026-04-25.
-
-Or one of the deeper feature milestones below (v1.2 Submission Readiness, v1.3 Schedule Violations, v1.4 Fremia Salary Model, v2.0 Calendar Reconciliation).
 
 ### The essential facts about this product
 
@@ -99,9 +84,56 @@ Full detail: [milestones/v1.0.1-ROADMAP.md](milestones/v1.0.1-ROADMAP.md). Audit
 
 ---
 
-## Future Milestones (planned 2026-04-18, refreshed 2026-04-26)
+## Phases
 
-### 🔜 v1.0.2 — Hardening (recommended next)
+### v1.0.2 — Production Deployment (active)
+
+- [ ] **Phase 11: Production Dockerfile & Static Serving** — Multi-stage Dockerfile with qpdf (apt), forms directory, compiled React client served by Express in production mode. Verified locally before deploy.
+- [ ] **Phase 12: Azin Deployment & Go-Live** — Connect repo to Azin, provision PostgreSQL, configure all 13 env vars, push schema, update Google OAuth for production domain, pass 3-test smoke suite.
+
+---
+
+## Phase Details
+
+### Phase 11: Production Dockerfile & Static Serving
+**Goal**: Containerize the app — multi-stage Dockerfile with qpdf (apt), forms directory, client build served by Express in production mode. Verified locally before deploy.
+**Depends on**: Phase 10 (v1.0.1 complete)
+**Requirements**: CONT-01, CONT-02, CONT-03, CONT-04, CONT-05
+**Success Criteria** (what must be TRUE):
+  1. Running `docker build` locally produces a single image without errors; the image contains `qpdf` at `/usr/bin/qpdf` (verifiable via `docker run --rm <image> which qpdf`)
+  2. The three form PDFs (fk3057.pdf, fk3059.pdf, skv4805.pdf) are present at their expected runtime path inside the container
+  3. `docker run` with `NODE_ENV=production` and a full set of production-style env vars starts the server and serves the compiled React SPA at `/`
+  4. A PDF download request (`/api/pdf/lonespec` or `/api/pdf/3057`) against the locally-running container returns a valid PDF with no HTTP 500
+  5. The local smoke pass is documented (pass criteria identical to Phase 12 smoke suite)
+**Plans**: TBD
+
+### Phase 12: Azin Deployment & Go-Live
+**Goal**: Connect repo to Azin, provision PostgreSQL, configure all 13 environment variables, push schema, update Google OAuth for production domain, and pass the 3-test smoke suite.
+**Depends on**: Phase 11
+**Requirements**: DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04, PROD-01, PROD-02, PROD-03, SMOKE-01, SMOKE-02, SMOKE-03
+**Success Criteria** (what must be TRUE):
+  1. Pushing a commit to `main` triggers an automatic Azin build and deploys the new image without manual intervention
+  2. Guardian can register or log in at the production `https://<domain>.azin.run` URL from a browser that has never touched localhost
+  3. Guardian can download a PDF (FK 3057 or lönespec) at the production URL — verifies qpdf binary executes correctly inside the Azin container
+  4. Google Calendar OAuth connect flow completes at the production URL: redirect to Google succeeds, callback to `https://<domain>/api/gcal/oauth2callback` succeeds, calendar picker loads
+  5. All three smoke tests pass in sequence with no server errors in the Azin log
+**Plans**: TBD
+**UI hint**: yes
+
+---
+
+## Progress Table
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 11. Production Dockerfile & Static Serving | 0/? | Not started | - |
+| 12. Azin Deployment & Go-Live | 0/? | Not started | - |
+
+---
+
+## Future Milestones (planned 2026-04-18, refreshed 2026-04-30)
+
+### 🔜 v1.0.3 — Security Hardening (recommended after v1.0.2)
 
 **Goal:** Close the 6 HIGH-severity CodeRabbit findings from PR #7 review, re-add multi-family Settings UI, fix Swedish decimal-comma parsing in Settings, and decide on Plan 10-04 FK decision fields.
 
@@ -119,7 +151,7 @@ Full detail: [milestones/v1.0.1-ROADMAP.md](milestones/v1.0.1-ROADMAP.md). Audit
 
 **Backlog:** [todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md](todos/pending/2026-04-25-v1.0.2-hardening-from-pr7-review.md)
 
-**Trigger:** Most HIGH findings are pre-existing latent issues, NOT v1.0.1 regressions. Urgency depends on deployment exposure.
+**Trigger:** Most HIGH findings are pre-existing latent issues, NOT v1.0.1 regressions. Urgency depends on deployment exposure — now higher given production is live.
 
 ### 🔜 v1.1 — Bulk Schedule Entry
 
@@ -229,13 +261,14 @@ Full detail: [milestones/v1.0.1-ROADMAP.md](milestones/v1.0.1-ROADMAP.md). Audit
 
 Default shipping order (revisable):
 
-1. **v1.0.2** — Hardening (depends on deployment exposure of HIGH findings)
-2. **v1.1** — Bulk schedule entry (convenience)
-3. **v1.2** — Submission readiness gate (prevents invalid FK/Skatteverket filings)
-4. **v1.3** — Schedule-violation warnings on Monthly (surfaces labor-law + FK-rule issues)
-5. **v1.4** — Fremia salary model (triggered by hiring a non-family assistant on kollektivavtal)
-6. **v1.5** — Custom salary model (triggered by edge-case hiring arrangement)
-7. **v2.0** — Calendar & schedule reconciliation (triggered by billing drift becoming visible)
+1. **v1.0.2** — Production Deployment (in progress)
+2. **v1.0.3** — Security Hardening (depends on deployment exposure of HIGH findings — now higher once live)
+3. **v1.1** — Bulk schedule entry (convenience)
+4. **v1.2** — Submission readiness gate (prevents invalid FK/Skatteverket filings)
+5. **v1.3** — Schedule-violation warnings on Monthly (surfaces labor-law + FK-rule issues)
+6. **v1.4** — Fremia salary model (triggered by hiring a non-family assistant on kollektivavtal)
+7. **v1.5** — Custom salary model (triggered by edge-case hiring arrangement)
+8. **v2.0** — Calendar & schedule reconciliation (triggered by billing drift becoming visible)
 
 **Design-wireframes implementation** ([seeds/design-wireframes-implementation.md](seeds/design-wireframes-implementation.md)) is a wildcard — could insert anywhere depending on deliverable scope.
 
@@ -301,3 +334,4 @@ Features acknowledged but not yet phased:
 *v1.0 archived: 2026-04-18 — 15/15 requirements, 9 phases shipped*
 *v1.0.1 archived: 2026-04-26 — 18/18 requirements, 4 phases shipped (7–10)*
 *Far-horizon + vision merged from root ROADMAP.md: 2026-04-30*
+*v1.0.2 phases 11–12 added: 2026-04-30*
