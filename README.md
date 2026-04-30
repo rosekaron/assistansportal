@@ -129,7 +129,7 @@ cd server && npm run db:generate
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for the full product roadmap: MVP → V2 (care coordination + B2B) → V3 (knowledge base + LSS appeals) → Platform (assistant marketplace).
+See [.planning/ROADMAP.md](.planning/ROADMAP.md) for the full product roadmap: MVP → V2 (care coordination + B2B) → V3 (knowledge base + LSS appeals) → Platform (assistant marketplace).
 
 ---
 
