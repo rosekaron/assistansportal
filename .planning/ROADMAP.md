@@ -105,7 +105,11 @@ Full detail: [milestones/v1.0.1-ROADMAP.md](milestones/v1.0.1-ROADMAP.md). Audit
   3. `docker run` with `NODE_ENV=production` and a full set of production-style env vars starts the server and serves the compiled React SPA at `/`
   4. A PDF download request (`/api/pdf/lonespec` or `/api/pdf/3057`) against the locally-running container returns a valid PDF with no HTTP 500
   5. The local smoke pass is documented (pass criteria identical to Phase 12 smoke suite)
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 11-01-PLAN.md — Docker build infrastructure (Dockerfile, .dockerignore, root build script) — CONT-01, CONT-02, CONT-03
+- [ ] 11-02-PLAN.md — Server changes (remove Homebrew PATH hack, add production static SPA serving) — CONT-04
+- [ ] 11-03-PLAN.md — Local smoke verification (build, run, browser-verify, document) — CONT-05
 
 ### Phase 12: Azin Deployment & Go-Live
 **Goal**: Connect repo to Azin, provision PostgreSQL, configure all 13 environment variables, push schema, update Google OAuth for production domain, and pass the 3-test smoke suite.
@@ -126,7 +130,7 @@ Full detail: [milestones/v1.0.1-ROADMAP.md](milestones/v1.0.1-ROADMAP.md). Audit
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 11. Production Dockerfile & Static Serving | 0/? | Not started | - |
+| 11. Production Dockerfile & Static Serving | 0/3 | Not started | - |
 | 12. Azin Deployment & Go-Live | 0/? | Not started | - |
 
 ---
