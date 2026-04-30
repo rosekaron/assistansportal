@@ -37,3 +37,56 @@ Result: PASS
 Size: 459MB
 Within 200–500MB range: YES
 Notes: Within expected range. Client devDependencies were correctly excluded from the runtime stage (only `client/dist` copied from builder). The 459MB breakdown includes: node:22-slim base (~200MB), server production dependencies (~130MB), qpdf + libs (~4MB), compiled dist (~5MB), forms PDFs (~120MB).
+
+## Step F — Postgres available
+
+Command: `docker compose up -d postgres`
+Result: PASS
+Notes: Container assistansportal_db was already running; docker compose confirmed "Running".
+
+## Step G — App container started
+
+Image: assistansportal:local
+Env vars: NODE_ENV=production, DATABASE_URL (host.docker.internal:5432), JWT_SECRET (32 chars), FK_HOURLY_RATE=254.10, EMPLOYER_TAX_RATE=0.3142, CLIENT_URL=http://localhost:3001, PORT=3001
+Result: PASS
+Notes: Container started in detached mode on host port 3002 (port 3001 was occupied by the local dev server already running; host port remapped to 3002 for the smoke run — container still bound to internal port 3001). Server bound within 10 seconds; no startup errors.
+
+Additional Rule 2 auto-fix applied: added `/api` 404 guard middleware in `server/src/index.ts` placed after all API route registrations and before the SPA catch-all. This ensures undefined `/api/*` routes return 404 JSON instead of the SPA `index.html`. Image was rebuilt after the fix.
+
+## Step H — SPA served at GET / (CONT-04)
+
+Command: `curl -s -o /tmp/smoke-root.html -w "%{http_code}" http://localhost:3002/`
+Expected: HTTP 200, response body begins with `<!DOCTYPE html>`
+Actual HTTP code: 200
+First line of body: `<!DOCTYPE html>`
+Result: PASS
+
+## Step I — Health endpoint
+
+Command: `curl -s http://localhost:3002/api/health`
+Expected: JSON containing `"ok":true`
+Actual: `{"ok":true,"ts":"2026-04-30T21:51:41.437Z"}`
+Result: PASS
+
+## Step J — API 404 isolation (catch-all does not mask API)
+
+Command: `curl -s -o /dev/null -w "%{http_code}" http://localhost:3002/api/this-route-does-not-exist`
+Expected: 404
+Actual: 404
+Result: PASS
+
+## Step K — Container logs
+
+Last 20 lines of `docker logs assistansportal-smoke`:
+```
+📁 Forms dir: /app/forms
+(node:1) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  Cron          → compliance reminder job started
+
+✅  Server running → http://localhost:3001
+   Postgres       → host.docker.internal:5432/assistansportal
+```
+Contains `Server running`: YES
+Contains `FATAL`: NO
+Result: PASS

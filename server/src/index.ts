@@ -52,8 +52,15 @@ app.use("/api/guardian-links", guardianLinksRoutes);
 
 app.get("/api/health", (_req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
 
+// 404 guard for undefined /api/* routes — must come BEFORE the SPA catch-all
+// so that mistyped or non-existent API endpoints return 404 JSON rather than index.html.
+// This prevents the SPA catch-all from masking API routing errors.
+app.use("/api", (_req, res) => {
+  res.status(404).json({ error: "Not found" });
+});
+
 // Serve compiled React SPA in production (NODE_ENV=production).
-// Must be placed AFTER all /api/* route registrations and /api/health
+// Must be placed AFTER all /api/* route registrations, /api/health, and the /api 404 guard
 // to prevent the catch-all intercepting API requests.
 if (process.env.NODE_ENV === "production") {
   const clientDist = path.join(__dirname, "../../client/dist");
