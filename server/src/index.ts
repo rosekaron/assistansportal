@@ -52,6 +52,17 @@ app.use("/api/guardian-links", guardianLinksRoutes);
 
 app.get("/api/health", (_req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
 
+// Serve compiled React SPA in production (NODE_ENV=production).
+// Must be placed AFTER all /api/* route registrations and /api/health
+// to prevent the catch-all intercepting API requests.
+if (process.env.NODE_ENV === "production") {
+  const clientDist = path.join(__dirname, "../../client/dist");
+  app.use(express.static(clientDist));
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
+
 async function main() {
   await seedDefaults();
   startReminderCron();
