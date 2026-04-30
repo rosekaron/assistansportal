@@ -108,7 +108,7 @@ Full detail: [milestones/v1.0.1-ROADMAP.md](milestones/v1.0.1-ROADMAP.md). Audit
 **Plans:** 3 plans
 Plans:
 - [x] 11-01-PLAN.md — Docker build infrastructure (Dockerfile, .dockerignore, root build script) — CONT-01, CONT-02, CONT-03
-- [ ] 11-02-PLAN.md — Server changes (remove Homebrew PATH hack, add production static SPA serving) — CONT-04
+- [x] 11-02-PLAN.md — Server changes (remove Homebrew PATH hack, add production static SPA serving) — CONT-04
 - [ ] 11-03-PLAN.md — Local smoke verification (build, run, browser-verify, document) — CONT-05
 
 ### Phase 12: Azin Deployment & Go-Live
@@ -130,7 +130,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 11. Production Dockerfile & Static Serving | 1/3 | In progress | - |
+| 11. Production Dockerfile & Static Serving | 2/3 | In progress | - |
 | 12. Azin Deployment & Go-Live | 0/? | Not started | - |
 
 ---

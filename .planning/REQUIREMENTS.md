@@ -12,7 +12,7 @@ Requirements for deploying the platform to production on azin.run.
 - [x] **CONT-01**: App builds as a single production Docker image (multi-stage: build stage + runtime stage)
 - [x] **CONT-02**: `qpdf` installed via `apt-get` in the runtime stage (replaces Homebrew PATH hack in `server/src/index.ts`)
 - [x] **CONT-03**: `forms/` directory (fk3057.pdf, fk3059.pdf, skv4805.pdf) present at the correct path inside the container at runtime
-- [ ] **CONT-04**: Server serves compiled React client as static files when `NODE_ENV=production` (Express `static` middleware for `client/dist`)
+- [x] **CONT-04**: Server serves compiled React client as static files when `NODE_ENV=production` (Express `static` middleware for `client/dist`)
 - [ ] **CONT-05**: Docker image builds and runs correctly locally with production-style env vars before pushing to Azin
 
 ### Deployment
@@ -63,7 +63,7 @@ Requirements for deploying the platform to production on azin.run.
 | CONT-01 | Phase 11 | Complete (11-01) |
 | CONT-02 | Phase 11 | Complete (11-01) |
 | CONT-03 | Phase 11 | Complete (11-01) |
-| CONT-04 | Phase 11 | Pending |
+| CONT-04 | Phase 11 | Complete (11-02) |
 | CONT-05 | Phase 11 | Pending |
 | DEPLOY-01 | Phase 12 | Pending |
 | DEPLOY-02 | Phase 12 | Pending |
