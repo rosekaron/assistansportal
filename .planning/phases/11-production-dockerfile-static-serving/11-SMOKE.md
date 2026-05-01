@@ -90,3 +90,17 @@ Last 20 lines of `docker logs assistansportal-smoke`:
 Contains `Server running`: YES
 Contains `FATAL`: NO
 Result: PASS
+
+## Step N — Manual browser verification (human-verify checkpoint)
+
+Verified by: MRK
+Date: 2026-05-01
+
+- a) Page loads, React mounts: PASS
+- b) Console: no red errors: PASS
+- c) Network: all assets 200, correct content-types: PASS
+- d) Client-side navigation works: PASS
+- e) Hard-refresh on /monthly returns index.html and React rehydrates: PASS
+
+Final phase verdict (CONT-05): PASS
+Notes: All five browser checks passed. Guardian approved manually.
