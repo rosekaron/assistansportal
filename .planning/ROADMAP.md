@@ -88,7 +88,7 @@ Full detail: [milestones/v1.0.1-ROADMAP.md](milestones/v1.0.1-ROADMAP.md). Audit
 
 ### v1.0.2 — Production Deployment (active)
 
-- [ ] **Phase 11: Production Dockerfile & Static Serving** — Multi-stage Dockerfile with qpdf (apt), forms directory, compiled React client served by Express in production mode. Verified locally before deploy.
+- [x] **Phase 11: Production Dockerfile & Static Serving** — Multi-stage Dockerfile with qpdf (apt), forms directory, compiled React client served by Express in production mode. Verified locally before deploy. ✓ 2026-05-01
 - [ ] **Phase 12: Azin Deployment & Go-Live** — Connect repo to Azin, provision PostgreSQL, configure all 13 env vars, push schema, update Google OAuth for production domain, pass 3-test smoke suite.
 
 ---
@@ -109,7 +109,7 @@ Full detail: [milestones/v1.0.1-ROADMAP.md](milestones/v1.0.1-ROADMAP.md). Audit
 Plans:
 - [x] 11-01-PLAN.md — Docker build infrastructure (Dockerfile, .dockerignore, root build script) — CONT-01, CONT-02, CONT-03
 - [x] 11-02-PLAN.md — Server changes (remove Homebrew PATH hack, add production static SPA serving) — CONT-04
-- [ ] 11-03-PLAN.md — Local smoke verification (build, run, browser-verify, document) — CONT-05
+- [x] 11-03-PLAN.md — Local smoke verification (build, run, browser-verify, document) — CONT-05
 
 ### Phase 12: Azin Deployment & Go-Live
 **Goal**: Connect repo to Azin, provision PostgreSQL, configure all 13 environment variables, push schema, update Google OAuth for production domain, and pass the 3-test smoke suite.
@@ -130,7 +130,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 11. Production Dockerfile & Static Serving | 2/3 | In progress | - |
+| 11. Production Dockerfile & Static Serving | 3/3 | Complete | 2026-05-01 |
 | 12. Azin Deployment & Go-Live | 0/? | Not started | - |
 
 ---
