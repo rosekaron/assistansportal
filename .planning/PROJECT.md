@@ -1,6 +1,6 @@
 # Kalinga — Assistansportal
 
-## Current State (2026-04-30)
+## Current State (2026-05-01)
 
 **Shipped:** v1.0.1 — Salary Slip + Foundation Cleanup (merged to `main` 2026-04-25 via [PR #7](https://github.com/rosekaron/assistansportal/pull/7))
 **Git tag:** `v1.0.1` on merge commit `a796a12` (also `v1.0` archived on `milestone/v1.0-mvp`)
@@ -119,8 +119,8 @@ The guardian can complete the full monthly cycle — approve hours, generate all
 
 <!-- v1.0.2 Production Deployment -->
 
-- [ ] App is containerized with a production multi-stage Dockerfile (includes qpdf via apt, forms directory, compiled client)
-- [ ] Server serves compiled React client as static files when `NODE_ENV=production`
+- [x] App is containerized with a production multi-stage Dockerfile (includes qpdf via apt, forms directory, compiled client) — Validated Phase 11
+- [x] Server serves compiled React client as static files when `NODE_ENV=production` — Validated Phase 11
 - [ ] GitHub repo connected to Azin; push to `main` triggers auto-deploy
 - [ ] Production PostgreSQL provisioned by Azin; schema migrated via Drizzle push
 - [ ] All 13 environment variables configured in Azin production environment
@@ -182,7 +182,7 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-30 — v1.0.2 Production Deployment milestone started. GSD updated to 1.38.5. v1.0.1 phase dirs archived. Next: `/gsd-plan-phase 11`.*
+*Last updated: 2026-05-01 — Phase 11 complete. Docker image (459MB, qpdf, forms, SPA static serving) verified locally. CONT-01..05 satisfied. Next: `/gsd-discuss-phase 12` (Azin deployment).*
 
 ## Core Value Proposition (Clarified 2026-04-10)
 
